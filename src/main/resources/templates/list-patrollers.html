@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Members of the ' + ${resortFullName} + ' Ski Patrol'">Patrol Members</title>
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        table.list {
+            border-width: 1px;
+            border-color: #000000;
+            border-style: solid;
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+        table.list th {
+            font-size: [[${textFontSize}]]pt;
+            font-weight: bold;
+            color: #000000;
+            background-color: #ffffff;
+            border-width: 1px;
+            border-color: #000000;
+            border-style: solid;
+            padding: 2px;
+        }
+        table.list td {
+            font-size: [[${textFontSize}]]pt;
+            color: #000000;
+            background-color: #ffffff;
+            border-width: 1px;
+            border-color: #000000;
+            border-style: solid;
+            padding: 1px;
+        }
+    </style>
+    <script>
+        function printWindow() {
+            var bV = parseInt(navigator.appVersion);
+            if (bV >= 4) window.print();
+        }
+    </script>
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header(${resort})}"></div>
+
+    <p><center><h2 th:text="'Members of the ' + ${resortFullName} + ' Ski Patrol'">Members</h2></center></p>
+
+    <!-- Email/Download buttons -->
+    <div th:if="${isDirector or emailAllAllowed}">
+        <p><font size="3"><bold>
+            <input type="button"
+                   value="e-mail THESE patrollers"
+                   th:onclick="'window.location=\'' + ${emailFormUrl} + '\''"/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+            <input th:if="${isDirector and userId == '192443'}"
+                   type="button"
+                   value="Steve, Download table (under construction)"
+                   th:onclick="'window.location=\'DownloadRoster?resort=' + ${resort} + '&ID=' + ${userId} + '&format=Excel\''"/>
+        </bold></font></p>
+    </div>
+
+    <table class="list"
+           style="font-size: 10pt; face='Verdana, Arial, Helvetica'"
+           border="1"
+           width="99%"
+           bordercolordark="#003366"
+           bordercolorlight="#C0C0C0">
+        <tr>
+            <th>Name</th>
+            <th th:if="${showBlank}">&nbsp;</th>
+            <th th:if="${showBlankWide}">&nbsp;&nbsp;&nbsp;</th>
+            <th th:if="${showClass}">Class</th>
+            <th th:if="${showID}">ID</th>
+            <th th:if="${showSpouse}">Spouse</th>
+            <th th:if="${showAddr}">Address</th>
+            <th th:if="${showCity}">City</th>
+            <th th:if="${showState}">State</th>
+            <th th:if="${showZip}">Zip</th>
+            <th th:if="${showHome}">Home</th>
+            <th th:if="${showWork}">Work</th>
+            <th th:if="${showCell}">Cell</th>
+            <th th:if="${showPager}">Pager</th>
+            <th th:if="${showEmail}">Email</th>
+            <th th:if="${showEmergency}">Call Up</th>
+            <th th:if="${showSubstitute}">Sub</th>
+            <th th:if="${showCommit}">Commitment</th>
+            <th th:if="${showInstructor}">Instructor</th>
+            <th th:if="${showDirector}">Director</th>
+            <th th:if="${showLastUpdated}">Last Updated</th>
+            <th th:if="${showComments}">Private Comments</th>
+            <th th:if="${showCanEarnCredits}">Can Earn Credits</th>
+            <th th:if="${showCreditsEarned}">Credits Available</th>
+            <th th:if="${showCreditDate}">Last Credit Update</th>
+            <th th:if="${showTeamLead}">Team Lead</th>
+            <th th:if="${showMentoring}">Mentoring</th>
+            <th th:if="${showDayCnt}">Day Shifts</th>
+            <th th:if="${showDayList}">Day Shift Details</th>
+            <th th:if="${showSwingCnt}">Swing Shifts</th>
+            <th th:if="${showSwingList}">Swing Shift Details</th>
+            <th th:if="${showNightCnt}">Night Shifts</th>
+            <th th:if="${showNightList}">Night Shift Details</th>
+            <th th:if="${showTrainingCnt}">Training Shifts</th>
+            <th th:if="${showTrainingList}">Training Shift Details</th>
+            <th th:if="${showOtherCnt}">Other Shifts</th>
+            <th th:if="${showOtherList}">Other Shift Details</th>
+            <th th:if="${showHolidayCnt}">Holiday Shifts</th>
+            <th th:if="${showHolidayList}">Holiday Shift Details</th>
+        </tr>
+
+        <tr th:each="member : ${members}">
+            <td th:text="${member.getDisplayName()}">Name</td>
+            <td th:if="${showBlank}">&nbsp;</td>
+            <td th:if="${showBlankWide}">&nbsp;&nbsp;&nbsp;</td>
+            <td th:if="${showClass}" th:text="${member.getClassification()}">Class</td>
+            <td th:if="${showID}" th:text="${member.getID()}">ID</td>
+            <td th:if="${showSpouse}" th:text="${member.getSpouse()}">Spouse</td>
+            <td th:if="${showAddr}" th:text="${member.getAddress()}">Address</td>
+            <td th:if="${showCity}" th:text="${member.getCity()}">City</td>
+            <td th:if="${showState}" th:text="${member.getState()}">State</td>
+            <td th:if="${showZip}" th:text="${member.getZipCode()}">Zip</td>
+            <td th:if="${showHome}" th:text="${member.getHomePhone()}">Home</td>
+            <td th:if="${showWork}" th:text="${member.getWorkPhone()}">Work</td>
+            <td th:if="${showCell}" th:text="${member.getCellPhone()}">Cell</td>
+            <td th:if="${showPager}" th:text="${member.getPager()}">Pager</td>
+            <td th:if="${showEmail}" th:text="${member.getEmailAddress()}">Email</td>
+            <td th:if="${showEmergency}" th:text="${member.getEmergencyCallUp()}">Emergency</td>
+            <td th:if="${showSubstitute}" th:text="${member.getNightSubstitute()}">Sub</td>
+            <td th:if="${showCommit}" th:text="${member.getCommitment()}">Commitment</td>
+            <td th:if="${showInstructor}" th:text="${member.getInstructor()}">Instructor</td>
+            <td th:if="${showDirector}" th:text="${member.isDirector() ? 'Yes' : 'No'}">Director</td>
+            <td th:if="${showLastUpdated}" th:text="${member.getLastUpdated()}">Updated</td>
+            <td th:if="${showComments}" th:text="${member.getComments()}">Comments</td>
+            <td th:if="${showCanEarnCredits}" th:text="${member.canEarnCredits() ? 'Yes' : 'No'}">Credits</td>
+            <td th:if="${showCreditsEarned}" th:text="${member.getCreditsEarned()}">Earned</td>
+            <td th:if="${showCreditDate}" th:text="${member.getLastCreditUpdate()}">Credit Date</td>
+            <td th:if="${showTeamLead}" th:text="${member.isTeamLead() ? 'Yes' : 'No'}">Team Lead</td>
+            <td th:if="${showMentoring}" th:text="${member.isMentoring() ? 'Yes' : 'No'}">Mentoring</td>
+
+            <td th:if="${showDayCnt}" th:text="${member.AssignmentCount[1]}">0</td>
+            <td th:if="${showDayList}" th:text="${member.szAssignments[1]}">Details</td>
+            <td th:if="${showSwingCnt}" th:text="${member.AssignmentCount[2]}">0</td>
+            <td th:if="${showSwingList}" th:text="${member.szAssignments[2]}">Details</td>
+            <td th:if="${showNightCnt}" th:text="${member.AssignmentCount[0]}">0</td>
+            <td th:if="${showNightList}" th:text="${member.szAssignments[0]}">Details</td>
+            <td th:if="${showTrainingCnt}" th:text="${member.AssignmentCount[3]}">0</td>
+            <td th:if="${showTrainingList}" th:text="${member.szAssignments[3]}">Details</td>
+            <td th:if="${showOtherCnt}" th:text="${member.AssignmentCount[4]}">0</td>
+            <td th:if="${showOtherList}" th:text="${member.szAssignments[4]}">Details</td>
+            <td th:if="${showHolidayCnt}" th:text="${member.AssignmentCount[5]}">0</td>
+            <td th:if="${showHolidayList}" th:text="${member.szAssignments[5]}">Details</td>
+        </tr>
+
+    </table>
+
+    <div>
+        <span th:text="'Total Patrollers Listed=' + ${patrollersListed}">Total</span>
+        <br/>
+        <span th:text="'As of: ' + ${#dates.format(currentDate, 'EEE MMM dd HH:mm:ss zzz yyyy')}">Date</span>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
