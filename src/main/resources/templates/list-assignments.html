@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${memberName} + '\'s Assignment Schedule for ' + ${resortFullName}">Assignment Schedule</title>
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <h1>
+        <img border="0" src="/calendar-1/images/ski_accident_md_wht.gif" align="top">
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Shift Summary
+    </h1>
+
+    <!-- Backdoor user message -->
+    <div th:if="${isBackdoorUser}">
+        Have a great day<br>
+    </div>
+
+    <!-- Main content for normal users -->
+    <div th:unless="${isBackdoorUser}">
+        <!-- Toggle link - next step -->
+
+        <!-- Member info - next step -->
+
+        <!-- Assignment table - next step -->
+
+        <!-- Shift counts - next step -->
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
