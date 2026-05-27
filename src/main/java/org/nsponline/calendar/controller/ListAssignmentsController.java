@@ -130,7 +130,68 @@ public class ListAssignmentsController {
             }
             calendarStart.set(startYear, startMonth, 1);
 
-            // TODO: Load assignments (next task)
+            // 10. Get member info
+            Roster member = patrolData.getMemberByID(patrollerId);
+            String memberName = member != null ? member.getFullName() : "Unknown";
+            int myID = Integer.parseInt(patrollerId);
+
+            // 11. Initialize collections for assignment data
+            List<AssignmentInfo> assignments = new ArrayList<>();
+            int[] shiftCounts = new int[Assignments.MAX_SHIFT_TYPES];
+            int totalShifts = 0;
+
+            // 12. Set up alternating row colors
+            String WHITE_BG_COLOR = "#FFFFFF";
+            String LT_GREEN_BG_COLOR = "#D7F5ED";
+            String bgColor = WHITE_BG_COLOR;
+            int lastMonth = 0;
+
+            // 13. Load and process assignments
+            for (Assignments ns : patrolData.readAllSortedAssignments(patrollerId)) {
+                // Check if assignment is within season range
+                Calendar assignmentDate = new GregorianCalendar(ns.getYear(), ns.getMonth() - 1, ns.getDay());
+                if (assignmentDate.before(calendarStart)) {
+                    continue; // Skip assignments before season start
+                }
+
+                // Build date/time strings
+                String szDate = ns.getExpandedDateAndTimeString();
+                String szStartTime = ns.getStartingTimeString();
+                String szEndTime = ns.getEndingTimeString();
+                String dateTimeRange = szDate + " (" + szStartTime + " - " + szEndTime + ")";
+
+                // Handle month change for alternating colors
+                if (lastMonth != ns.getMonth()) {
+                    lastMonth = ns.getMonth();
+                    bgColor = bgColor.equals(WHITE_BG_COLOR) ? LT_GREEN_BG_COLOR : WHITE_BG_COLOR;
+                }
+
+                // Loop through all patrollers on this assignment
+                for (int shiftType = 0; shiftType < Assignments.MAX_ASSIGNMENT_SIZE; shiftType++) {
+                    String posID = ns.getPosID(shiftType);
+                    if (posID == null || posID.equals("")) {
+                        continue;
+                    }
+
+                    try {
+                        int pat0 = Integer.parseInt(posID);
+                        if (Math.abs(pat0) == myID) {
+                            // Found matching patroller
+                            boolean missedShift = (pat0 < 0);
+                            String shiftTypeName = Assignments.getShiftName(ns.getType());
+
+                            assignments.add(new AssignmentInfo(dateTimeRange, shiftTypeName, missedShift, bgColor));
+                            shiftCounts[ns.getType()]++;
+                            totalShifts++;
+                        }
+                    } catch (Exception e) {
+                        LOG.error("error id (" + posID + ")");
+                        continue;
+                    }
+                }
+            }
+
+            // TODO: Populate model (next task)
 
             return "list-assignments";
 
