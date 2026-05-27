@@ -96,10 +96,10 @@ public class SubListController {
                 if (subField != null && (subField.startsWith("y") || subField.startsWith("Y"))) {
                     // Create SubstituteInfo with contact details
                     String name = member.getFullName_lastNameFirst();
-                    String homePhone = member.getHomePhone();
-                    String workPhone = member.getWorkPhone();
-                    String cellPhone = member.getCellPhone();
-                    String email = member.getEmailAddress();
+                    String homePhone = (member.getHomePhone() != null) ? member.getHomePhone().trim() : "";
+                    String workPhone = (member.getWorkPhone() != null) ? member.getWorkPhone().trim() : "";
+                    String cellPhone = (member.getCellPhone() != null) ? member.getCellPhone().trim() : "";
+                    String email = (member.getEmailAddress() != null) ? member.getEmailAddress().trim() : "";
 
                     substitutes.add(new SubstituteInfo(name, homePhone, workPhone, cellPhone, email));
                 }
