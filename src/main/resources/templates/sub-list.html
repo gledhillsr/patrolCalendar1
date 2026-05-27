@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Substitute List for ' + ${resortFullName}">Substitute List</title>
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        table.substitute-list {
+            font-size: 10pt;
+            font-family: Verdana, Arial, Helvetica;
+            border-width: 1px;
+            border-color: #003366;
+            border-style: solid;
+            border-collapse: collapse;
+            width: 99%;
+        }
+        table.substitute-list th {
+            font-size: 10pt;
+            font-family: Verdana, Arial, Helvetica;
+            font-weight: normal;
+            color: #000000;
+            background-color: #C0C0C0;
+            border-width: 1px;
+            border-color: #003366;
+            border-style: solid;
+            padding: 2px;
+        }
+        table.substitute-list td {
+            font-size: 10pt;
+            font-family: Verdana, Arial, Helvetica;
+            color: #000000;
+            background-color: #ffffff;
+            border-width: 1px;
+            border-color: #C0C0C0;
+            border-style: solid;
+            padding: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header(resort=${resort})}"></div>
+
+    <h2 th:text="'Substitute List for ' + ${resortFullName}">Substitute List</h2>
+
+    <!-- Email button section - next step -->
+
+    <!-- Table section - next step -->
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
