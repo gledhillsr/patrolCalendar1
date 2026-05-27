@@ -66,7 +66,12 @@
             </table>
         </div>
 
-        <!-- Shift counts - next step -->
+        <!-- Shift count totals -->
+        <br><b>Totals</b>
+        <span th:each="entry : ${shiftCounts}">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span th:text="${entry.key}">Shift Type</span> = <b th:text="${entry.value}">0</b>
+        </span>
+        <br><b>Total shifts</b>:&nbsp;&nbsp;&nbsp;<b th:text="${totalShifts}">0</b>
     </div>
 
     <div th:replace="~{fragments/footer :: footer}"></div>
