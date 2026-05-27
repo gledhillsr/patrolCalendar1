@@ -81,17 +81,17 @@ public class MemberListController {
         SessionData sessionData = new SessionData(javaxRequest, null, LOG);
         PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
-        // 5. Validate credentials
-        ValidateCredentialsRedirectIfNeeded credentials =
-            new ValidateCredentialsRedirectIfNeeded(
-                sessionData, javaxRequest, javaxResponse,
-                "MemberList", patrolData, LOG);
-
-        if (credentials.hasInvalidCredentials()) {
-            return null; // Redirect already sent
-        }
-
         try {
+            // 5. Validate credentials
+            ValidateCredentialsRedirectIfNeeded credentials =
+                new ValidateCredentialsRedirectIfNeeded(
+                    sessionData, javaxRequest, javaxResponse,
+                    "MemberList", patrolData, LOG);
+
+            if (credentials.hasInvalidCredentials()) {
+                return null; // Redirect already sent
+            }
+
             // 6. Get logged-in user info
             String patrollerId = sessionData.getLoggedInUserId();
 
@@ -101,7 +101,58 @@ public class MemberListController {
             boolean isDirector = editor != null && editor.isDirector();
             boolean showEmailButton = isDirector || (ds != null && ds.getEmailAll());
 
-            // TODO: Load roster data (next task)
+            // 8. Load active members and build email list in single pass
+            List<MemberInfo> members = new ArrayList<>();
+            StringBuilder emailList = new StringBuilder();
+            ResultSet rosterResults = patrolData.resetRoster();
+            Roster member = patrolData.nextMember("&nbsp;", rosterResults);
+
+            while (member != null) {
+                // Only include active members (commitment != "0")
+                if (!member.getCommitment().equals("0")) {
+                    // Create MemberInfo with contact details
+                    String name = member.getFullName_lastNameFirst();
+                    String homePhone = cleanField(member.getHomePhone());
+                    String workPhone = cleanField(member.getWorkPhone());
+                    String cellPhone = cleanField(member.getCellPhone());
+                    String email = cleanField(member.getEmailAddress());
+
+                    members.add(new MemberInfo(name, homePhone, workPhone, cellPhone, email));
+
+                    // Build email list for EmailForm button
+                    if (StaticUtils.isValidEmailAddress(email)) {
+                        if (emailList.length() > 0) {
+                            emailList.append(",");
+                        }
+                        emailList.append(email);
+                    }
+                }
+
+                member = patrolData.nextMember("&nbsp;", rosterResults);
+            }
+
+            // 9. Add model attributes
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", patrollerId);
+            model.addAttribute("members", members);
+            model.addAttribute("memberCount", members.size());
+            model.addAttribute("showEmailButton", showEmailButton);
+
+            // 10. Add resort metadata for header
+            ResortData resortData = PatrolData.getResortInfo(resort);
+            if (resortData != null) {
+                model.addAttribute("resortUrl", resortData.getResortURL());
+                model.addAttribute("resortImage", resortData.getResortImage());
+                model.addAttribute("resortImgHeight", resortData.getImageHeight());
+            }
+            model.addAttribute("logoutLink", "");
+
+            // 11. Build EmailForm URL with default options
+            String emailFormUrl = "EmailForm?resort=" + resort + "&ID=" + patrollerId +
+                "&BAS=1&INA=1&SR=1&SRA=1&ALM=1&PRO=1&AUX=1&TRA=1&CAN=1" +
+                "&FullTime=1&PartTime=1&Inactive=1&ALL=1";
+            model.addAttribute("emailFormUrl", emailFormUrl);
 
             return "member-list";
 
