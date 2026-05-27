@@ -57,19 +57,33 @@ public class SubListController {
 
         // 2. Use ServletAdapter for legacy code compatibility
         javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
         Logger LOG = new Logger(SubListController.class, javaxRequest, "GET", resort, Logger.INFO);
+
+        // 3. Validate resort
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
+
+        // 4. Initialize session and patrol data
         SessionData sessionData = new SessionData(javaxRequest, null, LOG);
         PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
-        try {
-            // 3. Get logged-in user info
-            String patrollerId = sessionData.getLoggedInUserId();
+        // 5. Validate credentials
+        ValidateCredentialsRedirectIfNeeded credentials =
+            new ValidateCredentialsRedirectIfNeeded(
+                sessionData, javaxRequest, javaxResponse,
+                "SubList", patrolData, LOG);
 
-            // 4. Check authentication - redirect if not logged in
-            if (patrollerId == null || patrollerId.isEmpty()) {
-                response.sendRedirect("MemberLogin?resort=" + resort);
-                return null;
-            }
+        if (credentials.hasInvalidCredentials()) {
+            patrolData.close();
+            return null; // Redirect already sent
+        }
+
+        try {
+            // 6. Get logged-in user info
+            String patrollerId = sessionData.getLoggedInUserId();
 
             // TODO: Load data and populate model (next task)
 
