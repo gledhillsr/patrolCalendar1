@@ -57,6 +57,7 @@ Application starts on `http://localhost:8080/calendar-1/`
 - `/SubList` - Substitute patroller list (Spring Boot + Thymeleaf)
 - `/MemberList` - All active members list (Spring Boot + Thymeleaf)
 - `/ListAssignments` - Patroller shift assignments (Spring Boot + Thymeleaf)
+- `/UpdateInfo` - Self-service profile updates (Spring Boot + Thymeleaf)
 
 ### Security Improvements
 
