@@ -52,7 +52,31 @@ public class SubListController {
     @GetMapping("/SubList")
     public String showSubList(HttpServletRequest request, HttpServletResponse response,
                               Model model) throws IOException {
-        // Implementation in next steps
-        return "sub-list";
+        // 1. Read resort parameter
+        String resort = request.getParameter("resort");
+
+        // 2. Use ServletAdapter for legacy code compatibility
+        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+        Logger LOG = new Logger(SubListController.class, javaxRequest, "GET", resort, Logger.INFO);
+        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        try {
+            // 3. Get logged-in user info
+            String patrollerId = sessionData.getLoggedInUserId();
+
+            // 4. Check authentication - redirect if not logged in
+            if (patrollerId == null || patrollerId.isEmpty()) {
+                response.sendRedirect("MemberLogin?resort=" + resort);
+                return null;
+            }
+
+            // TODO: Load data and populate model (next task)
+
+            return "sub-list";
+
+        } finally {
+            patrolData.close();
+        }
     }
 }
