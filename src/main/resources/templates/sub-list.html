@@ -46,7 +46,14 @@
 
     <h2 th:text="'Substitute List for ' + ${resortFullName}">Substitute List</h2>
 
-    <!-- Email button section - next step -->
+    <!-- Email button -->
+    <p th:if="${!substitutes.isEmpty()}">
+        <b>
+            <input type="button"
+                   value="e-mail THESE patrollers"
+                   th:onclick="'window.location=\'' + ${emailFormUrl} + '\''"/>
+        </b>
+    </p>
 
     <!-- Table section - next step -->
 
