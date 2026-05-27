@@ -2,8 +2,10 @@ package org.nsponline.calendar.resources;
 
 import java.io.IOException;
 import java.sql.ResultSet;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.DirectorSettings;
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.Logger;
@@ -31,7 +33,7 @@ public class MemberList extends ResourceBase {
     //by now, sessionData.getID and sessionData.getLoggedInResort are valid
     ds = null;
     patrollerId = sessionData.getLoggedInUserId();
-//    PatrolData patrol = new PatrolData(PatrolData.FETCH_ALL_DATA, resort, sessionData, LOG);
+    //    PatrolData patrol = new PatrolData(PatrolData.FETCH_ALL_DATA, resort, sessionData, LOG);
     readData(sessionData, patrollerId);
 
     printCommonHeader();
@@ -72,26 +74,34 @@ public class MemberList extends ResourceBase {
     out.println("}");
     out.println("</script>");
 
-    out.println("<p><Center><h2>List of Members of " + PatrolData.getResortFullName(resort, LOG) + " Ski Patrollers</h2></Center></p>");
+    out.println("<p><Center><h2>List of Members of " + PatrolData.getResortFullName(resort, LOG) +
+                  " Ski Patrollers</h2></Center></p>");
 
     if (isDirector || (ds != null && ds.getEmailAll())) {
       //getEmailAddress()
       out.println("<p><Bold>");
-      String options = "&BAS=1&INA=1&SR=1&SRA=1&ALM=1&PRO=1&AUX=1&TRA=1&CAN=1&FullTime=1&PartTime=1&Inactive=1&ALL=1"; //default
+      String options =
+        "&BAS=1&INA=1&SR=1&SRA=1&ALM=1&PRO=1&AUX=1&TRA=1&CAN=1&FullTime=1&PartTime=1&Inactive=1&ALL=1"; //default
       String loc = "EmailForm?resort=" + resort + "&ID=" + patrollerId + options;
       out.println("<INPUT TYPE=\"button\" VALUE=\"e-mail THESE patrollers\" onClick=window.location=\"" + loc + "\">");
       out.println("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
 
       //        out.println("<a href=\"javascript:printWindow()\">Print This Page</a></p>");
     }
-    out.println("<table  style=\"font-size: 10pt; face='Verdana, Arial, Helvetica' \" border=\"1\" width=\"99%\" bordercolordark=\"#003366\" bordercolorlight=\"#C0C0C0\">");
+    out.println(
+      "<table  style=\"font-size: 10pt; face='Verdana, Arial, Helvetica' \" border=\"1\" width=\"99%\" bordercolordark=\"#003366\" bordercolorlight=\"#C0C0C0\">");
     out.println(" <tr>");
-    out.println("  <td width=\"160\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Name</font></font></td>");
-    out.println("  <td width=\"90\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Home</font></font></td>");
-    out.println("  <td width=\"83\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Work</font></font></td>");
-    out.println("  <td width=\"70\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Cell</font></font></td>");
-//    out.println("  <td width=\"73\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Pager</font></font></td>");
-    out.println("  <td width=\"136\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Email</font></font></td>");
+    out.println(
+      "  <td width=\"160\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Name</font></font></td>");
+    out.println(
+      "  <td width=\"90\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Home</font></font></td>");
+    out.println(
+      "  <td width=\"83\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Work</font></font></td>");
+    out.println(
+      "  <td width=\"70\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Cell</font></font></td>");
+    //    out.println("  <td width=\"73\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Pager</font></font></td>");
+    out.println(
+      "  <td width=\"136\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">Email</font></font></td>");
     out.println(" </tr>");
   }
 

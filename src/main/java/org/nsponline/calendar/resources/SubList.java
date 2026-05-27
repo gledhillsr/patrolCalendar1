@@ -2,16 +2,19 @@ package org.nsponline.calendar.resources;
 
 import java.io.IOException;
 import java.sql.ResultSet;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.Logger;
+import org.nsponline.calendar.utils.PatrolData;
 import org.nsponline.calendar.utils.StaticUtils;
 
 public class SubList extends ResourceBase {
   //class globals
 
-  SubList(HttpServletRequest request, HttpServletResponse response, Logger LOG)  throws IOException {
+  SubList(HttpServletRequest request, HttpServletResponse response, Logger LOG) throws IOException {
     super(request, response, LOG);
     if (!initBaseAndAskForValidCredentials(response, "SubList")) {
       return;
@@ -28,7 +31,7 @@ public class SubList extends ResourceBase {
 
   @SuppressWarnings("StringConcatenationInLoop")
   void printStartOfTable(String IDOfEditor) {
-    out.println("<h2>Substitute List for " + patrolData.getResortFullName(resort, LOG) + "</h2>");
+    out.println("<h2>Substitute List for " + PatrolData.getResortFullName(resort, LOG) + "</h2>");
     //          if(isDirector || (ds != null && !ds.getEmailAll()))
     {
       //      //getEmailAddress()
@@ -55,14 +58,20 @@ public class SubList extends ResourceBase {
       String loc = "EmailForm?resort=" + resort + "&ID=" + IDOfEditor + options;
       out.println("<INPUT TYPE='button' VALUE='e-mail THESE patrollers' onClick=window.location='" + loc + "'>");
     }
-    out.println("    <table style='font-size: 10pt; face=\'Verdana, Arial, Helvetica\' ' border='1' width='99%' bordercolordark='#003366' bordercolorlight='#C0C0C0'>");
+    out.println(
+      "    <table style='font-size: 10pt; face='Verdana, Arial, Helvetica' ' border='1' width='99%' bordercolordark='#003366' bordercolorlight='#C0C0C0'>");
     out.println("        <tr>");
-    out.println("          <td width='148' bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Name</font></td>");
-    out.println("          <td width='90'  bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Home</font></td>");
-    out.println("          <td width='83'  bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Work</font></td>");
-    out.println("          <td width='70'  bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Cell</font></td>");
-//    out.println("          <td width='73'  bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Pager</font></td>");
-    out.println("          <td width='136' bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Email</font></td>");
+    out.println(
+      "          <td width='148' bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Name</font></td>");
+    out.println(
+      "          <td width='90'  bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Home</font></td>");
+    out.println(
+      "          <td width='83'  bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Work</font></td>");
+    out.println(
+      "          <td width='70'  bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Cell</font></td>");
+    //    out.println("          <td width='73'  bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Pager</font></td>");
+    out.println(
+      "          <td width='136' bgcolor='#C0C0C0'><font face='Verdana, Arial, Helvetica' size='2'>Email</font></td>");
     out.println("        </tr>");
   }
 
@@ -72,7 +81,7 @@ public class SubList extends ResourceBase {
     out.println(" <td>" + home + "</td>");
     out.println(" <td>" + work + "</td>");
     out.println(" <td>" + cell + "</td>");
-//    out.println(" <td>" + pager + "</td>");
+    //    out.println(" <td>" + pager + "</td>");
     out.println(" <td>" + email + "</td>");
     out.println("</tr>\n");
   }
@@ -93,7 +102,8 @@ public class SubList extends ResourceBase {
       }
 
       if (member.getSub() != null && (member.getSub().startsWith("y") || member.getSub().startsWith("Y"))) {
-        printRow(member.getFullName_lastNameFirst(), member.getHomePhone(), member.getWorkPhone(), member.getCellPhone(), member.getPager(), member.getEmailAddress());
+        printRow(member.getFullName_lastNameFirst(), member.getHomePhone(), member.getWorkPhone(),
+                 member.getCellPhone(), member.getPager(), member.getEmailAddress());
       }
       member = patrolData.nextMember("&nbsp;", rosterResults);   // "&nbsp;" is the default string field
     }

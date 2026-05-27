@@ -2,8 +2,10 @@ package org.nsponline.calendar.resources;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.*;
 
@@ -20,7 +22,8 @@ public class LoginHelp extends ResourceBase {
   @SuppressWarnings("FieldCanBeLocal")
   private static final boolean DEBUG_SENSITIVE = true;
 
-  public LoginHelp(final HttpServletRequest request, final HttpServletResponse response, Logger LOG) throws IOException {
+  public LoginHelp(final HttpServletRequest request, final HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     if (!initBase(response)) {
       return; //"resort" not found, or requestFromBot
@@ -39,7 +42,7 @@ public class LoginHelp extends ResourceBase {
       }
       // String newLoc = BASE_URL + resort + "/index.php?resort=" + resort + "&NSPgoto=" + szParent + "&ID=" + id;
       String newLoc = PatrolData.SERVLET_URL + szParent + "?resort=" + resort + "&ID=" + id;
-//      debugOut("LoginHelp (valid login) sendRedirect to: " + newLoc, sessionData);
+      //      debugOut("LoginHelp (valid login) sendRedirect to: " + newLoc, sessionData);
       response.sendRedirect(newLoc);
       patrolData.close();
       return;
@@ -62,12 +65,15 @@ public class LoginHelp extends ResourceBase {
         int ret = sendPassword(ID2, email, resort, sessionData, patrolData);
         if (ret == 0) {
           out.println("Note: an email of the ID and password was just sent.<br>");
-        } else if (ret == 1) {
+        }
+        else if (ret == 1) {
           out.println("Sorry, no member was found.<br>");
-        } else {
+        }
+        else {
           out.println("Sorry, no valid email was found for this member.<br>");
         }
-      } else {
+      }
+      else {
         out.println("Error, ID or email required for search.<br>");
       }
     }
@@ -102,7 +108,8 @@ public class LoginHelp extends ResourceBase {
         emailAddress = member.getEmailAddress();
         //out.println("FOUND emailAddress=(" + emailAddress + ")<BR>");
       }
-    } else if (emailAddress.trim().length() > 4) {
+    }
+    else if (emailAddress.trim().length() > 4) {
       member = patrol.getMemberByEmail(emailAddress); //ID from cookie
       if (member != null) {
         ID = member.getID();
@@ -115,7 +122,8 @@ public class LoginHelp extends ResourceBase {
         password = member.getLast();
       }
       String fullName = member.getFullName();
-      String message = fullName + "\n\nYou have requested your login information for your resort " + resort + " on the online scheduling web site.\n\n" +
+      String message = fullName + "\n\nYou have requested your login information for your resort " + resort +
+        " on the online scheduling web site.\n\n" +
         "Your patrol ID is: " + ID + "\n" +
         "Your password is: " + password + "\n\n" +
         "Please change this password ASAP (since it was sent in an email).\n\n" +
@@ -123,7 +131,8 @@ public class LoginHelp extends ResourceBase {
       MailMan mail = new MailMan(emailAddress, sessionData, LOG);
       if (mailto(sessionData, mail, member, "Here is your password you requested", message)) {
         return 0; //mail was sent
-      } else {
+      }
+      else {
         return -1; //invalid emailAddress
       }
     }
@@ -159,7 +168,8 @@ public class LoginHelp extends ResourceBase {
     out.println("   <td width=229 ><INPUT type=\"text\" id=ID name=ID size=20></td>\n");
     out.println("  </tr>\n");
     out.println("  <tr>\n");
-    out.println("   <td align=right width=210><font face=verdana, arial size=2 color=black>Last&nbsp;Name&nbsp;or&nbsp;password:</font></td>\n");
+    out.println(
+      "   <td align=right width=210><font face=verdana, arial size=2 color=black>Last&nbsp;Name&nbsp;or&nbsp;password:</font></td>\n");
     out.println("   <td width=229>\n");
     out.println("     <font face=verdana, arial size=2 color=black>\n");
     out.println("     <INPUT type=\"password\" name=Password size=20></font>\n");
@@ -173,16 +183,19 @@ public class LoginHelp extends ResourceBase {
     out.println("</table>\n");
     out.println("<p>&nbsp;</p>\n");
 
-    out.println("<table border=0 cellpadding=2 style=\"border-collapse: collapse\" bordercolor=\"#111111\" width=450  bgcolor=\"#EFEFEF\">\n");
+    out.println(
+      "<table border=0 cellpadding=2 style=\"border-collapse: collapse\" bordercolor=\"#111111\" width=450  bgcolor=\"#EFEFEF\">\n");
     out.println("  <tr>\n");
     out.println("     <td align=left width=120 rowspan=3 bgcolor=\"#FFFFFF\">\n");
     out.println("<font face=verdana, arial size=2 color=black>\n");
     out.println("  <b>If you forgot your password:</b></font></td>\n");
-    out.println("     <td align=right width=153 bgcolor=\"#C0F0B5\"><font face=verdana, arial size=2 color=black>Member ID:  </font> </td>\n");
+    out.println(
+      "     <td align=right width=153 bgcolor=\"#C0F0B5\"><font face=verdana, arial size=2 color=black>Member ID:  </font> </td>\n");
     out.println("  <td width=167 bgcolor=\"#C0F0B5\" ><INPUT type=\"text\" name=ID2 size=20></td>\n");
     out.println("     </tr>\n");
     out.println("     <tr>\n");
-    out.println("  <td align=right width=153 bgcolor=\"#C0F0B5\"><font size=2>-or-&nbsp; e-mail address</font><font face=verdana, arial size=2 color=black>:</font></td>\n");
+    out.println(
+      "  <td align=right width=153 bgcolor=\"#C0F0B5\"><font size=2>-or-&nbsp; e-mail address</font><font face=verdana, arial size=2 color=black>:</font></td>\n");
     out.println("   <td width=167 bgcolor=\"#C0F0B5\"><INPUT type=\"text\" name=email size=20> </a></td>\n");
     out.println("  </tr>\n");
     out.println("  <tr>\n");
@@ -194,20 +207,24 @@ public class LoginHelp extends ResourceBase {
 
     out.println("</form>");
     out.println("<font face=verdana, arial size=2 color=black>");
-    out.println("For help on locating your NSP Member ID Number, check the examples below of your NSP Membership Card, your OEC Card and the mailing label on your issues of <i>Ski Patrol Magazine</i>");
+    out.println(
+      "For help on locating your NSP Member ID Number, check the examples below of your NSP Membership Card, your OEC Card and the mailing label on your issues of <i>Ski Patrol Magazine</i>");
     out.println("</font>");
     out.println("<table>");
     out.println("<tr>");
     out.println("<td align=center>");
-    out.println("<img src=http://nsponline.org/images/MembershipCard.jpg alt=\"NSP Membership Card\" border=0 width=\"210\" height=\"138\">");
+    out.println(
+      "<img src=http://nsponline.org/images/MembershipCard.jpg alt=\"NSP Membership Card\" border=0 width=\"210\" height=\"138\">");
     out.println("</td>");
     out.println("<td align=center>");
-    out.println("<img src=http://nsponline.org/images/OECCard.jpg alt=\"NSP Membership Card.\" width=\"210\" height=\"148\">");
+    out.println(
+      "<img src=http://nsponline.org/images/OECCard.jpg alt=\"NSP Membership Card.\" width=\"210\" height=\"148\">");
     out.println("</td>");
     out.println("</tr>");
     out.println("<tr>");
     out.println("<td align=center>");
-    out.println("<img src=http://nsponline.org/images/label.jpg alt=\"Mailing Label From SPM\" width=\"210\" height=\"93\"><br>");
+    out.println(
+      "<img src=http://nsponline.org/images/label.jpg alt=\"Mailing Label From SPM\" width=\"210\" height=\"93\"><br>");
     out.println("</td>");
     out.println("</tr>");
     out.println("</table>");

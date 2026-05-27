@@ -2,6 +2,7 @@ package org.nsponline.calendar.utils;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+
 import javax.servlet.http.HttpServletRequest;
 
 public class Logger {
@@ -14,7 +15,7 @@ public class Logger {
 
   private final String className;
   @SuppressWarnings("unused")
-//  private String ip;
+  //  private String ip;
   private String agent;
   private String methodType;
   private String resort;
@@ -24,20 +25,21 @@ public class Logger {
 
   public Logger(Class<?> clazz, int minLogLevel) {  //todo get rid of this
     this.className = clazz.getSimpleName();
-//    ip = "";
+    //    ip = "";
     agent = "";
     this.minLogLevel = minLogLevel;
   }
 
-//  public Logger(final Class<?> aClass, Logger parentLogger, String resort, int minLogLevel) {
-//    this(aClass,
-//         parentLogger != null ? parentLogger.getRequest() : null,
-//         "",
-//         (resort == null && parentLogger != null) ? parentLogger.getResort() : resort,
-//         minLogLevel);
-//  }
+  //  public Logger(final Class<?> aClass, Logger parentLogger, String resort, int minLogLevel) {
+  //    this(aClass,
+  //         parentLogger != null ? parentLogger.getRequest() : null,
+  //         "",
+  //         (resort == null && parentLogger != null) ? parentLogger.getResort() : resort,
+  //         minLogLevel);
+  //  }
 
-  public Logger(final Class<?> aClass, final HttpServletRequest request, final String methodType, String resort, int minLogLevel) {
+  public Logger(final Class<?> aClass, final HttpServletRequest request, final String methodType, String resort,
+                int minLogLevel) {
     this.request = request;
     this.minLogLevel = minLogLevel;
     this.methodType = methodType;
@@ -45,7 +47,7 @@ public class Logger {
 
     if (aClass == null) {
       error("Class was 'null' in Logger constructor");
-//      Thread.dumpStack();
+      //      Thread.dumpStack();
     }
     id = "UNKNON";
     this.resort = resort;
@@ -62,37 +64,37 @@ public class Logger {
       if (!"DailyReminder".equals(methodType)) {
         error("Null request in Logger, parent NotYetImplemented.");  //todo 1/1/2020
         Thread.dumpStack();  //usually called
-//        at java.lang.Thread.dumpStack(Thread.java:1336)
-//        at org.nsponline.calendar.misc.Logger.<init>(Logger.java:37)
-//        at org.nsponline.calendar.misc.Logger.<init>(Logger.java:27)
-//        at org.nsponline.calendar.misc.ValidateCredentials.<init>(ValidateCredentials.java:26)
-//        at org.nsponline.calendar.resources.OuterWebResource.SubList$InnerSubList.<init>(SubList.java:46)
-//        at org.nsponline.calendar.resources.OuterWebResource.SubList.doGet(SubList.java:27)
-        }
-//      ip = "<<null request>>";
+        //        at java.lang.Thread.dumpStack(Thread.java:1336)
+        //        at org.nsponline.calendar.misc.Logger.<init>(Logger.java:37)
+        //        at org.nsponline.calendar.misc.Logger.<init>(Logger.java:27)
+        //        at org.nsponline.calendar.misc.ValidateCredentials.<init>(ValidateCredentials.java:26)
+        //        at org.nsponline.calendar.resources.OuterWebResource.SubList$InnerSubList.<init>(SubList.java:46)
+        //        at org.nsponline.calendar.resources.OuterWebResource.SubList.doGet(SubList.java:27)
+      }
+      //      ip = "<<null request>>";
       agent = "";
     }
     else {
-//      ip = request.getHeader("x-forwarded-for"); //x-forwarded-for: 216.49.181.51
+      //      ip = request.getHeader("x-forwarded-for"); //x-forwarded-for: 216.49.181.51
       agent = request.getHeader("user-agent");//user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1)
       if (agent == null) {
         agent = "";
       }
       //get 'resort' the hard way
-//      String referer = request.getHeader("referer");
-//todo, fails of logout
-//      if (referer != null) {
-//        int startIndex = referer.indexOf("resort=");
-//        if (startIndex >= 0) {
-//          startIndex += 7;
-//          int posNextField = referer.substring(startIndex).indexOf("&");
-//          int endIndex = posNextField == -1 ? referer.length() : posNextField;
-//          if (endIndex > referer.length()) {
-//            endIndex = referer.length();
-//          }
-//          resort = " resort=" + referer.substring(startIndex, endIndex) + " ";
-//        }
-//      }
+      //      String referer = request.getHeader("referer");
+      //todo, fails of logout
+      //      if (referer != null) {
+      //        int startIndex = referer.indexOf("resort=");
+      //        if (startIndex >= 0) {
+      //          startIndex += 7;
+      //          int posNextField = referer.substring(startIndex).indexOf("&");
+      //          int endIndex = posNextField == -1 ? referer.length() : posNextField;
+      //          if (endIndex > referer.length()) {
+      //            endIndex = referer.length();
+      //          }
+      //          resort = " resort=" + referer.substring(startIndex, endIndex) + " ";
+      //        }
+      //      }
     }
     String[] split = agent.split(" ");
     if (split.length > 1) {
@@ -106,14 +108,16 @@ public class Logger {
 
   public void logRequestParameters() {
     boolean displayHeader = false;
-    StringBuilder uriRequestMsg = new StringBuilder("logLevel=" + getLogLevelString() + " class=" + className + " method=" + methodType + " ");
+    StringBuilder uriRequestMsg =
+      new StringBuilder("logLevel=" + getLogLevelString() + " class=" + className + " method=" + methodType + " ");
     try {
       String uri = request.getHeader("referer"); //referer: http://52.3.5.75/calendar-1/MemberLogin?resort=Afton
       boolean pathFound = true;
       if (uri != null) {
         //noinspection StringConcatenationInsideStringBufferAppend
         uriRequestMsg.append(" path=\"" + uri + "\" ( --Parameters: ");
-      } else {
+      }
+      else {
         pathFound = false;
         uriRequestMsg.append(" missingPath ( --Parameters: ");
       }
@@ -150,8 +154,9 @@ public class Logger {
         uriRequestMsg.append(headers);
       }
       uriRequestMsg.append(") ");
-//      System.out.flush();
-    } catch (Exception e) {
+      //      System.out.flush();
+    }
+    catch (Exception e) {
       //noinspection StringConcatenationInsideStringBufferAppend
       uriRequestMsg.append(" exception=\"" + e.getMessage() + "\"");
     }
@@ -214,7 +219,8 @@ public class Logger {
 
   public void logException(String msg, Exception e) {
     _printCommonHeader("ipAddress", resort);
-    System.out.println(msg + "exceptionCause=\"" + e.getCause() + "\", exceptionMessage=\"" + e.getMessage() + "\" " + e.toString());
+    System.out.println(
+      msg + "exceptionCause=\"" + e.getCause() + "\", exceptionMessage=\"" + e.getMessage() + "\" " + e);
   }
 
   public String getClassName() {
@@ -222,7 +228,7 @@ public class Logger {
   }
 
   private void _printCommonHeader(String ip, String resort) {
-//    String strResort = String.format("%-14s", resort);
+    //    String strResort = String.format("%-14s", resort);
     System.out.print("[" + getCurrentDateTimeString() + "] " + " ip=" + ip + ", resort=" + resort + ", id=" + id + " ");
   }
 

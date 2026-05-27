@@ -10,7 +10,7 @@ import java.util.*;
 
 public class DailyReminder {
   final private static boolean DEBUG = true;
-  private Logger LOG;
+  private final Logger LOG;
 
   public DailyReminder(String resort, SessionData sessionData, MailMan mail) {
     LOG = new Logger(this.getClass(), null, "DailyReminder", "DailyReminder", Logger.INFO);
@@ -33,7 +33,7 @@ public class DailyReminder {
     GregorianCalendar today = new GregorianCalendar();
     LOG.info("reminder daysAhead=" + daysAhead);
     GregorianCalendar date = new GregorianCalendar();
-    long millis = today.getTimeInMillis() + (24 * 3600 * 1000 * daysAhead);
+    long millis = today.getTimeInMillis() + (24L * 3600 * 1000 * daysAhead);
     date.setTimeInMillis(millis);
     return date;
   }
@@ -53,7 +53,8 @@ public class DailyReminder {
     return testDate;
   }
 
-  private int checkAndSend(SessionData sessionData, GregorianCalendar date, MailMan mail, String resort, PatrolData patrol) {
+  private int checkAndSend(SessionData sessionData, GregorianCalendar date, MailMan mail, String resort,
+                           PatrolData patrol) {
     Set<String> emailTo;
     int messagesSent = 0;
     String formattedDateString = getAssignmentDateString(date);
@@ -61,11 +62,11 @@ public class DailyReminder {
     int month = date.get(Calendar.MONTH);
     int year = date.get(Calendar.YEAR);
     int dayOfMonth = date.get(Calendar.DAY_OF_MONTH);
-//Log.log("dayOfWeek="+dayOfWeek+" ("+szDay[dayOfWeek]+")");
-//    patrol.resetAssignments();
-//    Assignments assignment;
+    //Log.log("dayOfWeek="+dayOfWeek+" ("+szDay[dayOfWeek]+")");
+    //    patrol.resetAssignments();
+    //    Assignments assignment;
     for (Assignments assignment : patrol.readSortedAssignments(year, month + 1, dayOfMonth)) {
-//    while ((assignment = patrol.readNextAssignment()) != null) {
+      //    while ((assignment = patrol.readNextAssignment()) != null) {
       String assignDate = assignment.getDateOnly();
       if (!formattedDateString.equals(assignDate)) {
         debugOut("**** THIS SHOULD NEVER HAPPEN *****");
@@ -73,11 +74,15 @@ public class DailyReminder {
       }
 
       String resortStr = PatrolData.getResortFullName(resort, LOG);
-      debugOut("Assignment=" + assignment.toString());
-      String message = "Reminder\n\nYou are scheduled to Ski Patrol at " + resortStr + ", on " + StaticUtils.szDays[dayOfWeek] + ", " + StaticUtils.szMonthsFull[month] + " " + date.get(Calendar.DAY_OF_MONTH) + ", " + date.get(Calendar.YEAR) + " from " +
+      debugOut("Assignment=" + assignment);
+      String message =
+        "Reminder\n\nYou are scheduled to Ski Patrol at " + resortStr + ", on " + StaticUtils.szDays[dayOfWeek] + ", " +
+          StaticUtils.szMonthsFull[month] + " " + date.get(Calendar.DAY_OF_MONTH) + ", " + date.get(Calendar.YEAR) +
+          " from " +
           assignment.getStartingTimeString() + " to " +
           assignment.getEndingTimeString() + ".\n\nThanks, your help is greatly appreciated.\n\n";
-      message += "Please do NOT reply to this automated reminder. \nUnless, you are NOT a member of the National Ski Patrol, and received this email accidentally.";
+      message +=
+        "Please do NOT reply to this automated reminder. \nUnless, you are NOT a member of the National Ski Patrol, and received this email accidentally.";
       emailTo = getMemberEmailsWhoHaveAssignment(assignment, patrol);
       if (!emailTo.isEmpty()) {
         messagesSent += sendEmail(sessionData, emailTo, mail, message);
@@ -125,9 +130,9 @@ public class DailyReminder {
   }
 
   private int sendEmail(SessionData sessionData, Set<String> emailTo, MailMan mail, String message) {
-//todo, this should work ? (instead of for loop below)
-//      String[] addressToArray = (String[]) emailTo.toArray();
-//      mail.sendMessage(sessionData, "Ski Patrol Shift Reminder", message, addressToArray);
+    //todo, this should work ? (instead of for loop below)
+    //      String[] addressToArray = (String[]) emailTo.toArray();
+    //      mail.sendMessage(sessionData, "Ski Patrol Shift Reminder", message, addressToArray);
     int emailsSent = 0;
     for (String emailAddress : emailTo) {
       mail.sendMessage("Ski Patrol Shift Reminder", message, emailAddress);
@@ -140,13 +145,13 @@ public class DailyReminder {
   /**
    * @param args the command line arguments (none, send to all resorts)
    */
-  public static void main(String[] args) {    //this NEEDS to be static
+  static void main(String[] args) {    //this NEEDS to be static
     Properties properties = System.getProperties();
     PrintWriter out = new PrintWriter(System.out);
     SessionData sessionData = new SessionData(properties, out);
     Logger LOG = new Logger(DailyReminder.class, null, "DailyReminder", "DailyReminder", Logger.INFO);
     out.println("******************************************************");
-    out.println("START RUNNING DAILY REMINDER: " + new Date().toString());
+    out.println("START RUNNING DAILY REMINDER: " + new Date());
     out.println("******************************************************");
     if (sessionData.getDbPassword() == null) {
       LOG.error("error session credentials not found");

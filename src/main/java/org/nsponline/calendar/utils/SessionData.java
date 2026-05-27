@@ -2,12 +2,14 @@ package org.nsponline.calendar.utils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 
@@ -21,7 +23,8 @@ public class SessionData {
   private static final Boolean DEBUG = false;
   private static final Boolean DEBUG_VERBOSE = false;
 
-  private static final String PROPERTIES_FILE = "/var/lib/tomcat7/webapps/credentials.properties";
+  private static final String PROPERTIES_FILE = "credentials.properties";
+    //used to be prefixed with /var/lib/tomcat7/webapps/
   //these fields should be defined in credentials.properties
   private static final String DB_USER_TAG = "dbUser";
   private static final String DB_PASSWORD_TAG = "dbPassword";
@@ -48,8 +51,8 @@ public class SessionData {
   private String backDoorPassword;
   private String AWSAccessKeyId;
   private String AWSSecretKey;
-  private HttpSession session;
-  private HttpServletRequest request;
+  private final HttpSession session;
+  private final HttpServletRequest request;
   private Logger LOG;
 
 
@@ -61,7 +64,8 @@ public class SessionData {
     readCredentialPropertiesFile(new Properties(), out);
   }
 
-  public SessionData(Properties properties, PrintWriter out) {  //called ONLY by DailyReminder (there is no http request)
+  public SessionData(Properties properties,
+                     PrintWriter out) {  //called ONLY by DailyReminder (there is no http request)
     this.session = null;
     this.request = null;
     readCredentialPropertiesFile(properties, out);
@@ -210,13 +214,15 @@ public class SessionData {
     }
     String resort = (String) session.getAttribute(LOGGED_IN_RESORT_TAG);
     boolean isLoggedIn = resort != null && !resort.equals(resortParameter);
-    debugOut("isLoggedIntoAnotherResort = (" + isLoggedIn + " ), resort=(" + resort + "), resortParameter=(" + resortParameter + ")");
+    debugOut("isLoggedIntoAnotherResort = (" + isLoggedIn + " ), resort=(" + resort + "), resortParameter=(" +
+               resortParameter + ")");
     return isLoggedIn;
   }
 
   public Logger getLOG() {
     return LOG;
   }
+
   private void debugOut(String msg) {
     if (DEBUG && LOG != null) {
       LOG.info("DEBUG-SessionData: " + msg);

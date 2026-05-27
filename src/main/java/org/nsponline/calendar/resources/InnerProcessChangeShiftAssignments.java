@@ -7,8 +7,10 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.TimeZone;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.*;
 import org.nsponline.calendar.utils.*;
 
@@ -51,7 +53,8 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
   private java.util.Date currTime;
   private int nIndex1AsNum;
   private String szMyID;
-  private HashMap<String, NewIndividualAssignment> monthNewIndividualAssignments = new HashMap<String, NewIndividualAssignment>();
+  private HashMap<String, NewIndividualAssignment> monthNewIndividualAssignments =
+    new HashMap<String, NewIndividualAssignment>();
 
   private boolean sentToFirst;
   private boolean sentToSecond;
@@ -75,7 +78,8 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
   private int nPos1;
   private int transNumber;
 
-  public InnerProcessChangeShiftAssignments(HttpServletRequest request, HttpServletResponse response, Logger LOG) throws IOException {
+  public InnerProcessChangeShiftAssignments(HttpServletRequest request, HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     this.response = response;
   }
@@ -90,7 +94,9 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
     printBody(sessionData);
     printCommonFooter();
     if (!PAUSE_ON_THIS_SCREEN) {
-      response.sendRedirect(PatrolData.SERVLET_URL + "MonthCalendar?resort=" + resort + "&month=" + (month1 - 1) + "&year=" + year1 + "&resort=" + resort + "&ID=" + szMyID);
+      response.sendRedirect(
+        PatrolData.SERVLET_URL + "MonthCalendar?resort=" + resort + "&month=" + (month1 - 1) + "&year=" + year1 +
+          "&resort=" + resort + "&ID=" + szMyID);
     }
     patrolData.close();
 
@@ -108,7 +114,8 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
     szdate1 = request.getParameter("date1");            //required
     final String pos1 = request.getParameter("pos1");                //required 1-based
     index1AsString = request.getParameter("index1");    //required 0-based
-    listName = request.getParameter("listName");        //name 'selected' by radio button (can be null if 'remove' existing name)
+    listName =
+      request.getParameter("listName");        //name 'selected' by radio button (can be null if 'remove' existing name)
 
     member1 = null;
     member2 = null;
@@ -120,24 +127,26 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
       out.println("<h1>Error: member " + submitterID + " not found!</h1><br>");
       return;
     }
-    LOG.info("submitter=" + submitter.getFullName() + " selectedID=" + selectedID  + " resort=" + resort + " trans=" + transaction +
-                                " date1=" + szdate1 + " pos1=" + pos1 + " index1=" + index1AsString + " old_name=" + listName);
+    LOG.info("submitter=" + submitter.getFullName() + " selectedID=" + selectedID + " resort=" + resort + " trans=" +
+               transaction +
+               " date1=" + szdate1 + " pos1=" + pos1 + " index1=" + index1AsString + " old_name=" + listName);
     szSubmitterName = submitter.getFullName();
 
     nPos1 = Integer.parseInt(pos1);
     nIndex1AsNum = PatrolData.StringToIndex(index1AsString);
     //srg 10/9/11        nIndex1 = Integer.parseInt(index1);
 
-    Integer tmp = new Integer(szdate1.substring(8, 10));
+    Integer tmp = Integer.valueOf(szdate1.substring(8, 10));
     date1 = tmp;
-    tmp = new Integer(szdate1.substring(5, 7));
+    tmp = Integer.valueOf(szdate1.substring(5, 7));
     month1 = tmp;
-    tmp = new Integer(szdate1.substring(0, 4));
+    tmp = Integer.valueOf(szdate1.substring(0, 4));
     year1 = tmp;
 
     //noinspection MagicConstant
     calendarToday.set(year1, month1 - 1, date1);
-    dayOfWeek0based = calendarToday.get(Calendar.DAY_OF_WEEK) - 1;  //calendarToday.get(..) returns a 1 based DOW index Sunday=1
+    dayOfWeek0based =
+      calendarToday.get(Calendar.DAY_OF_WEEK) - 1;  //calendarToday.get(..) returns a 1 based DOW index Sunday=1
     //read assignments
     night1 = patrolData.readAssignment(szdate1); //
     if (night1 == null) {
@@ -244,13 +253,17 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
     }
     out.println("<br/>");
     //on February 1, 2001 as Auxiliary Patroller
-    out.println("on: " + StaticUtils.szDays[dayOfWeek0based] + " " + StaticUtils.szMonthsFull[month1 - 1] + " " + date1 + ", " + year1 + "<br>");
+    out.println(
+      "on: " + StaticUtils.szDays[dayOfWeek0based] + " " + StaticUtils.szMonthsFull[month1 - 1] + " " + date1 + ", " +
+        year1 + "<br>");
     //at position: Auxiliary Patroller"
     out.println("at shift: " + szPos + "<br>");
     //todo this is always false
     if (transNumber == TRADE && szPos2 != null) {
       out.println("<br><br>INSERT <B>" + secondName + "</B> (" + secondID + ")<br><br>");
-      out.println("on: " + StaticUtils.szDays[dayOfWeek2] + " " + StaticUtils.szMonthsFull[month2 - 1] + " " + date2 + ", " + year2 + "<br>");
+      out.println(
+        "on: " + StaticUtils.szDays[dayOfWeek2] + " " + StaticUtils.szMonthsFull[month2 - 1] + " " + date2 + ", " +
+          year2 + "<br>");
       out.println("at shift: " + szPos2 + "<br>");
       //          out.println("at shift: "+szPos[nPos2]+"<br>");
     }
@@ -316,7 +329,7 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
       return true;
     }
     transNumber = REPLACE;
-    newID = member1.getID() + "";
+    newID = member1.getID();
     newName = listName;
     if (night1.getPosIndex(newID) != -1) {
       dupError = true;
@@ -443,7 +456,8 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
       int shiftType = NewIndividualAssignment.DAY_TYPE;  //todo shiftType is ignored?
       LOG.error("HACK in needsReplacement, shiftType forced to DAY SHIFT (field CURRENTLY not used)");
       newIndividualAssignment = new NewIndividualAssignment(calendarToday.getTime(), nPos1, nIndex1AsNum, shiftType,
-                                                            NewIndividualAssignment.FLAG_BIT_NEEDS_REPLACEMENT, newID, submitterID);
+                                                            NewIndividualAssignment.FLAG_BIT_NEEDS_REPLACEMENT, newID,
+                                                            submitterID);
 
       patrolData.insertNewIndividualAssignment(newIndividualAssignment);
     }
@@ -506,7 +520,9 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
 
       //          emailMessage +="On "+szMonths[month1-1]+"/"+date1+"/"+year1+" \n  "+
       //          szTrans[transNumber]+" " + newName;// +" at position: "+ pos1; ???? szDays[dayOfWeek0based]
-      emailMessage += trans[transNumber] + " " + newName + " On " + StaticUtils.szDays[dayOfWeek0based] + ", " + StaticUtils.szMonthsFull[month1 - 1] + "/" + date1 + "/" + year1 + " (" + night1.getStartingTimeString() + " - " + night1.getEndingTimeString() + ")\n  ";// +" at position: "+ pos1;
+      emailMessage += trans[transNumber] + " " + newName + " On " + StaticUtils.szDays[dayOfWeek0based] + ", " +
+        StaticUtils.szMonthsFull[month1 - 1] + "/" + date1 + "/" + year1 + " (" + night1.getStartingTimeString() +
+        " - " + night1.getEndingTimeString() + ")\n  ";// +" at position: "+ pos1;
 
       if (transNumber == TRADE) {
         //todo 10/2/2019, refactor to look like
@@ -539,7 +555,9 @@ public class InnerProcessChangeShiftAssignments extends ResourceBase {
     } // not err in writing assignment data
     //Return to Calendar
     out.println("<br/>&nbsp;&nbsp;&nbsp;&nbsp;");
-    String loc = PatrolData.SERVLET_URL + "MonthCalendar?resort=" + resort + "&month=" + (month1 - 1) + "&year=" + year1 + "&ID=" + szMyID;
+    String loc =
+      PatrolData.SERVLET_URL + "MonthCalendar?resort=" + resort + "&month=" + (month1 - 1) + "&year=" + year1 + "&ID=" +
+        szMyID;
     //      out.println("<A target='_self' HREF='" + loc + "'>Return to Calendar</A> ");
     out.println("<INPUT TYPE=\"button\" VALUE='Return to Calendar' onClick=window.location='" + loc + "'>");
     out.println("<br/><br/>");

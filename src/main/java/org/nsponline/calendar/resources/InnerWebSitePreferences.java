@@ -2,8 +2,10 @@ package org.nsponline.calendar.resources;
 
 import java.io.IOException;
 import java.util.Calendar;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.DirectorSettings;
 import org.nsponline.calendar.utils.Logger;
 import org.nsponline.calendar.utils.PatrolData;
@@ -46,7 +48,7 @@ class InnerWebSitePreferences extends ResourceBase {
     }
     szMyID = sessionData.getLoggedInUserId();
     readParameters(request, sessionData);
-//    PatrolData patrol = new PatrolData(PatrolData.FETCH_ALL_DATA, resort, sessionData, LOG);
+    //    PatrolData patrol = new PatrolData(PatrolData.FETCH_ALL_DATA, resort, sessionData, LOG);
     printCommonHeader();
     printTop();
     printBody();
@@ -124,7 +126,8 @@ class InnerWebSitePreferences extends ResourceBase {
 
       removeAccess = ds.getRemoveAccess();
 
-    } else {
+    }
+    else {
       //Log.log(DirectorSettings.EMAIL_REMINDER_FIELD);
       //Log.log(request.getParameter(DirectorSettings.EMAIL_REMINDER_FIELD));
       //Log.log("request="+request.getParameterMap());
@@ -172,11 +175,13 @@ class InnerWebSitePreferences extends ResourceBase {
         //Log.log(request.getParameter(DirectorSettings.REMOVE_ACCESS_FIELD));
         try {
           removeAccess = Integer.parseInt(request.getParameter(DirectorSettings.REMOVE_ACCESS_FIELD));
-        } catch (NumberFormatException e) {
+        }
+        catch (NumberFormatException e) {
           removeAccess = 7;   //hack
         }
 
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
         Thread.dumpStack();
         return; //really should never happen
       }
@@ -233,29 +238,36 @@ class InnerWebSitePreferences extends ResourceBase {
     }
 
     out.println("<h1 align=\"center\">Web Site Preferences for " + PatrolData.getResortFullName(resort, LOG) + "</h1>");
-    out.println("<form target='_self' name=myForm action=\"" + PatrolData.SERVLET_URL + "WebSitePreferences\" method=POST>");
+    out.println(
+      "<form target='_self' name=myForm action=\"" + PatrolData.SERVLET_URL + "WebSitePreferences\" method=POST>");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"resort\" VALUE=\"" + resort + "\">");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"ID\" VALUE=\"" + szMyID + "\">");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"XYZ\" VALUE=\"XYZ\">");
     //define table
-    out.println("  <table border=1 cellpadding=0 cellspacing=0 style=\"border-collapse: collapse\" bordercolor=\"#111111\" width=\"100%\">\n");
+    out.println(
+      "  <table border=1 cellpadding=0 cellspacing=0 style=\"border-collapse: collapse\" bordercolor=\"#111111\" width=\"100%\">\n");
     //--- row 1 E-MAIL
     out.println("    <tr>\n");
     out.println("      <td width=\"8%\" align=\"center\">E-mail<br><br></td>\n");
     out.println("      <td width=\"92%\">\n");
     //Email patrollers when changes are made
-    out.println("  <input type=\"checkbox\" " + readOnly + " name=\"" + DirectorSettings.NOTIFY_CHANGES_FIELD + "\" value=\"ON\" " + (emailPatrollers ? "checked" : "") + ">");
+    out.println("  <input type=\"checkbox\" " + readOnly + " name=\"" + DirectorSettings.NOTIFY_CHANGES_FIELD +
+                  "\" value=\"ON\" " + (emailPatrollers ? "checked" : "") + ">");
     out.println("  E-mail affected patrollers <B>when shift assignments are made</B> on the <B>Calendar</B>.<br>");
     //Send email reminder # days before shift
-    out.println("  <input type=\"checkbox\" " + readOnly + "name=\"" + DirectorSettings.EMAIL_REMINDER_FIELD + "\" value=\"ON\" " + (emailReminder ? "checked" : "") + ">");
+    out.println("  <input type=\"checkbox\" " + readOnly + "name=\"" + DirectorSettings.EMAIL_REMINDER_FIELD +
+                  "\" value=\"ON\" " + (emailReminder ? "checked" : "") + ">");
     //count number of days before email
-    out.println("  Send E-mail <b>Reminder</b> <select " + readOnly + " size=\"1\" name=\"" + DirectorSettings.REMINDER_DAYS_FIELD + "\">");
+    out.println("  Send E-mail <b>Reminder</b> <select " + readOnly + " size=\"1\" name=\"" +
+                  DirectorSettings.REMINDER_DAYS_FIELD + "\">");
     for (int i = 1; i <= 3; ++i) {
       out.println("    <option " + ((i == reminderDays) ? "selected" : "") + ">" + i + "</option>");
     }
     out.println("  </select> day(s) before scheduled shift assignment.&nbsp;&nbsp;<br>");
     //Directors ONLY can email all
-    out.println("  <input type=\"checkbox\" name=\"" + DirectorSettings.EMAIL_ALL_FIELD + "\" " + readOnly + " value=\"ON\" " + (emailAll ? "checked" : "") + ">");
+    out.println(
+      "  <input type=\"checkbox\" name=\"" + DirectorSettings.EMAIL_ALL_FIELD + "\" " + readOnly + " value=\"ON\" " +
+        (emailAll ? "checked" : "") + ">");
     out.println("  Allow all patrollers to &quot;email All patrollers&quot; from the <b>Member List</b> window.<br>");
     out.println("      </td>\n");
     out.println("    </tr>\n");
@@ -270,7 +282,8 @@ class InnerWebSitePreferences extends ResourceBase {
     }
     out.println("  </select>&nbsp;&nbsp;<select " + readOnly + " size=\"1\" name=\"startMonth\">");
     for (int i = 1; i <= 12; ++i) {
-      out.println("    <option value=\"" + i + "\" " + ((i == startMonth) ? "selected" : "") + ">" + StaticUtils.szMonthsFull[i - 1] + "</option>");
+      out.println("    <option value=\"" + i + "\" " + ((i == startMonth) ? "selected" : "") + ">" +
+                    StaticUtils.szMonthsFull[i - 1] + "</option>");
     }
     out.println("  </select>, ");
     out.println(" and <b>Ends</b> on <select " + readOnly + " size=\"1\" name=\"endDay\">");
@@ -279,10 +292,12 @@ class InnerWebSitePreferences extends ResourceBase {
     }
     out.println("  </select>&nbsp;&nbsp;<select " + readOnly + " size=\"1\" name=\"endMonth\">");
     for (int i = 1; i <= 12; ++i) {
-      out.println("    <option value=\"" + i + "\" " + ((i == endMonth) ? "selected" : "") + ">" + StaticUtils.szMonthsFull[i - 1] + "</option>");
+      out.println("    <option value=\"" + i + "\" " + ((i == endMonth) ? "selected" : "") + ">" +
+                    StaticUtils.szMonthsFull[i - 1] + "</option>");
     }
     out.println("  </select> <br>");
-    out.println("&nbsp;&nbsp;Season dates are used so <b>no</b> shifts or assignments are displayed out-of-season.<br>");
+    out.println(
+      "&nbsp;&nbsp;Season dates are used so <b>no</b> shifts or assignments are displayed out-of-season.<br>");
     out.println("&nbsp;&nbsp;And so you can \"remove all of last season's assignments\"<br>");
     out.println("      </td>\n");
     out.println("    </tr>\n");
@@ -302,19 +317,28 @@ class InnerWebSitePreferences extends ResourceBase {
     String enableDisable = (madeUpdate || onlyDirectors) ? " DISABLED " : "";
 
     out.println("&nbsp;&nbsp;-or-, When can patrollers <b>REMOVE</b> a name from the <B>Calendar</B>");
-    out.println("&nbsp;&nbsp;<select " + enableDisable + " size=1 name=\"" + DirectorSettings.REMOVE_ACCESS_FIELD + "\">");    //todo fix
-    out.println("<option value=0 " + ((removeAccess == 0 ? "selected" : "")) + ">Day of event or anytime BEFORE</option>");
-    out.println("<option value=1 " + ((removeAccess == 1 ? "selected" : "")) + ">more than 1 day BEFORE event</option>");
-    out.println("<option value=2 " + ((removeAccess == 2 ? "selected" : "")) + ">more than 2 days BEFORE event</option>");
-    out.println("<option value=7 " + ((removeAccess == 7 ? "selected" : "")) + ">more than 7 days BEFORE event</option>");
-    out.println("<option value=14 " + ((removeAccess == 14 ? "selected" : "")) + ">more than 14 days BEFORE event</option>");
+    out.println("&nbsp;&nbsp;<select " + enableDisable + " size=1 name=\"" + DirectorSettings.REMOVE_ACCESS_FIELD +
+                  "\">");    //todo fix
+    out.println(
+      "<option value=0 " + ((removeAccess == 0 ? "selected" : "")) + ">Day of event or anytime BEFORE</option>");
+    out.println(
+      "<option value=1 " + ((removeAccess == 1 ? "selected" : "")) + ">more than 1 day BEFORE event</option>");
+    out.println(
+      "<option value=2 " + ((removeAccess == 2 ? "selected" : "")) + ">more than 2 days BEFORE event</option>");
+    out.println(
+      "<option value=7 " + ((removeAccess == 7 ? "selected" : "")) + ">more than 7 days BEFORE event</option>");
+    out.println(
+      "<option value=14 " + ((removeAccess == 14 ? "selected" : "")) + ">more than 14 days BEFORE event</option>");
     //127 is max # value to store in tinyint
-    out.println("<option value=127 " + ((removeAccess == 127 ? "selected" : "")) + ">Never.  REMOVE not allowed!</option>");
+    out.println(
+      "<option value=127 " + ((removeAccess == 127 ? "selected" : "")) + ">Never.  REMOVE not allowed!</option>");
     out.println("</select><br>");
 
 
     //blackout dates
-    out.println("  <input type=\"checkbox\" name=\"" + DirectorSettings.USE_BLACKOUT_FIELD + "\" " + readOnly + " value=\"ON\" " + (nUseBlackOut ? "checked" : "") + ">");
+    out.println(
+      "  <input type=\"checkbox\" name=\"" + DirectorSettings.USE_BLACKOUT_FIELD + "\" " + readOnly + " value=\"ON\" " +
+        (nUseBlackOut ? "checked" : "") + ">");
     out.println("  Set a blackout period so patrollers <b>cannot</b> sign up for <b>weekends</b> in that time period.");
     out.println("<br>&nbsp;&nbsp;Blackout period <b>Starts</b> on ");
 
@@ -328,18 +352,21 @@ class InnerWebSitePreferences extends ResourceBase {
     }
     out.println("  </select>&nbsp;&nbsp;<select " + readOnly + " size=\"1\" name=\"blackOutStartMonth\">");
     for (int i = 1; i <= 12; ++i) {
-      out.println("    <option value=\"" + i + "\" " + ((i == blackOutStartMonth) ? "selected" : "") + ">" + StaticUtils.szMonthsFull[i - 1] + "</option>");
+      out.println("    <option value=\"" + i + "\" " + ((i == blackOutStartMonth) ? "selected" : "") + ">" +
+                    StaticUtils.szMonthsFull[i - 1] + "</option>");
     }
     out.println("  </select>&nbsp;&nbsp;<select " + readOnly + " size=\"1\" name=\"blackOutStartYear\">");
     //end calendar
 
 
     for (int i = year - 1; i <= year + 2; ++i) {
-      out.println("    <option value=\"" + i + "\" " + ((i == blackOutStartYear) ? "selected" : "") + ">" + i + "</option>");
+      out.println(
+        "    <option value=\"" + i + "\" " + ((i == blackOutStartYear) ? "selected" : "") + ">" + i + "</option>");
     }
     out.println("  </select>");
     //---end
-    out.println(", <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\n");
+    out.println(
+      ", <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\n");
 
     out.println(" and <b>Ends</b> on ");
     //--start
@@ -349,12 +376,14 @@ class InnerWebSitePreferences extends ResourceBase {
     }
     out.println("  </select>&nbsp;&nbsp;<select " + readOnly + " size=\"1\" name=\"blackOutEndMonth\">");
     for (int i = 1; i <= 12; ++i) {
-      out.println("    <option value=\"" + i + "\" " + ((i == blackOutEndMonth) ? "selected" : "") + ">" + StaticUtils.szMonthsFull[i - 1] + "</option>");
+      out.println("    <option value=\"" + i + "\" " + ((i == blackOutEndMonth) ? "selected" : "") + ">" +
+                    StaticUtils.szMonthsFull[i - 1] + "</option>");
     }
     out.println("  </select> ");
     out.println("  </select>&nbsp;&nbsp;<select " + readOnly + " size=\"1\" name=\"blackOutEndYear\">");
     for (int i = year - 1; i <= year + 2; ++i) {
-      out.println("    <option value=\"" + i + "\" " + ((i == blackOutEndYear) ? "selected" : "") + ">" + i + "</option>");
+      out.println(
+        "    <option value=\"" + i + "\" " + ((i == blackOutEndYear) ? "selected" : "") + ">" + i + "</option>");
     }
     out.println("  </select>");
     //--end
@@ -409,9 +438,12 @@ class InnerWebSitePreferences extends ResourceBase {
 
     if (madeUpdate) {
       out.println("<br>&nbsp;&nbsp;&nbsp;&nbsp;<font size=4><b>Changes Saved.</b></font>");
-      out.println("&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;  <input type=\"button\" value=\"Return\" name=\"B3\" onClick=\"goHome()\"></p>");
-    } else {
-      out.println("  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <input type=\"submit\" value=\"Save Changes\" name=\"SaveChangesBtn\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+      out.println(
+        "&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;  <input type=\"button\" value=\"Return\" name=\"B3\" onClick=\"goHome()\"></p>");
+    }
+    else {
+      out.println(
+        "  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <input type=\"submit\" value=\"Save Changes\" name=\"SaveChangesBtn\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
       out.println("  <input type=\"button\" value=\"Cancel\" name=\"B3\" onClick=\"goHome()\"></p>");
     }
     out.println("</form>");

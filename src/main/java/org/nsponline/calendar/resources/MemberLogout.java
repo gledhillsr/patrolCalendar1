@@ -1,16 +1,19 @@
 package org.nsponline.calendar.resources;
 
 import java.io.IOException;
+
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.utils.Logger;
 import org.nsponline.calendar.utils.PatrolData;
 
 import static org.nsponline.calendar.utils.ValidateCredentialsRedirectIfNeeded.NSP_TOKEN_NAME;
 
 public class MemberLogout extends ResourceBase {
-  public MemberLogout(final HttpServletRequest request, final HttpServletResponse response, Logger LOG) throws IOException {
+  public MemberLogout(final HttpServletRequest request, final HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, "");
     uiColorCookie.setMaxAge(0);

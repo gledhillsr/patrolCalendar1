@@ -3,14 +3,16 @@ package org.nsponline.calendar.resources;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.NspSession;
 import org.nsponline.calendar.utils.*;
 
 import static org.nsponline.calendar.utils.StaticUtils.buildAndLogErrorResponse;
 
-@SuppressWarnings({"DuplicatedCode", "BooleanMethodIsAlwaysInverted"})
+@SuppressWarnings({ "DuplicatedCode", "BooleanMethodIsAlwaysInverted" })
 public class ResourceBase {
   final PrintWriter out;
   final String resort;
@@ -24,7 +26,7 @@ public class ResourceBase {
   private OuterPage outerPage; //for commonHeader & commonFooter
 
   ResourceBase(HttpServletRequest request, HttpServletResponse response, Logger LOG) throws IOException {
-//    response.setContentType("application/json"); //for ApiResources
+    //    response.setContentType("application/json"); //for ApiResources
     this.LOG = LOG;
     this.request = request;
     response.setContentType("text/html");
@@ -37,7 +39,8 @@ public class ResourceBase {
   protected boolean initBase(HttpServletResponse response) {
     String userAgent = request.getHeader("user-agent");
     if (StaticUtils.isRequestFromBot(userAgent)) {
-      StaticUtils.buildAndLogErrorResponse(response, 401, "Unauthorized agent (" + userAgent + "). Class=" + LOG.getClassName(), LOG);
+      StaticUtils.buildAndLogErrorResponse(response, 401,
+                                           "Unauthorized agent (" + userAgent + "). Class=" + LOG.getClassName(), LOG);
       return false; //parent should stop further page display
     }
     if (!PatrolData.isValidResort(resort)) {
@@ -50,7 +53,7 @@ public class ResourceBase {
     return true;
   }
 
-    protected boolean initBaseAndRequireValidSession(HttpServletResponse response) {
+  protected boolean initBaseAndRequireValidSession(HttpServletResponse response) {
     /*
      * TODO, soon this is to be used for all inner methods.  Right now, only called from ApiResource
      */
@@ -75,7 +78,8 @@ public class ResourceBase {
       return false; //'resort' etc, MUST be valid (response was setup),  parent should stop further page display
     }
     //redirects to MemberLogin if credentials are not valid
-    ValidateCredentialsRedirectIfNeeded credentials = new ValidateCredentialsRedirectIfNeeded(sessionData, request, response, parent, patrolData, LOG);
+    ValidateCredentialsRedirectIfNeeded credentials =
+      new ValidateCredentialsRedirectIfNeeded(sessionData, request, response, parent, patrolData, LOG);
     return !credentials.hasInvalidCredentials(); //if 'false' parent should stop further page display
   }
 

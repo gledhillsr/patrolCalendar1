@@ -4,19 +4,22 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.util.*;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.*;
 import org.nsponline.calendar.utils.*;
 
 public class MonthCalendar extends ResourceBase {
   private static final boolean DEBUG = false;
-  private static final int[] iDaysInMonth = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  private static final int[] iDaysInMonth = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
   private Calendar calendar;
   private java.util.Date trialTime;
   private Assignments[][] monthData;
-  private HashMap<String, NewIndividualAssignment> monthNewIndividualAssignments = new HashMap<String, NewIndividualAssignment>();
+  private HashMap<String, NewIndividualAssignment> monthNewIndividualAssignments =
+    new HashMap<String, NewIndividualAssignment>();
   private ShiftDefinitions[][] PredefinedDayShifts;
   private int currYear = 0;   //not initialized
   private int currMonth = 0; //0 based month
@@ -68,8 +71,9 @@ public class MonthCalendar extends ResourceBase {
 
     //has the user set an "override" for the length of each text row
     if (StaticUtils.isNotEmpty(request.getParameter("textLen"))) {
-      textLen = new Integer(request.getParameter("textLen"));
-    } else {
+      textLen = Integer.valueOf(request.getParameter("textLen"));
+    }
+    else {
       textLen = 0;  //undefined
     }
 
@@ -78,7 +82,8 @@ public class MonthCalendar extends ResourceBase {
     if (StaticUtils.isNotEmpty(patrollerId)) {
       patrollerIdTag = "&ID=" + patrollerId;
       notLoggedIn = false;
-    } else {
+    }
+    else {
       patrollerIdTag = "";
       notLoggedIn = true;
     }
@@ -98,19 +103,21 @@ public class MonthCalendar extends ResourceBase {
     realCurrYear = calendar.get(Calendar.YEAR);
 
     if (!isDateInvalidOrMissing(szMonth, szYear)) {
-      currMonth = new Integer(szMonth);
-      currYear = new Integer(szYear);
-    } else {
+      currMonth = Integer.valueOf(szMonth);
+      currYear = Integer.valueOf(szYear);
+    }
+    else {
       if (szYear != null && szMonth != null) {
         //          out.println("invalid calendar date specified, starting calendar at: " + szMonths[realCurrMonth] + " " + realCurrYear);
-        debugOut("invalid calendar date, starting calendar at: (0 based month) " + realCurrMonth + "/1/" + realCurrYear);
+        debugOut(
+          "invalid calendar date, starting calendar at: (0 based month) " + realCurrMonth + "/1/" + realCurrYear);
       }
       currMonth = realCurrMonth;
       currYear = realCurrYear;
     }
     calendar.set(currYear, currMonth, 1);
 
-    if (!patrolData.isValidResort(resort)) {
+    if (!PatrolData.isValidResort(resort)) {
       out.println("ERROR.  Invalid resort=" + resort);
       return;
     }
@@ -131,8 +138,8 @@ public class MonthCalendar extends ResourceBase {
     if (szMonth == null || szYear == null) {
       return true;
     }
-    int paramMonth = new Integer(szMonth);
-    int paramYear = new Integer(szYear);
+    int paramMonth = Integer.valueOf(szMonth);
+    int paramYear = Integer.valueOf(szYear);
 
     if (paramMonth < 0 || paramMonth > 12) {
       return true;
@@ -156,7 +163,8 @@ public class MonthCalendar extends ResourceBase {
     if (currMonth == 0) { //beginning of year?
       prevMonth = 11;
       prevYear = currYear - 1;
-    } else {
+    }
+    else {
       prevMonth = currMonth - 1;
       prevYear = currYear;
     }
@@ -164,7 +172,8 @@ public class MonthCalendar extends ResourceBase {
     if (currMonth == 11) { //end of year?
       nextMonth = 0;
       nextYear = currYear + 1;
-    } else {
+    }
+    else {
       nextMonth = currMonth + 1;
       nextYear = currYear;
     }
@@ -193,24 +202,28 @@ public class MonthCalendar extends ResourceBase {
       denseFormat = false;
       dayWidth = 14;
       wkEndWidth = 14;
-    } else if (textLen > 0) {
+    }
+    else if (textLen > 0) {
       //user set an "override"
       maxNameLen = textLen;
       denseFormat = true;
       dayWidth = 11;
       wkEndWidth = 22;
-    } else if (maxAssignmentCnt > 12 || resort.equals("Brighton")) {
+    }
+    else if (maxAssignmentCnt > 12 || resort.equals("Brighton")) {
       maxNameLen = 20;
       denseFormat = true;
       dayWidth = 11;
       wkEndWidth = 22;
-    } else {
+    }
+    else {
       maxNameLen = 30;
       denseFormat = false;
       dayWidth = 14;
       wkEndWidth = 14;
     }
-    PredefinedDayShifts = new ShiftDefinitions[8][ShiftDefinitions.MAX]; //all daily shifts 1-7, 0 is not used in Calendar.Sunday
+    PredefinedDayShifts =
+      new ShiftDefinitions[8][ShiftDefinitions.MAX]; //all daily shifts 1-7, 0 is not used in Calendar.Sunday
     //      patrol.resetShiftDefinitions();
     int lastDayOfWeekIndex = -1;
     int pos = 0;
@@ -220,7 +233,8 @@ public class MonthCalendar extends ResourceBase {
 
       if (currDayOfWeekIndex == lastDayOfWeekIndex) {
         ++pos;
-      } else {
+      }
+      else {
         pos = 0;
       }
       lastDayOfWeekIndex = currDayOfWeekIndex;
@@ -242,19 +256,26 @@ public class MonthCalendar extends ResourceBase {
     int newDay;
     if ("Sunday".equals(name)) {
       newDay = Calendar.SUNDAY;
-    } else if ("Monday".equals(name)) {
+    }
+    else if ("Monday".equals(name)) {
       newDay = Calendar.MONDAY;
-    } else if ("Tuesday".equals(name)) {
+    }
+    else if ("Tuesday".equals(name)) {
       newDay = Calendar.TUESDAY;
-    } else if ("Wednesday".equals(name)) {
+    }
+    else if ("Wednesday".equals(name)) {
       newDay = Calendar.WEDNESDAY;
-    } else if ("Thursday".equals(name)) {
+    }
+    else if ("Thursday".equals(name)) {
       newDay = Calendar.THURSDAY;
-    } else if ("Friday".equals(name)) {
+    }
+    else if ("Friday".equals(name)) {
       newDay = Calendar.FRIDAY;
-    } else if ("Saturday".equals(name)) {
+    }
+    else if ("Saturday".equals(name)) {
       newDay = Calendar.SATURDAY;
-    } else {
+    }
+    else {
       newDay = -1;
     }
     return newDay;
@@ -281,7 +302,8 @@ public class MonthCalendar extends ResourceBase {
       //        pos = assignments.getDatePos();
       if (year == oldYear && month == oldMonth && day == oldDay) {
         ++pos;
-      } else {
+      }
+      else {
         pos = 0;
         curPos = 0;
       }
@@ -289,7 +311,7 @@ public class MonthCalendar extends ResourceBase {
       //is the the month we are printing ?
       if (year == currYear && month == (currMonth + 1)) {
         monthData[day][pos] = assignments;
-        debugOut("monthData[" + day + "][" + pos + "] = " + assignments.toString());
+        debugOut("monthData[" + day + "][" + pos + "] = " + assignments);
         if (curPos > maxAssignmentCnt) {
           maxAssignmentCnt = curPos;
         }
@@ -312,7 +334,7 @@ public class MonthCalendar extends ResourceBase {
 
 
     out.println("<html>");
-    out.println("<head><title>" + patrolData.getResortFullName(resort, LOG) + " Schedule</title>");
+    out.println("<head><title>" + PatrolData.getResortFullName(resort, LOG) + " Schedule</title>");
 
     out.println("<SCRIPT LANGUAGE = 'JavaScript'>");
 
@@ -324,7 +346,8 @@ public class MonthCalendar extends ResourceBase {
 
 
     out.println("function dispEvent(url,wname) {");
-    out.println("    window.open(url, wname, 'scrollbars=yes,toolbar=no,status=no,location=no,menubar=no,resizable=yes,height=450,width=620,left=10,top=10')");
+    out.println(
+      "    window.open(url, wname, 'scrollbars=yes,toolbar=no,status=no,location=no,menubar=no,resizable=yes,height=450,width=620,left=10,top=10')");
     out.println("}");
 
     out.println("function printWindow(){");
@@ -377,10 +400,13 @@ public class MonthCalendar extends ResourceBase {
     out.println("<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='0' WIDTH='100%'>");
     out.println("<TR><TD ALIGN='LEFT' VALIGN='Bottom'><BR>");
     String testingMessage = "";
-    if (patrolData.USING_TESTING_ADDRESS) {
+    if (PatrolData.USING_TESTING_ADDRESS) {
       testingMessage = "ERROR!!! Using to older database!!! Contact Steve Gledhill (801)209-5974 ASAP";
     }
-    out.println("<FONT FACE='Arial, Helvetica' COLOR='000000' SIZE='4'><B>" + testingMessage + patrolData.getResortFullName(resort, LOG) + " - Shift Schedule for " + StaticUtils.szMonthsFull[calendar.get(Calendar.MONTH)] + " " + calendar.get(Calendar.YEAR) + "</B></FONT>");
+    out.println("<FONT FACE='Arial, Helvetica' COLOR='000000' SIZE='4'><B>" + testingMessage +
+                  PatrolData.getResortFullName(resort, LOG) + " - Shift Schedule for " +
+                  StaticUtils.szMonthsFull[calendar.get(Calendar.MONTH)] + " " + calendar.get(Calendar.YEAR) +
+                  "</B></FONT>");
     out.println("<font size=3>");
     out.println("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
     if (notLoggedIn) {
@@ -395,7 +421,8 @@ public class MonthCalendar extends ResourceBase {
     }
     out.println("</TD></TR></table>");
     out.println("");
-    out.println("<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='0' WIDTH='100%'><TR><TD><img src='/images/ncclear.gif' width='3' height='3'></TD></TR></table>");
+    out.println(
+      "<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='0' WIDTH='100%'><TR><TD><img src='/images/ncclear.gif' width='3' height='3'></TD></TR></table>");
     out.println("");
     //style='font-size: 10pt; face='Verdana, Arial, Helvetica'
     //make default font small for calendar shifts
@@ -423,26 +450,32 @@ public class MonthCalendar extends ResourceBase {
   }
 
   private void showPrevNextAndHomeButtons(PrintWriter out, String resort) {
-    out.println("<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='1' WIDTH='100%' height='38'><TR><TD VALIGN='Bottom' ALIGN='RIGHT' NOWRAP height='34'><FONT SIZE='2' FACE='Arial, Helvetica'>");
+    out.println(
+      "<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='1' WIDTH='100%' height='38'><TR><TD VALIGN='Bottom' ALIGN='RIGHT' NOWRAP height='34'><FONT SIZE='2' FACE='Arial, Helvetica'>");
     //insert page for previous button
     String szPrevHTML = "MonthCalendar?resort=" + resort + patrollerIdTag + "&month=" + prevMonth + "&year=" + prevYear;
     if (notLoggedIn) {
       szPrevHTML += "&noLogin=1";
     }
-    out.println("<a target='_self' href='" + szPrevHTML + "'><IMG SRC='/images/ncvwprev.gif' BORDER='0' ALT='Previous month' ALIGN='MIDDLE' width='32' height='23'></a>");
+    out.println("<a target='_self' href='" + szPrevHTML +
+                  "'><IMG SRC='/images/ncvwprev.gif' BORDER='0' ALT='Previous month' ALIGN='MIDDLE' width='32' height='23'></a>");
     //insert page for next button
     String szNextHTML = "MonthCalendar?resort=" + resort + patrollerIdTag + "&month=" + nextMonth + "&year=" + nextYear;
     if (notLoggedIn) {
       szNextHTML += "&noLogin=1";
     }
     //    szNextHTML += idParameter;
-    out.println("<a target='_self' href='" + szNextHTML + "'><IMG SRC='/images/ncvwnext.gif' BORDER='0' ALT='Next month' ALIGN='MIDDLE' width='32' height='23'></a>");
+    out.println("<a target='_self' href='" + szNextHTML +
+                  "'><IMG SRC='/images/ncvwnext.gif' BORDER='0' ALT='Next month' ALIGN='MIDDLE' width='32' height='23'></a>");
     //home month button
-    String szCurrHTML = "MonthCalendar?resort=" + resort + patrollerIdTag + "&month=" + realCurrMonth + "&year=" + realCurrYear;
+    String szCurrHTML =
+      "MonthCalendar?resort=" + resort + patrollerIdTag + "&month=" + realCurrMonth + "&year=" + realCurrYear;
     if (notLoggedIn) {
       szCurrHTML += "&noLogin=1";
     }
-    out.println("<a href='" + szCurrHTML + "' Target='_self'><IMG SRC='/images/ncgohome.gif' BORDER='0' ALT='Return to " + StaticUtils.szMonthsFull[realCurrMonth] + " " + realCurrYear + "' ALIGN='MIDDLE' width='32' height='32'></a>");
+    out.println(
+      "<a href='" + szCurrHTML + "' Target='_self'><IMG SRC='/images/ncgohome.gif' BORDER='0' ALT='Return to " +
+        StaticUtils.szMonthsFull[realCurrMonth] + " " + realCurrYear + "' ALIGN='MIDDLE' width='32' height='32'></a>");
     out.println(" </FONT></TD></TR>");
     out.println("<TR><TD VALIGN='Bottom' ALIGN='RIGHT' height='21'>");
     out.println("");
@@ -452,7 +485,8 @@ public class MonthCalendar extends ResourceBase {
 
   public void printEndOfPage(PrintWriter out, String resort) {
     out.println("</TABLE>");
-    out.println("<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='0' WIDTH='100%'><TR><TD><img src='/images/ncclear.gif' width='3' height='4'></TD></TR></table>");
+    out.println(
+      "<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='0' WIDTH='100%'><TR><TD><img src='/images/ncclear.gif' width='3' height='4'></TD></TR></table>");
     out.println("<font size=1>As of: " + trialTime);
     //removed Set 13, 2015
     //      out.println("&nbsp;&nbsp;");
@@ -460,7 +494,7 @@ public class MonthCalendar extends ResourceBase {
     //
     //      out.println("&nbsp;&nbsp;");
 
-//    String go = "MonthCalendar?resort=" + resort + patrollerIdTag + "&month=" + currMonth + "&year=" + currYear;
+    //    String go = "MonthCalendar?resort=" + resort + patrollerIdTag + "&month=" + currMonth + "&year=" + currYear;
 
     out.println("</font>");
     out.println("</FORM>");
@@ -484,12 +518,14 @@ public class MonthCalendar extends ResourceBase {
         int wid;
         if (dayOfWeek == 0 || dayOfWeek == 6) {
           wid = wkEndWidth;
-        } else {
+        }
+        else {
           wid = dayWidth;
         }
         if (currDay > 0 && currDay <= daysInMonth) {
           printCell(out, resort, monthData, currDay, dayOfWeek, wid, month + 1);
-        } else {
+        }
+        else {
           blankCell(out, wid);
         }
         ++currDay;
@@ -502,8 +538,9 @@ public class MonthCalendar extends ResourceBase {
     out.println("<TD WIDTH='" + wid + "%' BGCOLOR='#e1e1e1' VALIGN='TOP' HEIGHT='64'>&nbsp;</TD>");
   }
 
-  @SuppressWarnings({"deprecation", "Since15"})
-  private void printCell(PrintWriter out, String resort, Assignments[][] data, int day, int dayOfWeek, int wid, int currMon) {
+  @SuppressWarnings({ "deprecation", "Since15" })
+  private void printCell(PrintWriter out, String resort, Assignments[][] data, int day, int dayOfWeek, int wid,
+                         int currMon) {
     //output DATE
     dayOfWeek++; //convert to 1 based
     String eventName = null;
@@ -515,27 +552,33 @@ public class MonthCalendar extends ResourceBase {
     //define cell properties
     if (eventName != null && eventName.length() > 1 && !"Closed".equalsIgnoreCase(eventName)) {
       out.println("<TD WIDTH='" + wid + "%' VALIGN='TOP' HEIGHT='64' BGCOLOR='#00e1e1'>");
-    } else {
+    }
+    else {
       out.println("<TD WIDTH='" + wid + "%' VALIGN='TOP' HEIGHT='64' BGCOLOR='#FFFFFF'>");
     }
 
     //    int indx = 0;
     //build hyperlink tags
-    String htmData = "ChangeShiftAssignments?resort=" + resort + patrollerIdTag + "&dayOfWeek=" + (dayOfWeek - 1) + "&date=" + day +
-      "&month=" + currMonth + "&year=" + currYear + "&pos=";
+    String htmData =
+      "ChangeShiftAssignments?resort=" + resort + patrollerIdTag + "&dayOfWeek=" + (dayOfWeek - 1) + "&date=" + day +
+        "&month=" + currMonth + "&year=" + currYear + "&pos=";
     String htmDisplayData = "<a target='_self' href='DayShifts?resort=" + resort + "&dayOfWeek=" + (dayOfWeek - 1) +
       "&date=" + day + "&month=" + currMonth + "&year=" + currYear + patrollerIdTag +
       "' Title='Shift Details..'><B><font face='arial,helvetica' color='#0000FF' size=4>" +
-      Integer.toString(day) + "</font></B></a>";
+      day + "</font></B></a>";
     if (notLoggedIn) {
-      htmDisplayData = "<B><font face='arial,helvetica' color='#0000FF' size=4>" + Integer.toString(day) + "</font></B>";
+      htmDisplayData =
+        "<B><font face='arial,helvetica' color='#0000FF' size=4>" + day + "</font></B>";
     }
     boolean inSeason = true;
     boolean blackoutDate = false;
 
     if (directorSettings.getUseBlackOut() && (dayOfWeek == 1 || dayOfWeek == 7)) {
-      Date startDate = new Date(directorSettings.getBlackOutStartYear() - 1900, directorSettings.getBlackOutStartMonth() - 1, directorSettings.getBlackOutStartDay());
-      Date endDate = new Date(directorSettings.getBlackOutEndYear() - 1900, directorSettings.getBlackOutEndMonth() - 1, directorSettings.getBlackOutEndDay());
+      Date startDate =
+        new Date(directorSettings.getBlackOutStartYear() - 1900, directorSettings.getBlackOutStartMonth() - 1,
+                 directorSettings.getBlackOutStartDay());
+      Date endDate = new Date(directorSettings.getBlackOutEndYear() - 1900, directorSettings.getBlackOutEndMonth() - 1,
+                              directorSettings.getBlackOutEndDay());
       Date today = new Date(currYear - 1900, currMon - 1, day);
       if (today.getTime() >= startDate.getTime() && today.getTime() <= endDate.getTime()) {
         blackoutDate = true;
@@ -554,12 +597,15 @@ public class MonthCalendar extends ResourceBase {
         //does a shift exist on the calendar for today?
         if (!inSeason) {
           out.println("<font color='#FF0000' size='4'>&nbsp;&nbsp;CLOSED</font>");
-        } else if ("closed".equalsIgnoreCase(eventName)) {
+        }
+        else if ("closed".equalsIgnoreCase(eventName)) {
           //System.out.println("***** Closed ***");
           out.println("<font color='#FF0000' size='4'>&nbsp;&nbsp;Closed</font>");
-        } else if (blackoutDate) {
+        }
+        else if (blackoutDate) {
           out.println("<font color='#FF0000' size='4'>&nbsp;&nbsp;Not Yet Available</font>");
-        } else {
+        }
+        else {
           //
           //no data for this day, FILL OUT BLANK FORM
           //
@@ -571,16 +617,19 @@ public class MonthCalendar extends ResourceBase {
               break;
             }
             for (int j = 0; j < shift.getCount() && !notLoggedIn; ++j) {
-              printName(out, htmData + ((i + 1) + "&index=" + j), 0, shift.getStartString(), day, dayOfWeek, count++, i + 1, j, resort);
+              printName(out, htmData + ((i + 1) + "&index=" + j), 0, shift.getStartString(), day, dayOfWeek, count++,
+                        i + 1, j, resort);
             }
           }
           out.println("</table>");
         }
-      } else if (!inSeason) {
+      }
+      else if (!inSeason) {
         out.println("<font color='#FF0000' size='4'>&nbsp;&nbsp;CLOSED</font>");
       }
 
-    } else if (data[day][0].getPosID(0).equals("1") || "Closed".equalsIgnoreCase(eventName)) {
+    }
+    else if (data[day][0].getPosID(0).equals("1") || "Closed".equalsIgnoreCase(eventName)) {
       //special flag, we are closed this day (patroller[0] ID = 1)
       out.println(htmDisplayData);
       out.println("<font color='#FF0000' size='4'>&nbsp;&nbsp;CLOSED</font>");
@@ -588,18 +637,22 @@ public class MonthCalendar extends ResourceBase {
         out.println("<BR><font size='2'>" + eventName + "</font>");
       }
 
-    } else {
+    }
+    else {
       //Normal day
       if (eventName != null && !eventName.trim().isEmpty()) {
         out.println(htmDisplayData);
         out.println("<BR><font size='2'>" + eventName + "</font>");
         //                out.println(eventName);
-      } else {
+      }
+      else {
         out.println(htmDisplayData);
       }
       out.println("<TABLE WIDTH='100%' Border='0' CELLPADDING='0' CellSpacing='0'>");
       int posCount = 0;
-      htmData = "ChangeShiftAssignments?resort=" + resort + "&dayOfWeek=" + (dayOfWeek - 1) + "&date=" + day + "&month=" + currMonth + "&year=" + currYear + patrollerIdTag + "&pos=";
+      htmData =
+        "ChangeShiftAssignments?resort=" + resort + "&dayOfWeek=" + (dayOfWeek - 1) + "&date=" + day + "&month=" +
+          currMonth + "&year=" + currYear + patrollerIdTag + "&pos=";
       for (int i = 0; i < assignmentCount && !notLoggedIn; ++i) {
         int count = data[day][i].getCount();
         for (int j = 0; j < count; ++j) {
@@ -609,8 +662,10 @@ public class MonthCalendar extends ResourceBase {
           try {
             int id = Integer.parseInt(szTmp);
             printName(out, htmData + ((i + 1) + "&index=" + j), id, time, day, dayOfWeek, posCount++, i + 1, j, resort);
-          } catch (Exception e) {
-            LOG.logException("Error, bad data for data[" + day + "][" + i + "].getPosID(" + j + ") = (" + szTmp + ")", e);
+          }
+          catch (Exception e) {
+            LOG.logException("Error, bad data for data[" + day + "][" + i + "].getPosID(" + j + ") = (" + szTmp + ")",
+                             e);
           }
         }
       }
@@ -646,20 +701,23 @@ public class MonthCalendar extends ResourceBase {
       //this removes the time prefix from the name in dense format
       //          if(denseFormat)
       //              time = "";
-      QuickTip = names.get(new Integer(id)); //format ,"Steve Gledhill,(801) 571-7716"
+      QuickTip = names.get(Integer.valueOf(id)); //format ,"Steve Gledhill,(801) 571-7716"
       if (QuickTip == null) {
         szName = "Err id (" + id + ")";
-      } else if (missed) {
+      }
+      else if (missed) {
         /*full name*/
         szName = time + "<strike>" + QuickTip.substring(0, QuickTip.lastIndexOf(',')) + "</strike>";
         // first name     szName = time+"<strike>" + QuickTip.substring(0, QuickTip.indexOf(' ')) + "</strike>";
-      } else {
+      }
+      else {
         /*full name*/
         szName = time + QuickTip.substring(0, QuickTip.lastIndexOf(','));
         // first name szName = time+QuickTip.substring(0, QuickTip.indexOf(' '));
       }
 
-    } else {
+    }
+    else {
       QuickTip = "";
       szName = time;
     }
@@ -679,12 +737,14 @@ public class MonthCalendar extends ResourceBase {
         //left side
         szRowStart = "<TR><TD>";
         szRowEnd = "</TD>";
-      } else {
+      }
+      else {
         //right side
         szRowStart = "<TD>";
         szRowEnd = "</TD></TR>";
       }
-    } else {
+    }
+    else {
       //          szRowStart = "<TR><TD NOWRAP>";
       szRowStart = "<TR><TD>";
       szRowEnd = "</TD></TR>";
@@ -692,12 +752,15 @@ public class MonthCalendar extends ResourceBase {
     //check if modifying the calendar is valid
     boolean validDateToEdit = true; //hack
     //todo fix this crap
-    if (resort.equals("KellyCanyon") || resort.equals("Brighton")) { //<-- this part is a hack.  put info in directors page
+    if (resort.equals("KellyCanyon") ||
+      resort.equals("Brighton")) { //<-- this part is a hack.  put info in directors page
       if (currYear < realCurrYear) {
         validDateToEdit = false;
-      } else if (currYear == realCurrYear && currMonth < realCurrMonth) {
+      }
+      else if (currYear == realCurrYear && currMonth < realCurrMonth) {
         validDateToEdit = false;
-      } else if (currYear == realCurrYear && currMonth == realCurrMonth && day < realCurrDate) {
+      }
+      else if (currYear == realCurrYear && currMonth == realCurrMonth && day < realCurrDate) {
         validDateToEdit = false;
       }
     }
@@ -718,7 +781,8 @@ public class MonthCalendar extends ResourceBase {
           //Log.log(" current id=" + id + ", id from new table="+ foundId);
           if (foundId != id) {
             //Log.log("ERROR with newIndividualAssignment id did not match current ID");
-          } else if (newIndividualAssignment.getNeedsReplacement()) {
+          }
+          else if (newIndividualAssignment.getNeedsReplacement()) {
             cellBackgroundStart = "<div style='background: #FFFF00'>"; //was FFC8C8
             cellBackgroundEnd = "</div>";
           }
@@ -727,7 +791,8 @@ public class MonthCalendar extends ResourceBase {
       // end highlight ------------------------------------------
       out.println(szRowStart + "<a target='_self' href='" + html + "' Title='" + QuickTip + "'>" + cellBackgroundStart +
                     szName + cellBackgroundEnd + "</a>" + szRowEnd);
-    } else {
+    }
+    else {
       out.println(szRowStart + "<font face='arial,helvetica' color='#000000'>" + szName + "</font>" + szRowEnd);
     }
   }
@@ -738,7 +803,8 @@ public class MonthCalendar extends ResourceBase {
       if (strNum != null) {
         num = Integer.parseInt(strNum);
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       LOG.logException("cvtToInt failed to parse: " + strNum, e);
     }
     return num;

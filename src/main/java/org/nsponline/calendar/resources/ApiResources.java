@@ -10,10 +10,12 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -80,7 +82,8 @@ public class ApiResources {
         while ((line = reader.readLine()) != null) {
           jsonBuffer.append(line);
         }
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
         /*report an error*/
       }
       //    logger(sessionData, "jsonBuffer:" + jsonBuffer.toString());
@@ -106,7 +109,8 @@ public class ApiResources {
       if (patrol.isValidLogin(out, resort, patrollerId, password, sessionData)) {   //does password match?
         sessionData.setLoggedInUserId(patrollerId);
         sessionData.setLoggedInResort(resort);
-      } else {
+      }
+      else {
         buildAndLogErrorResponse(response, 401, "no matching id/password for resort=" + resort, LOG);
         return;
       }
@@ -120,7 +124,8 @@ public class ApiResources {
       Date sessionCreateTime = new Date(calendar.getTimeInMillis());
       String fromIp = request.getHeader("x-forwarded-for"); //x-forwarded-for: 216.49.181.51
 
-      NspSession nspSession = new NspSession(sessionId, patrollerId, resort, sessionCreateTime, sessionCreateTime, fromIp, isDirector);
+      NspSession nspSession =
+        new NspSession(sessionId, patrollerId, resort, sessionCreateTime, sessionCreateTime, fromIp, isDirector);
       Connection connection = patrol.getConnection();
       if (connection != null && nspSession.insertRow(connection)) {
         //build return node
@@ -128,7 +133,8 @@ public class ApiResources {
         returnNode.put("authToken", sessionId);
         //return OK
         StaticUtils.buildOkResponse(response, returnNode, LOG);
-      } else {
+      }
+      else {
         String errMsg = (connection == null) ? "Could not get DB connection" : "Row insertion failed";
         StaticUtils.buildAndLogErrorResponse(response, 500, "Internal error: " + errMsg, LOG);
       }
@@ -240,9 +246,9 @@ public class ApiResources {
         String szMonth = request.getParameter("month");
         String szDay = request.getParameter("day");
         LOG.info(" --patrol/assignments... resort=" + resort
-                           + ", year: [" + szYear
-                           + "], month: [" + szMonth
-                           + "], day: [" + szDay);
+                   + ", year: [" + szYear
+                   + "], month: [" + szMonth
+                   + "], day: [" + szDay);
         int year = convertToInt(szYear);
         int month = convertToInt(szMonth);
         int day = convertToInt(szDay);
@@ -268,9 +274,11 @@ public class ApiResources {
         ArrayList<Assignments> assignmentsList = new ArrayList<Assignments>();
         if (day != 0) {
           assignmentsList = patrolData.readSortedAssignments(year, month, day);
-        } else if (year != 0) {
+        }
+        else if (year != 0) {
           assignmentsList = patrolData.readSortedAssignments(year, month);
-        } else {
+        }
+        else {
           //entire season
 
           DirectorSettings directorSettings = patrolData.readDirectorSettings();
@@ -287,8 +295,8 @@ public class ApiResources {
           int endYear = startYear + 1;
 
           LOG.info("full season from: "
-                             + startMonth + "/" + startDay + "/" + startYear
-                             + " to: " + endDay + "/" + endMonth + "/" + endYear);
+                     + startMonth + "/" + startDay + "/" + startYear
+                     + " to: " + endDay + "/" + endMonth + "/" + endYear);
           for (int mon = startMonth; mon <= 12; mon++) {
             assignmentsList.addAll(patrolData.readSortedAssignments(startYear, mon));
           }
@@ -379,7 +387,8 @@ public class ApiResources {
         //if no year, do everything
         //if yea, them month must exist
         if ((year == 0 && month != 0) || (year != 0 && month == 0)) {
-          buildAndLogErrorResponse(response, 400, "required 'year' (" + szYear + ") and 'month' (" + szMonth + ")", LOG);
+          buildAndLogErrorResponse(response, 400, "required 'year' (" + szYear + ") and 'month' (" + szMonth + ")",
+                                   LOG);
           return;
         }
 
@@ -399,9 +408,11 @@ public class ApiResources {
         ArrayList<Assignments> assignmentsList;
         if (year == 0) {
           assignmentsList = patrolData.readAllSortedAssignments(authenticatedUserId);
-        } else if (day != 0) {
+        }
+        else if (day != 0) {
           assignmentsList = patrolData.readSortedAssignments(authenticatedUserId, year, month, day);
-        } else {
+        }
+        else {
           assignmentsList = patrolData.readSortedAssignments(authenticatedUserId, year, month);
         }
         for (Assignments ns : assignmentsList) {
@@ -517,7 +528,8 @@ public class ApiResources {
         }
         DirectorSettings directorSettings = patrolData.readDirectorSettings();
         if (directorSettings == null) {
-          buildAndLogErrorResponse(response, 400, "resort settings not found (should never happen) (" + nspSession.getAuthenticatedUser() + ")", LOG);
+          buildAndLogErrorResponse(response, 400, "resort settings not found (should never happen) (" +
+            nspSession.getAuthenticatedUser() + ")", LOG);
           return;
         }
 
@@ -588,7 +600,8 @@ public class ApiResources {
             resorts.add(resort);
           }
           return resorts;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
           LOG.logException("Error SHOW databases:", e);
         } //end try
         return new ArrayList<String>();
@@ -676,7 +689,7 @@ public class ApiResources {
   /**
    * @author Steve Gledhill
    */
-  @SuppressWarnings({"WeakerAccess", "unused"})
+  @SuppressWarnings({ "WeakerAccess", "unused" })
   @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
   public static class LoginPayload {
     private String id;

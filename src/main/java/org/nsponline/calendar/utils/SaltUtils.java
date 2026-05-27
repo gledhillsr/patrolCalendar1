@@ -8,6 +8,7 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Properties;
+
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.nsponline.calendar.DailyReminder;
@@ -48,13 +49,13 @@ public class SaltUtils {
   }
 
   @SuppressWarnings("DuplicatedCode")
-  public static void main(String[] args) throws NoSuchAlgorithmException {    //this NEEDS to be static
+  static void main(String[] args) throws NoSuchAlgorithmException {    //this NEEDS to be static
     Properties properties = System.getProperties();
     PrintWriter out = new PrintWriter(System.out);
     SessionData sessionData = new SessionData(properties, out);
     Logger LOG = new Logger(DailyReminder.class, null, "DailyReminder", "DailyReminder", Logger.INFO);
     out.println("******************************************************");
-    out.println("START RUNNING DAILY REMINDER: " + new Date().toString());
+    out.println("START RUNNING DAILY REMINDER: " + new Date());
     out.println("******************************************************");
     if (sessionData.getDbPassword() == null) {
       System.out.println("properties not found");

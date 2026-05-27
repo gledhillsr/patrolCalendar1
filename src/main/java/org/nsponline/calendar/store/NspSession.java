@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Date;
+
 import org.nsponline.calendar.utils.Logger;
 
 /**
@@ -33,7 +34,8 @@ public class NspSession {
   String sessionIpAddress;
   boolean isDirector;
 
-  public NspSession(String sessionId, String authenticatedUser, String resort, Date sessionCreateTime, Date lastSessionAccessTime, String sessionIpAddress, boolean isDirector) {
+  public NspSession(String sessionId, String authenticatedUser, String resort, Date sessionCreateTime,
+                    Date lastSessionAccessTime, String sessionIpAddress, boolean isDirector) {
     this.sessionId = sessionId;
     this.authenticatedUser = authenticatedUser;
     this.resort = resort;
@@ -51,7 +53,7 @@ public class NspSession {
     }
     PreparedStatement sessionStatement = null;
     @SuppressWarnings("SqlNoDataSourceInspection")
-    String str = "SELECT * FROM " + TABLE_NAME + " WHERE " + SESSION_ID + " = ?" ;
+    String str = "SELECT * FROM " + TABLE_NAME + " WHERE " + SESSION_ID + " = ?";
     LOG.logSqlStatement(str);
     try {
       sessionStatement = connection.prepareStatement(str);
@@ -64,7 +66,9 @@ public class NspSession {
         Date lastSessionAccessTime = sessionResults.getDate(SESSION_LAST_ACCESS_TIME);
         String sessionIpAddress = sessionResults.getString(SESSION_IP_ADDRESS);
         boolean isDirector = sessionResults.getBoolean(IS_DIRECTOR);
-        NspSession nspSession = new NspSession(sessionId, authenticatedUser, resort, sessionCreateTime, lastSessionAccessTime, sessionIpAddress, isDirector);
+        NspSession nspSession =
+          new NspSession(sessionId, authenticatedUser, resort, sessionCreateTime, lastSessionAccessTime,
+                         sessionIpAddress, isDirector);
         //todo log something
         return nspSession;
       }
@@ -88,9 +92,10 @@ public class NspSession {
 
   public boolean insertRow(Connection connection) {
     @SuppressWarnings("SqlNoDataSourceInspection")
-    String qryString = "INSERT INTO session Values(\'" + sessionId + "', \"" +
-        authenticatedUser + "\", \"" + resort + "\", \"" + sessionCreateTime + "\", \"" + lastSessionAccessTime + "\", \"" +
-        sessionIpAddress + "\", \"" + (isDirector? 1:0) + "\")";
+    String qryString = "INSERT INTO session Values('" + sessionId + "', \"" +
+      authenticatedUser + "\", \"" + resort + "\", \"" + sessionCreateTime + "\", \"" + lastSessionAccessTime +
+      "\", \"" +
+      sessionIpAddress + "\", \"" + (isDirector ? 1 : 0) + "\")";
 
     LOG.logSqlStatement(qryString);
     try {
@@ -102,43 +107,43 @@ public class NspSession {
       LOG.logException("Cannot insert session", e);
       return false;
     }
-//    String str = "insert into session (sessionId, authenticatedUserId, resort, sessionCreateTime, lastSessionAccessTime, sessionIpAddress, isDirector) values (?, ?, ?, ?, ?, ?, ?)";
-//    PreparedStatement insertStatement = null;
-//    try {
-//      insertStatement = connection.prepareStatement(str);
-//
-//      insertStatement.setString(1, sessionId);
-//      insertStatement.setString(2, authenticatedUser);
-//      insertStatement.setString(3, resort);
-//      insertStatement.setDate(4, sessionCreateTime);
-//      insertStatement.setDate(5, lastSessionAccessTime);
-//      insertStatement.setString(6, sessionIpAddress);
-//      insertStatement.setBoolean(7, isDirector);
-//      Boolean isResultSet = insertStatement.execute();
-//      Log.log("isResultSet = " + isResultSet);
-//      if (isResultSet) {
-//        Log.log("resultset=" + insertStatement.getResultSet().toString());
-//      }
-//      //todo log something
-//      connection.commit();
-//      return true;
-//    }
-//    catch (SQLException e) {
-//      e.printStackTrace();
-//      //todo ...
-//    }
-//    finally {
-//      if (insertStatement != null) {
-//        try {
-//          insertStatement.close();
-//        }
-//        catch (SQLException e) {
-//          e.printStackTrace();
-//          //todo ...
-//        }
-//      }
-//    }
-//    return false;
+    //    String str = "insert into session (sessionId, authenticatedUserId, resort, sessionCreateTime, lastSessionAccessTime, sessionIpAddress, isDirector) values (?, ?, ?, ?, ?, ?, ?)";
+    //    PreparedStatement insertStatement = null;
+    //    try {
+    //      insertStatement = connection.prepareStatement(str);
+    //
+    //      insertStatement.setString(1, sessionId);
+    //      insertStatement.setString(2, authenticatedUser);
+    //      insertStatement.setString(3, resort);
+    //      insertStatement.setDate(4, sessionCreateTime);
+    //      insertStatement.setDate(5, lastSessionAccessTime);
+    //      insertStatement.setString(6, sessionIpAddress);
+    //      insertStatement.setBoolean(7, isDirector);
+    //      Boolean isResultSet = insertStatement.execute();
+    //      Log.log("isResultSet = " + isResultSet);
+    //      if (isResultSet) {
+    //        Log.log("resultset=" + insertStatement.getResultSet().toString());
+    //      }
+    //      //todo log something
+    //      connection.commit();
+    //      return true;
+    //    }
+    //    catch (SQLException e) {
+    //      e.printStackTrace();
+    //      //todo ...
+    //    }
+    //    finally {
+    //      if (insertStatement != null) {
+    //        try {
+    //          insertStatement.close();
+    //        }
+    //        catch (SQLException e) {
+    //          e.printStackTrace();
+    //          //todo ...
+    //        }
+    //      }
+    //    }
+    //    return false;
   }
 
   public boolean deleteRow(Connection connection) {
@@ -185,32 +190,32 @@ public class NspSession {
   }
 
   //--------------- SQL support --------------------
-//  String getDeleteSessionSQLString() {
-//    int i;
-//    String qryString = "DELETE FROM " + TABLE_NAME + " WHERE " + SESSION_ID + " = '" + sessionId + "'";
-//    PatrolData.logger(resort, qryString);
-//    return qryString;
-//  }
-//
-//  String getLastSessionAccessTimeUpdateSQLString() {
-//    String qryString = "UPDATE " + TABLE_NAME + " SET " +
-//        " " + SESSION_LAST_ACCESS_TIME + "='" + lastSessionAccessTime +
-//        "' WHERE " + SESSION_ID + "= '" + sessionId + "'";
-//    PatrolData.logger(resort, qryString);
-//    return qryString;
-//  }
-//
-//  public boolean writeLastSessionAccessTime(Connection connection) {
-//    String qryString = getLastSessionAccessTimeUpdateSQLString();
-//    PatrolData.logger(resort, "writeLastSessionAccessTime: " + qryString);
-//    try {
-//      PreparedStatement sAssign = connection.prepareStatement(qryString);
-//      sAssign.executeUpdate();
-//    }
-//    catch (SQLException e) {
-//      PatrolData.logger(resort, "Failed writeShift, reason:" + e.getMessage());
-//      return true;
-//    }
-//    return false;
-//  }
+  //  String getDeleteSessionSQLString() {
+  //    int i;
+  //    String qryString = "DELETE FROM " + TABLE_NAME + " WHERE " + SESSION_ID + " = '" + sessionId + "'";
+  //    PatrolData.logger(resort, qryString);
+  //    return qryString;
+  //  }
+  //
+  //  String getLastSessionAccessTimeUpdateSQLString() {
+  //    String qryString = "UPDATE " + TABLE_NAME + " SET " +
+  //        " " + SESSION_LAST_ACCESS_TIME + "='" + lastSessionAccessTime +
+  //        "' WHERE " + SESSION_ID + "= '" + sessionId + "'";
+  //    PatrolData.logger(resort, qryString);
+  //    return qryString;
+  //  }
+  //
+  //  public boolean writeLastSessionAccessTime(Connection connection) {
+  //    String qryString = getLastSessionAccessTimeUpdateSQLString();
+  //    PatrolData.logger(resort, "writeLastSessionAccessTime: " + qryString);
+  //    try {
+  //      PreparedStatement sAssign = connection.prepareStatement(qryString);
+  //      sAssign.executeUpdate();
+  //    }
+  //    catch (SQLException e) {
+  //      PatrolData.logger(resort, "Failed writeShift, reason:" + e.getMessage());
+  //      return true;
+  //    }
+  //    return false;
+  //  }
 }

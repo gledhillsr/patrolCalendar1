@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.Logger;
 import org.nsponline.calendar.utils.SessionData;
@@ -13,10 +15,10 @@ import org.nsponline.calendar.utils.SessionData;
 import static org.nsponline.calendar.store.Roster.*;
 
 
-@SuppressWarnings({"SqlNoDataSourceInspection", "AccessStaticViaInstance"})
+@SuppressWarnings({ "SqlNoDataSourceInspection", "AccessStaticViaInstance" })
 public class UpdateInfo extends ResourceBase {
   @SuppressWarnings("SqlNoDataSourceInspection")
-  private final static String[] IDpos = {"P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"};
+  private final static String[] IDpos = { "P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9" };
 
   //class globals
   private String title;
@@ -162,7 +164,8 @@ public class UpdateInfo extends ResourceBase {
     out.println("   var str = document.forms[0].IDToEdit.value");
     out.println("   var num = parseInt(str);");
     out.println("   if (num >= 10001 && num <= 999999) ok = true;");
-    out.println("   if(!ok) alert(\"'ID Number' must be a UNIQUE number between 10000 and 999999.  You entered '\"+str+\"'\");");
+    out.println(
+      "   if(!ok) alert(\"'ID Number' must be a UNIQUE number between 10000 and 999999.  You entered '\"+str+\"'\");");
     out.println("   return ok;");
     out.println("}");
 
@@ -204,7 +207,7 @@ public class UpdateInfo extends ResourceBase {
     }
   }
 
-  @SuppressWarnings({"UnusedDeclaration"})
+  @SuppressWarnings({ "UnusedDeclaration" })
   public void printBodySave(HttpServletRequest request, HttpServletResponse response, SessionData sessionData) {
     String sz;
     int i;
@@ -359,12 +362,13 @@ public class UpdateInfo extends ResourceBase {
         }
 
         out.println("<tr>");
-        out.println("<td width=\"230\" valign=\"middle\"><font size=3>" + Roster.dbData[i][Roster.DLG_NAME] + "</font></td>");
+        out.println(
+          "<td width=\"230\" valign=\"middle\"><font size=3>" + Roster.dbData[i][Roster.DLG_NAME] + "</font></td>");
         out.println("<td width=\"350\" valign=\"left\"><font size=3>");
         if (i == Roster.COMMITMENT) {
           out.println(Roster.getCommitmentString(szTmp));
         }
-        else if (i == Roster.TEAM_LEAD || i == Roster.MENTORING ) {
+        else if (i == Roster.TEAM_LEAD || i == Roster.MENTORING) {
           //Log.log(i+") = ("+szTmp+")");
           if (szTmp.equals("1")) {
             out.println("Yes");
@@ -393,16 +397,20 @@ public class UpdateInfo extends ResourceBase {
         out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"ID\" VALUE=\"" + IDOfEditor + "\">");
         out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"Purpose\" VALUE=\"FinalDelete\">");
         out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"NameToEdit\" VALUE=\"" + NameToEdit + "\">");
-        out.println("<INPUT TYPE=SUBMIT VALUE=\"Delete Record\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+        out.println(
+          "<INPUT TYPE=SUBMIT VALUE=\"Delete Record\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
         out.println("<input type=\"button\" value=\"Cancel\" name=\"B3\" onClick=\"history.back()\">");
         out.println("</form>");
         //???
       }
       else if (isNewPatroller) {
-        String nextPage = patrolData.SERVLET_URL + "UpdateInfo?resort=" + resort + "&Purpose=Add_Patroller&ID=" + IDOfEditor;
-        out.println("<br><INPUT TYPE=button VALUE=\"Add Another New Patroller\" onClick=window.location=\"" + nextPage + "\">&nbsp;&nbsp;&nbsp;&nbsp;");
+        String nextPage =
+          patrolData.SERVLET_URL + "UpdateInfo?resort=" + resort + "&Purpose=Add_Patroller&ID=" + IDOfEditor;
+        out.println("<br><INPUT TYPE=button VALUE=\"Add Another New Patroller\" onClick=window.location=\"" + nextPage +
+                      "\">&nbsp;&nbsp;&nbsp;&nbsp;");
         nextPage = patrolData.SERVLET_URL + "Directors?resort=" + resort + "&ID=" + IDOfEditor;
-        out.println("<INPUT TYPE=button VALUE=\"Return to Director's Page\" onClick=window.location=\"" + nextPage + "\">");
+        out.println(
+          "<INPUT TYPE=button VALUE=\"Return to Director's Page\" onClick=window.location=\"" + nextPage + "\">");
       }
       else // if (finalDelete || setNewID)
       {
@@ -423,7 +431,7 @@ public class UpdateInfo extends ResourceBase {
   } //end printBodySave
 
 
-  @SuppressWarnings({"UnusedDeclaration"})
+  @SuppressWarnings({ "UnusedDeclaration" })
   public void printBodyForm(HttpServletRequest request, HttpServletResponse response, SessionData sessionData) {
     int i;
 
@@ -452,7 +460,7 @@ public class UpdateInfo extends ResourceBase {
       out.println("<h2>Personal Information for:  " + fullName + "</h2><br>");
       out.println("host resort: <b>" + patrolData.getResortFullName(resort, LOG) + "</b>");
       out.println("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-//      out.println("<a href=\"javascript:printWindow()\">Print This Page</a></font><br>");
+      //      out.println("<a href=\"javascript:printWindow()\">Print This Page</a></font><br>");
 
       out.println("<P>");
       out.print("<form target='_self' action=\"");
@@ -599,10 +607,15 @@ public class UpdateInfo extends ResourceBase {
         //DO NOTHING
       }
       if (editorIsDirector) {
-        out.println("                        <input type=\"checkbox\" name=\"OEC\"" + ((idx & 1) == 1 ? "checked" : "") + ">OEC");
-        out.println("&nbsp;&nbsp;&nbsp;&nbsp;<input type=\"checkbox\" name=\"CPR\"" + ((idx & 2) == 2 ? "checked" : "") + ">CPR");
-        out.println("&nbsp;&nbsp;&nbsp;&nbsp;<input type=\"checkbox\" name=\"SKI\"" + ((idx & 4) == 4 ? "checked" : "") + ">Ski");
-        out.println("&nbsp;&nbsp;&nbsp;&nbsp;<input type=\"checkbox\" name=\"TOBOGGAN\"" + ((idx & 8) == 8 ? "checked" : "") + ">Toboggan");
+        out.println(
+          "                        <input type=\"checkbox\" name=\"OEC\"" + ((idx & 1) == 1 ? "checked" : "") + ">OEC");
+        out.println(
+          "&nbsp;&nbsp;&nbsp;&nbsp;<input type=\"checkbox\" name=\"CPR\"" + ((idx & 2) == 2 ? "checked" : "") + ">CPR");
+        out.println(
+          "&nbsp;&nbsp;&nbsp;&nbsp;<input type=\"checkbox\" name=\"SKI\"" + ((idx & 4) == 4 ? "checked" : "") + ">Ski");
+        out.println(
+          "&nbsp;&nbsp;&nbsp;&nbsp;<input type=\"checkbox\" name=\"TOBOGGAN\"" + ((idx & 8) == 8 ? "checked" : "") +
+            ">Toboggan");
       }
       else {
         if ((idx & 1) == 1) {
@@ -658,7 +671,8 @@ public class UpdateInfo extends ResourceBase {
         boolean isYes = szDefault.equals("yes");
         boolean isYesEmail = szDefault.equals("yesEmail");
         out.println("<OPTION " + (isYes ? "SELECTED " : "") + " VALUE=\"yes\">Yes");
-        out.println("<OPTION " + (isYesEmail ? "SELECTED " : "") + " VALUE=\"yesEmail\">Yes & email me ALL schedule changes");
+        out.println(
+          "<OPTION " + (isYesEmail ? "SELECTED " : "") + " VALUE=\"yesEmail\">Yes & email me ALL schedule changes");
         out.println("<OPTION " + (!isYes && !isYesEmail ? "SELECTED " : "") + " VALUE=\"\">No");
         out.println("</SELECT>");
       }
@@ -701,7 +715,8 @@ public class UpdateInfo extends ResourceBase {
       out.println("<SELECT NAME=" + szField + " CLASS=\"select\">");
       out.println("<OPTION " + (szDefault.trim().equals("") ? "SELECTED " : "") + " VALUE=\"\">No");
       out.println("<OPTION " + (szDefault.equals("day") ? "SELECTED " : "") + " VALUE=\"day\">Day Only");
-      out.println("<OPTION " + (szDefault.equals("night") ? "SELECTED " : "") + " VALUE=\"night\">Night Only");  //brighton
+      out.println(
+        "<OPTION " + (szDefault.equals("night") ? "SELECTED " : "") + " VALUE=\"night\">Night Only");  //brighton
       out.println("<OPTION " + (szDefault.equals("both") ? "SELECTED " : "") + " VALUE=\"both\">Both (Days & Nights)");
       out.println("</SELECT>");
     }
@@ -730,7 +745,7 @@ public class UpdateInfo extends ResourceBase {
     }
     else {
       if (szDefault == null || index == PASSWORD) {
-        szDefault="";
+        szDefault = "";
       }
       out.println("<input type=text size=" + len + " name=" + szField + " value=\"" + szDefault + "\">");
     }

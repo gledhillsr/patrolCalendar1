@@ -3,8 +3,10 @@ package org.nsponline.calendar.resources;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.util.*;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Assignments;
 import org.nsponline.calendar.store.DirectorSettings;
 import org.nsponline.calendar.store.Roster;
@@ -217,7 +219,7 @@ public class ListPatrollers extends ResourceBase {
     if (DEBUG) {
       dumpParameters();
     }
-    String[] incList = {"BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "OTH"};
+    String[] incList = { "BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "OTH" };
     classificationsToDisplay = new Vector<String>();
     commitmentToDisplay = 0;
     //classification
@@ -376,7 +378,9 @@ public class ListPatrollers extends ResourceBase {
       //options += "&format=palm";
       options += "&format=Excel";
       loc = "DownloadRoster?resort=" + resort + "&ID=" + szMyID + options;
-      out.println("<INPUT  TYPE=\"button\" VALUE=\"Steve, Download table (under construction)\" onClick=window.location=\"" + loc + "\">");
+      out.println(
+        "<INPUT  TYPE=\"button\" VALUE=\"Steve, Download table (under construction)\" onClick=window.location=\"" +
+          loc + "\">");
     }
     out.println("</p>");
   }
@@ -384,15 +388,15 @@ public class ListPatrollers extends ResourceBase {
   public void printTop() {
 
     //        int headerFontSize = textFontSize+2; //adjust me ?
-//todo removed 2/27/21
-//    out.println("<style type=\"text/css\">");
-//    out.println("<!-- ");
-//    out.println("body  {font-size:10pt; color: #000000; background-color: #ffffff}");
-//    out.println(".list table {border-width:1px; border-color:#000000; border-style:solid; border-collapse:collapse; border-spacing:0}");
-//    out.println(".list th    {font-size:" + textFontSize + "pt; font-weight: bold; color: #000000; background-color: #ffffff; border-width:1px; border-color:#000000; border-style:solid; padding:2px}");
-//    out.println(".list td    {font-size:" + textFontSize + "pt; color: #000000; background-color: #ffffff; border-width:1px; border-color:#000000; border-style:solid; padding:1px}");
-//    out.println("//-->");
-//    out.println("</style>");
+    //todo removed 2/27/21
+    //    out.println("<style type=\"text/css\">");
+    //    out.println("<!-- ");
+    //    out.println("body  {font-size:10pt; color: #000000; background-color: #ffffff}");
+    //    out.println(".list table {border-width:1px; border-color:#000000; border-style:solid; border-collapse:collapse; border-spacing:0}");
+    //    out.println(".list th    {font-size:" + textFontSize + "pt; font-weight: bold; color: #000000; background-color: #ffffff; border-width:1px; border-color:#000000; border-style:solid; padding:2px}");
+    //    out.println(".list td    {font-size:" + textFontSize + "pt; color: #000000; background-color: #ffffff; border-width:1px; border-color:#000000; border-style:solid; padding:1px}");
+    //    out.println("//-->");
+    //    out.println("</style>");
 
     out.println("<script>");
     out.println("function printWindow(){");
@@ -401,13 +405,15 @@ public class ListPatrollers extends ResourceBase {
     out.println("}");
     out.println("</script>");
 
-    out.println("<p><Center><h2>Members of the " + PatrolData.getResortFullName(resort, LOG) + " Ski Patrol</h2></Center></p>");
+    out.println(
+      "<p><Center><h2>Members of the " + PatrolData.getResortFullName(resort, LOG) + " Ski Patrol</h2></Center></p>");
 
     LOG.info("ListPatrollers, isDirector=" + isDirector + " ID: " + szMyID + " directorSettings=" + directorSettings);
     if (isDirector || (directorSettings != null && directorSettings.getEmailAll())) {
       showButtonsAtTop(resort);
     } //end email patrollers...
-    out.println("<table class='list' style=\"font-size: 10pt; face='Verdana, Arial, Helvetica' \" border=\"1\" width=\"99%\" bordercolordark=\"#003366\" bordercolorlight=\"#C0C0C0\">");
+    out.println(
+      "<table class='list' style=\"font-size: 10pt; face='Verdana, Arial, Helvetica' \" border=\"1\" width=\"99%\" bordercolordark=\"#003366\" bordercolorlight=\"#C0C0C0\">");
     out.println(" <tr>");
 
     Roster.addColumn(-1);
@@ -638,8 +644,8 @@ public class ListPatrollers extends ResourceBase {
         String cnt = key.substring(0, 4);
         String idx = key.substring(5);
         String cnt1 = cnt.replaceFirst("^0+(?!$)", "");
-        int currentAssignmentCount = new Integer(cnt1);
-        int memberIndex = new Integer(idx);
+        int currentAssignmentCount = Integer.valueOf(cnt1);
+        int memberIndex = Integer.valueOf(idx);
         member = members.elementAt(memberIndex);
         if (!useMinDays || currentAssignmentCount <= maxShiftCount) {
           member.printMemberListRowData(out);
@@ -700,7 +706,8 @@ public class ListPatrollers extends ResourceBase {
     final Hashtable<String, Roster> hash = new Hashtable<String, Roster>();
     //int xx = 0;
     while ((member = patrol.nextMember("&nbsp;", rosterResults)) != null) {
-      if (member.okToDisplay(false, false, listAll, classificationsToDisplay, commitmentToDisplay, listDirector, instructorFlags, 0)) {
+      if (member.okToDisplay(false, false, listAll, classificationsToDisplay, commitmentToDisplay, listDirector,
+                             instructorFlags, 0)) {
         //              ++count;
         members.addElement(member);
         hash.put(member.getID(), member);
@@ -729,7 +736,9 @@ public class ListPatrollers extends ResourceBase {
         for (i = 0; i < Assignments.MAX_ASSIGNMENT_SIZE; ++i) {
           //              member = patrol.getMemberByID(ns.getPosID(i));
           member = hash.get(ns.getPosID(i));
-          if (member != null && member.okToDisplay(false, false, listAll, classificationsToDisplay, commitmentToDisplay, listDirector, instructorFlags, 0)) {
+          if (member != null &&
+            member.okToDisplay(false, false, listAll, classificationsToDisplay, commitmentToDisplay, listDirector,
+                               instructorFlags, 0)) {
             //                        String tim = ns.getStartingTimeString();
             if (showDayCnt && ns.isDayShift()) {
               ++member.AssignmentCount[Assignments.DAY_TYPE];
@@ -794,7 +803,7 @@ public class ListPatrollers extends ResourceBase {
 
   private void debugOut(String msg) {
     if (DEBUG) {
-      LOG.info( "DEBUG-ListPatrollers(): " + msg);
+      LOG.info("DEBUG-ListPatrollers(): " + msg);
     }
   }
 }

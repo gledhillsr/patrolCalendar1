@@ -5,31 +5,33 @@ import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.*;
 import org.nsponline.calendar.utils.*;
 
 import static com.amazonaws.util.StringUtils.isNullOrEmpty;
 
-public class InnerChangeShiftAssignments extends ResourceBase  {
+public class InnerChangeShiftAssignments extends ResourceBase {
   final private HttpServletResponse response;
 
   private final static String LIMIT_DAY_SHIFTS_FOR_RESORT = "Brightonzz";  //todo Brighton or Sample
   private final static int MAX_DAY_SHIFTS_PER_MONTH = 30;
   private final static List<Integer> LIMITED_MONTH_MAX = new ArrayList<>(Arrays.asList(
-      MAX_DAY_SHIFTS_PER_MONTH,  //Jan (0 based months)
-      MAX_DAY_SHIFTS_PER_MONTH,  //Feb
-      MAX_DAY_SHIFTS_PER_MONTH,  //Mar
-      MAX_DAY_SHIFTS_PER_MONTH,  //Apr
-      MAX_DAY_SHIFTS_PER_MONTH,  //May
-      MAX_DAY_SHIFTS_PER_MONTH,  //Jun
-      MAX_DAY_SHIFTS_PER_MONTH,  //Jul
-      MAX_DAY_SHIFTS_PER_MONTH,  //Aug
-      MAX_DAY_SHIFTS_PER_MONTH,  //Sep
-      MAX_DAY_SHIFTS_PER_MONTH,  //Oct
-      MAX_DAY_SHIFTS_PER_MONTH,  //Nov
-      MAX_DAY_SHIFTS_PER_MONTH));  //Dec
+    MAX_DAY_SHIFTS_PER_MONTH,  //Jan (0 based months)
+    MAX_DAY_SHIFTS_PER_MONTH,  //Feb
+    MAX_DAY_SHIFTS_PER_MONTH,  //Mar
+    MAX_DAY_SHIFTS_PER_MONTH,  //Apr
+    MAX_DAY_SHIFTS_PER_MONTH,  //May
+    MAX_DAY_SHIFTS_PER_MONTH,  //Jun
+    MAX_DAY_SHIFTS_PER_MONTH,  //Jul
+    MAX_DAY_SHIFTS_PER_MONTH,  //Aug
+    MAX_DAY_SHIFTS_PER_MONTH,  //Sep
+    MAX_DAY_SHIFTS_PER_MONTH,  //Oct
+    MAX_DAY_SHIFTS_PER_MONTH,  //Nov
+    MAX_DAY_SHIFTS_PER_MONTH));  //Dec
 
   /**
    * From the calendar, clicked on a specific shift
@@ -39,7 +41,8 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
    *
    * @author Steve Gledhill
    */
-  public InnerChangeShiftAssignments(HttpServletRequest request, HttpServletResponse response, Logger LOG) throws IOException {
+  public InnerChangeShiftAssignments(HttpServletRequest request, HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     this.response = response;
   }
@@ -88,11 +91,17 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
     out.println("</SCRIPT>");
     out.println("<A NAME=\"TOP\"></A>");
     out.println("<table border=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\" WIDTH=\"100%\"><tr><td>");
-    out.println("<font size=\"6\" COLOR=\"000000\" face=\"arial,helvetica\"><b>" + StaticUtils.szDays[parameters.dayOfWeek] + "</b></font><BR>");
-    out.println("<font face=\"arial,helvetica\" COLOR=\"000000\" size=\"4\"><B>" + StaticUtils.szMonthsFull[parameters.month] + " " + parameters.dayOfMonth + ", " + parameters.year + "</B>");
+    out.println(
+      "<font size=\"6\" COLOR=\"000000\" face=\"arial,helvetica\"><b>" + StaticUtils.szDays[parameters.dayOfWeek] +
+        "</b></font><BR>");
+    out.println(
+      "<font face=\"arial,helvetica\" COLOR=\"000000\" size=\"4\"><B>" + StaticUtils.szMonthsFull[parameters.month] +
+        " " + parameters.dayOfMonth + ", " + parameters.year + "</B>");
     out.println("</font></TD>");
     out.println("<td VALIGN=\"MIDDLE\" ALIGN=\"RIGHT\" NOWRAP><FONT SIZE=\"2\" FACE=\"Arial, Helvetica\">");
-    out.println("<a target='_self' href=\"MonthCalendar?resort=" + resort + "&month=" + parameters.month + "&year=" + parameters.year + "\"><IMG SRC=\"/images/ncgohome.gif\" BORDER=\"0\" ALT=\"Return to Volunteer Roster\" ALIGN=\"BOTTOM\" width=\"32\" height=\"32\"></a>");
+    out.println("<a target='_self' href=\"MonthCalendar?resort=" + resort + "&month=" + parameters.month + "&year=" +
+                  parameters.year +
+                  "\"><IMG SRC=\"/images/ncgohome.gif\" BORDER=\"0\" ALT=\"Return to Volunteer Roster\" ALIGN=\"BOTTOM\" width=\"32\" height=\"32\"></a>");
     out.println("</font>");
     out.println("</td></tr>");
     out.println("</table>");
@@ -109,7 +118,8 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
     Roster md = patrol.getMemberByID(id);
     if (md != null) {
       shiftInfo.newName1 = md.getFullName();
-    } else {
+    }
+    else {
       shiftInfo.newName1 = shiftInfo.newIdNumber;  //could not find name, so use number as name
     }
     return isNullOrEmpty(name);
@@ -120,7 +130,8 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
     for (i = 0; i < shiftInfo.rosterSize; ++i) {
       if (name != null && name.equals(shiftInfo.sortedRoster[i])) {
         out.println("<option selected>" + name);
-      } else {
+      }
+      else {
         out.println("<option>" + shiftInfo.sortedRoster[i]);
       }
     }
@@ -129,13 +140,15 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
   private boolean findIfPositionWasEmpty(Parameters parameters, PatrolData patrol, ShiftInfo shiftInfo) {
     boolean posWasEmpty = true;
     for (int assignmentGroup = 0; assignmentGroup < shiftInfo.totalAssignmentGroupsForToday; ++assignmentGroup) {
-      for (int offsetWithinGroup = 0; offsetWithinGroup < shiftInfo.assignmentGroups[assignmentGroup].getCount(); ++offsetWithinGroup) {
+      for (int offsetWithinGroup = 0;
+           offsetWithinGroup < shiftInfo.assignmentGroups[assignmentGroup].getCount(); ++offsetWithinGroup) {
         String id = shiftInfo.assignmentGroups[assignmentGroup].getPosID(offsetWithinGroup);
         if (id.charAt(0) == '-') { // missedShift
           id = id.substring(1);
         }
         if ((assignmentGroup + 1) == parameters.pos && offsetWithinGroup == parameters.index) {
-          LOG.debug("look for patroller at assignment group: " + (assignmentGroup + 1) + ", at offset: " + assignmentGroup);
+          LOG.debug(
+            "look for patroller at assignment group: " + (assignmentGroup + 1) + ", at offset: " + assignmentGroup);
           posWasEmpty = isThisPositionEmpty(id, patrol, shiftInfo);
         }
       }
@@ -143,7 +156,8 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
     return posWasEmpty;
   }
 
-  private int printMiddle(PrintWriter out, PatrolData patrol, String loggedInUserId, Parameters parameters, ShiftInfo shiftInfo) {
+  private int printMiddle(PrintWriter out, PatrolData patrol, String loggedInUserId, Parameters parameters,
+                          ShiftInfo shiftInfo) {
     int visibleRadioButtons = 0;
 
     boolean posWasEmpty = findIfPositionWasEmpty(parameters, patrol, shiftInfo);
@@ -156,31 +170,34 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
     //start of selection table
     out.println("<table border=\"1\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">");
 
-//note newName=Shorts, Jim, newName1=Jim Shorts, myName=Jane Doe,
+    //note newName=Shorts, Jim, newName1=Jim Shorts, myName=Jane Doe,
     boolean editingMyself = shiftInfo.newName1 != null && shiftInfo.newName1.equals(shiftInfo.myName);
     AtomicInteger myShiftsThisMonth = new AtomicInteger();
     boolean outsideEarlyLimit = shouldLimitAndInsertIsMaxedOut(loggedInUserId, parameters, patrol, myShiftsThisMonth);
     LOG.info("CALLING ProcessChangeShiftAssignments with: loggedInUserId=" + loggedInUserId
-                  + ", newName=" + shiftInfo.newName
-                  + ", newName1=" + shiftInfo.newName1
-                  + ", myName=" + shiftInfo.myName
-                  + ", posWasEmpty=" + posWasEmpty
-                  + ", allowEditing=" + shiftInfo.allowEditing
-                  + ", editingMyself=" + editingMyself
-                  + ", outsideEarlyLimit=" + outsideEarlyLimit);
+               + ", newName=" + shiftInfo.newName
+               + ", newName1=" + shiftInfo.newName1
+               + ", myName=" + shiftInfo.myName
+               + ", posWasEmpty=" + posWasEmpty
+               + ", allowEditing=" + shiftInfo.allowEditing
+               + ", editingMyself=" + editingMyself
+               + ", outsideEarlyLimit=" + outsideEarlyLimit);
     if (shiftInfo.allowEditing && shiftInfo.myName != null) {
       //==INSERT== only used if position is empty
       if (outsideEarlyLimit && posWasEmpty && !isNightShift(patrol, parameters)) { //should be Brighton ONLY
         int maxLimitedShiftsThisMonth = LIMITED_MONTH_MAX.get(parameters.month);
         out.println("  <tr>");
-        out.println("    <td width=\"100%\" colspan=\"2\">Sorry, outside <b>early</b> limit of " + maxLimitedShiftsThisMonth + " day/swing shifts per month");
+        out.println(
+          "    <td width=\"100%\" colspan=\"2\">Sorry, outside <b>early</b> limit of " + maxLimitedShiftsThisMonth +
+            " day/swing shifts per month");
         out.println("    </td>");
         out.println("  </tr>");
       }
       else if (posWasEmpty) {
         out.println("  <tr>");
         visibleRadioButtons++;
-        out.println("    <td width=\"100%\" colspan=\"2\"><INPUT TYPE=RADIO NAME=\"transaction\" VALUE=\"insertMyName\" CHECKED>");
+        out.println(
+          "    <td width=\"100%\" colspan=\"2\"><INPUT TYPE=RADIO NAME=\"transaction\" VALUE=\"insertMyName\" CHECKED>");
         out.println("      <b>Insert</b> myself (" + shiftInfo.myName + ").&nbsp; ");
         out.println("    </td>");
         out.println("  </tr>");
@@ -189,8 +206,10 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
       else if (!editingMyself && !outsideEarlyLimit) {
         out.println("  <tr>");
         visibleRadioButtons++;
-        out.println("    <td width=\"100%\" colspan=\"2\"><INPUT TYPE=RADIO NAME=\"transaction\" VALUE=\"ReplaceWithMyName\" CHECKED>");
-        out.println("      <b>Replace</b> &quot;" + shiftInfo.newName1 + "&quot; with myself (" + shiftInfo.myName + ").&nbsp; No");
+        out.println(
+          "    <td width=\"100%\" colspan=\"2\"><INPUT TYPE=RADIO NAME=\"transaction\" VALUE=\"ReplaceWithMyName\" CHECKED>");
+        out.println("      <b>Replace</b> &quot;" + shiftInfo.newName1 + "&quot; with myself (" + shiftInfo.myName +
+                      ").&nbsp; No");
         out.println("      exchange to be done</td>");
         out.println("  </tr>");
       }
@@ -203,14 +222,17 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
         isChecked = " CHECKED ";
       }
       visibleRadioButtons++;
-      out.println("    <td width=\"50%\"><INPUT TYPE=RADIO NAME=\"transaction\" VALUE=\"replaceWithSomeoneElse\" " + isChecked + ">");
+      out.println(
+        "    <td width=\"50%\"><INPUT TYPE=RADIO NAME=\"transaction\" VALUE=\"replaceWithSomeoneElse\" " + isChecked +
+          ">");
       if (!posWasEmpty) {
         out.println("      <b>Replace</b> (" + shiftInfo.newName1 + ") with someone else&nbsp;</td>");
       }
       else {
         out.println("      <b>Insert</b> someone else&nbsp;</td>");
       }
-      out.println("    <td width=\"50%\"><SELECT NAME=\"listName\" SIZE=10 onclick=autoSelectRadioBtn(" + (visibleRadioButtons - 1) + ")>");
+      out.println("    <td width=\"50%\"><SELECT NAME=\"listName\" SIZE=10 onclick=autoSelectRadioBtn(" +
+                    (visibleRadioButtons - 1) + ")>");
       addNames(out, shiftInfo.myName, shiftInfo);
       out.println("</SELECT>");
       out.println("    </td>");
@@ -218,9 +240,13 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
     }
     //==REMOVE== only is position is NOT empty
     //get today's date in days (Julian date)
-    long calendarDay = (new java.util.Date(parameters.year - 1900, parameters.month, parameters.dayOfMonth)).getTime() / 1000 / 3600 / 24;    //get time in days
+    long calendarDay =
+      (new java.util.Date(parameters.year - 1900, parameters.month, parameters.dayOfMonth)).getTime() / 1000 / 3600 /
+        24;    //get time in days
     java.util.Date removeDate = new java.util.Date();
-    long firstRemoveDay = (new java.util.Date(removeDate.getYear(), removeDate.getMonth(), removeDate.getDate())).getTime() / 1000 / 3600 / 24;
+    long firstRemoveDay =
+      (new java.util.Date(removeDate.getYear(), removeDate.getMonth(), removeDate.getDate())).getTime() / 1000 / 3600 /
+        24;
     firstRemoveDay += shiftInfo.removeAccess;
     boolean validRemoveRange = (firstRemoveDay < calendarDay) || shiftInfo.removeAccess == 0;
 
@@ -242,8 +268,11 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
       out.println("  </td> </tr>");
     }
     boolean wasMarkedAsNeedingReplacement = false;
-    HashMap<String, NewIndividualAssignment> monthNewIndividualAssignments = patrol.readNewIndividualAssignments(parameters.year, parameters.month + 1, parameters.dayOfMonth); //entire day
-    String key = NewIndividualAssignment.buildKey(parameters.year, parameters.month + 1, parameters.dayOfMonth, parameters.pos, parameters.index);
+    HashMap<String, NewIndividualAssignment> monthNewIndividualAssignments =
+      patrol.readNewIndividualAssignments(parameters.year, parameters.month + 1, parameters.dayOfMonth); //entire day
+    String key =
+      NewIndividualAssignment.buildKey(parameters.year, parameters.month + 1, parameters.dayOfMonth, parameters.pos,
+                                       parameters.index);
     //key in format yyyy-mm-dd_idx_p
     if (monthNewIndividualAssignments.containsKey(key)) {
       //key found
@@ -256,7 +285,8 @@ public class InnerChangeShiftAssignments extends ResourceBase  {
       out.println("<INPUT TYPE=RADIO NAME=\"transaction\" VALUE=\"noReplacementNeeded\">");
       out.println("      <b>Remove highlight</b> from -Needs a Replacement-  (" + shiftInfo.newName1 + ") ");
       out.println("  </td> </tr>");
-    } else if (!posWasEmpty) {
+    }
+    else if (!posWasEmpty) {
       out.println("  <tr> <td width=\"100%\" colspan=\"2\">");
       visibleRadioButtons++;
       out.println("<INPUT TYPE=RADIO NAME=\"transaction\" VALUE=\"needsReplacement\">");
@@ -286,10 +316,11 @@ ShiftDefinitions use if there is no assignment on that date
  *                     OEC Final_0     18:00        20:00      10       3  (training)
 */
     //note the values passes in are used in a SQL query
-    ArrayList<Assignments> shiftAssignments = patrol.readSortedAssignments(parameters.year, parameters.month + 1, parameters.dayOfMonth);
+    ArrayList<Assignments> shiftAssignments =
+      patrol.readSortedAssignments(parameters.year, parameters.month + 1, parameters.dayOfMonth);
     if (shiftAssignments.isEmpty()) {
       //eventName values like: "Saturday_0" or "Saturday_1"
-      String eventName =  StaticUtils.szDays[parameters.dayOfWeek] + "_" + (parameters.pos - 1);
+      String eventName = StaticUtils.szDays[parameters.dayOfWeek] + "_" + (parameters.pos - 1);
       for (ShiftDefinitions shiftDefinition : patrol.readShiftDefinitions()) {
         String parsedName = shiftDefinition.getEventName();
         if (eventName.equals(parsedName)) {
@@ -297,23 +328,26 @@ ShiftDefinitions use if there is no assignment on that date
         }
       }
 
-        return false;
+      return false;
     }
-    if (shiftAssignments.size() < parameters.pos || parameters.pos  < 1) {
-      LOG.error("isNightShift should NEVER happen.. shiftAssignments.size=" + shiftAssignments.size() + ", parameters.pos=" + parameters.pos);
+    if (shiftAssignments.size() < parameters.pos || parameters.pos < 1) {
+      LOG.error(
+        "isNightShift should NEVER happen.. shiftAssignments.size=" + shiftAssignments.size() + ", parameters.pos=" +
+          parameters.pos);
       return false;
     }
     Assignments assignment = shiftAssignments.get(parameters.pos - 1);
     return assignment.isNightShift();
   }
 
-  private boolean shouldLimitAndInsertIsMaxedOut(String loggedInUserId, Parameters parameters, PatrolData patrol, AtomicInteger myShiftsThisMonth) {
+  private boolean shouldLimitAndInsertIsMaxedOut(String loggedInUserId, Parameters parameters, PatrolData patrol,
+                                                 AtomicInteger myShiftsThisMonth) {
     //only limit for Brighton resort
     if (!shouldLimitDays()) {
       return false;
     }
 
-   //git shift assignments this month
+    //git shift assignments this month
     myShiftsThisMonth.set(getDaySwingShiftCount(loggedInUserId, parameters, patrol));
     Integer maxDaysForTheMonth = LIMITED_MONTH_MAX.get(parameters.month);
     //compute isMaxedOut
@@ -321,28 +355,27 @@ ShiftDefinitions use if there is no assignment on that date
   }
 
   private boolean shouldLimitDays() {
-    if (LIMIT_DAY_SHIFTS_FOR_RESORT.equals(resort)) {
-      return true;
-    }
-    return false;
+    return LIMIT_DAY_SHIFTS_FOR_RESORT.equals(resort);
   }
 
   private int getDaySwingShiftCount(String loggedInUserId, Parameters parameters, PatrolData patrol) {
     int foundCount = 0;
     // The "monthAssignments" represents each unique shift on each unique day, and will have 1-10 patrollers assigned to it.
     ArrayList<Assignments> monthAssignments = patrol.readSortedAssignments(parameters.year, parameters.month + 1);
-    for(Assignments assignment : monthAssignments) {
+    for (Assignments assignment : monthAssignments) {
       //within each shift, loop through each patroller assigned to that shift
       boolean dayOrSwingShift = assignment.isDayShift() || assignment.isSwingShift();
-      if (assignment.getPosIndex(loggedInUserId) >= 0 && dayOrSwingShift) { // was this patroller assigned to this shift?
-//        LOG.info("ZZZ getDaySwingShiftCount, shift's found this month for user=" + loggedInUserId + ", foundCount=" + foundCount + ", dayOrSwingShift=" + dayOrSwingShift);
+      if (assignment.getPosIndex(loggedInUserId) >= 0 &&
+        dayOrSwingShift) { // was this patroller assigned to this shift?
+        //        LOG.info("ZZZ getDaySwingShiftCount, shift's found this month for user=" + loggedInUserId + ", foundCount=" + foundCount + ", dayOrSwingShift=" + dayOrSwingShift);
         ++foundCount;
       }
     }
     return foundCount;
   }
 
-  private void printBottom(PrintWriter out, String loggedInUserId, Parameters parameters, ShiftInfo shiftInfo, int visibleButtons) {
+  private void printBottom(PrintWriter out, String loggedInUserId, Parameters parameters, ShiftInfo shiftInfo,
+                           int visibleButtons) {
     out.println("</table>");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"submitterID\" VALUE=\"" + loggedInUserId + "\">");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"pos1\" VALUE=\"" + parameters.pos + "\">");
@@ -392,8 +425,10 @@ ShiftDefinitions use if there is no assignment on that date
         year = Integer.parseInt(szYear);
         pos = Integer.parseInt(szPos);     //1 based line defining each shift definition withing the day
         index = Integer.parseInt(szIndex); //0 based offset for each shift's row
-        LOG.debug("dayOfWeek=" + dayOfWeek + ", year=" + year + ", month(0-based)=" + month + ", date=" + dayOfMonth + ",  pos=" + pos + ", index=" + index);
-      } catch (NumberFormatException ex) {
+        LOG.debug("dayOfWeek=" + dayOfWeek + ", year=" + year + ", month(0-based)=" + month + ", date=" + dayOfMonth +
+                    ",  pos=" + pos + ", index=" + index);
+      }
+      catch (NumberFormatException ex) {
         dayOfWeek = 7;
         dayOfMonth = 1;
         month = 1;
@@ -472,7 +507,8 @@ ShiftDefinitions use if there is no assignment on that date
 
       totalAssignmentGroupsForToday = 0;
       assignmentGroups = new Assignments[200];
-      for (Assignments shiftAssignments : patrol.readSortedAssignments(parameters.year, parameters.month + 1, parameters.dayOfMonth)) {
+      for (Assignments shiftAssignments : patrol.readSortedAssignments(parameters.year, parameters.month + 1,
+                                                                       parameters.dayOfMonth)) {
         LOG.debug("readData-assignmentGroups[" + totalAssignmentGroupsForToday + "]=" + shiftAssignments);
         assignmentGroups[totalAssignmentGroupsForToday++] = shiftAssignments;
       } //end while Shift ski assignments

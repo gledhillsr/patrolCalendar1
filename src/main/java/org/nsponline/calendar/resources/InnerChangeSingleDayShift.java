@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Assignments;
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.store.ShiftDefinitions;
@@ -49,7 +51,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
 
   final private HttpServletResponse response;
 
-  public InnerChangeSingleDayShift(HttpServletRequest request, HttpServletResponse response, Logger LOG) throws IOException {
+  public InnerChangeSingleDayShift(HttpServletRequest request, HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     this.response = response;
   }
@@ -68,7 +71,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     //noinspection SimplifiableIfStatement
     if (IDOfEditor.equalsIgnoreCase(sessionData.getBackDoorUser())) {
       isDirector = true;
-    } else {
+    }
+    else {
       isDirector = editorsMemberData != null && editorsMemberData.isDirector();
     }
     ArrayList<Assignments> assignmentsFromDisk = new ArrayList<>();  //INCLUDES scheduled patrollers
@@ -80,7 +84,9 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     if (saveShiftBtn || saveAssignmentBtn || deleteAllShiftsBtn) {
       //final change request.  Go back to calendar
       patrol.close();
-      response.sendRedirect(PatrolData.SERVLET_URL + "MonthCalendar?month=" + month + "&year=" + year + "&resort=" + resort + "&ID=" + IDOfEditor);
+      response.sendRedirect(
+        PatrolData.SERVLET_URL + "MonthCalendar?month=" + month + "&year=" + year + "&resort=" + resort + "&ID=" +
+          IDOfEditor);
       return;
     }
 
@@ -100,7 +106,9 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     out.println("function reloadPage(list) {");
     out.println("  var idx = list.selectedIndex");
     out.println("  var msg = list.options[idx].text");
-    out.println("  location='" + PatrolData.SERVLET_URL + "DayShifts?resort=" + resort + "&dayOfWeek=" + dayOfWeek + "&date=" + date + "&month=" + month + "&year=" + year + "&ID=" + IDOfEditor + "&dropdownShift='+msg");
+    out.println(
+      "  location='" + PatrolData.SERVLET_URL + "DayShifts?resort=" + resort + "&dayOfWeek=" + dayOfWeek + "&date=" +
+        date + "&month=" + month + "&year=" + year + "&ID=" + IDOfEditor + "&dropdownShift='+msg");
     out.println("}");
 
     //Ignore 'Enter Key' in Text input fields
@@ -171,39 +179,50 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     return szAssignmentDate;
   }
 
-  private void processChangeRequest(HttpServletRequest request, PatrolData patrol, ArrayList<Assignments> assignmentsFromDisk, ArrayList<ShiftDefinitions> parameterShifts) {
+  private void processChangeRequest(HttpServletRequest request, PatrolData patrol,
+                                    ArrayList<Assignments> assignmentsFromDisk,
+                                    ArrayList<ShiftDefinitions> parameterShifts) {
     //write out changes
     patrol.resetAssignments();
     //      int assignmentSize = assignmentsFromDisk.size();
     if (saveAssignmentBtn) {
       doSaveAssignments(request, patrol, assignmentsFromDisk);
-    } else if (deleteAllShiftsBtn) {
+    }
+    else if (deleteAllShiftsBtn) {
       doDeleteAllShifts(patrol, assignmentsFromDisk);
-    } else if (dropdownShift2 != null && !dropdownShift2.equals("") && !dropdownShift2.equals("--New Shift Style--")) {
+    }
+    else if (dropdownShift2 != null && !dropdownShift2.equals("") && !dropdownShift2.equals("--New Shift Style--")) {
       doInsertNewShiftFromDropDown(assignmentsFromDisk);
-    } else if (deleteShift) {
+    }
+    else if (deleteShift) {
       doDelete1ShiftAssignment(patrol, assignmentsFromDisk);
-    } else if (newShift) {
+    }
+    else if (newShift) {
       doAdd1NewShift(patrol, assignmentsFromDisk, parameterShifts);
-    } else if (saveShiftBtn) {  //pressed button at bottom on "Change Today's Shift" page, labeled "Save Shift Changes"
+    }
+    else if (saveShiftBtn) {  //pressed button at bottom on "Change Today's Shift" page, labeled "Save Shift Changes"
       doSaveShiftAssignments(patrol, assignmentsFromDisk, parameterShifts);
     }
     //note, nothing to process on 1st pass
   } //end processChangeRequest
 
-  private void doSaveShiftAssignments(PatrolData patrol, ArrayList<Assignments> assignmentsFromDisk, ArrayList<ShiftDefinitions> parameterShifts) {
+  private void doSaveShiftAssignments(PatrolData patrol, ArrayList<Assignments> assignmentsFromDisk,
+                                      ArrayList<ShiftDefinitions> parameterShifts) {
     ShiftDefinitions sData;
     int assignmentSize = assignmentsFromDisk.size();
     if (parameterShifts.size() > 0) {
       //data was modified
       saveShiftInfo(patrol, assignmentsFromDisk, parameterShifts);
       szOriginalName = szNameComment;
-    } else {
+    }
+    else {
       if (szNameComment.trim().length() == 0) {
         debugOut("saveShiftBtn with no nameComment.  NOTHING to do");
-      } else {
+      }
+      else {
         debugOut("Adding a Comment ONLY assignment (" + szNameComment + ")");
-        sData = new ShiftDefinitions(szNameComment, " ", " ", 0, Assignments.DAY_TYPE, LOG);    //shift with 0 patrollers
+        sData =
+          new ShiftDefinitions(szNameComment, " ", " ", 0, Assignments.DAY_TYPE, LOG);    //shift with 0 patrollers
         String szAssignmentDate = GetTodaysAssignmentString(assignmentSize + 1);  //2002-12-31_1  index is 1 based
         Assignments assignment = new Assignments(szAssignmentDate, sData, LOG);
         assignment.setEventName(szNameComment);
@@ -214,23 +233,26 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     }
   }
 
-  private void doAdd1NewShift(PatrolData patrol, ArrayList<Assignments> assignmentsFromDisk, ArrayList<ShiftDefinitions> parameterShifts) {
+  private void doAdd1NewShift(PatrolData patrol, ArrayList<Assignments> assignmentsFromDisk,
+                              ArrayList<ShiftDefinitions> parameterShifts) {
     insureAssignmentExists(patrol, assignmentsFromDisk);
     int assignmentSize = assignmentsFromDisk.size(); //may have changed above
     saveShiftInfo(patrol, assignmentsFromDisk, parameterShifts); //????
     debugOut("--add shift--");
-    ShiftDefinitions sData = new ShiftDefinitions(szNameComment, "start time", "end time", 1, Assignments.DAY_TYPE, LOG);
+    ShiftDefinitions sData =
+      new ShiftDefinitions(szNameComment, "start time", "end time", 1, Assignments.DAY_TYPE, LOG);
     //real assignmentsFromDisk existed, so add one more
     //make date field yyy-mm-dd_#
     String szAssignmentDate = GetTodaysAssignmentString(assignmentSize + 1); //YYYY-MM-DD_p  where p is 1 based
     Assignments assignment = new Assignments(szAssignmentDate, sData, LOG);
-    debugOut("adding assignment: " + assignment.toString());
+    debugOut("adding assignment: " + assignment);
     assignmentsFromDisk.add(assignment);
 
     String name;
     if (szNameComment != null && szNameComment.length() > 1) {
       name = szNameComment;   //typed in name
-    } else {
+    }
+    else {
       name = "";  //name from dropdown
     }
     assignment.setEventName(name);
@@ -242,7 +264,9 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     ShiftDefinitions sData;//DELETE
     insureAssignmentExists(patrol, assignmentsFromDisk);
     int assignmentSize = assignmentsFromDisk.size(); //assignmentsFromDisk may have changed above
-    debugOut("--deleteShift:  assignmentSize(current assignmentsFromDisk on disk)=" + assignmentSize + " shiftToDelete=" + shiftToDelete);
+    debugOut(
+      "--deleteShift:  assignmentSize(current assignmentsFromDisk on disk)=" + assignmentSize + " shiftToDelete=" +
+        shiftToDelete);
     //note: assignmentSize is 0 if editing from template
     debugOut("*****assignmentSize=" + assignmentSize);
     //if( assignmentSize > 1)
@@ -252,7 +276,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
       //tweak assignmentsFromDisk to remove shiftToDelete, and modify all following records
       if (shiftToDelete >= assignmentSize) {
         debugOut("ERROR, shiftToDelete" + shiftToDelete + ") was >= assignmentSize(" + assignmentSize + ")");
-      } else {
+      }
+      else {
         //delete starting record, and modify the rest from assignmentsFromDisk
         data = assignmentsFromDisk.get(shiftToDelete); //get Assignment to delete
         patrol.deleteAssignment(data);
@@ -277,7 +302,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
           patrol.writeAssignment(assignment);
         }
       }
-    } else {
+    }
+    else {
       //to get here, the user clicked on delete on a virtual assignment (not yet real)
     }
   }
@@ -287,7 +313,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     //A SHIFT FROM THE DROP-DOWN WAS SELECTED
     //don't do a save, just load the new shift
     debugOut("***************************");
-    debugOut("insert new shift with new shift: (" + dropdownShift2 + "), assignmentsFromDisk.size()=" + assignmentsFromDisk.size());
+    debugOut("insert new shift with new shift: (" + dropdownShift2 + "), assignmentsFromDisk.size()=" +
+               assignmentsFromDisk.size());
     debugOut("***************************");
     assignmentsFromDisk.clear(); //forget all existing assignmentsFromDisk
     debugOut("assignmentsFromDisk.clear()");
@@ -315,7 +342,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     //          response.sendRedirect(PatrolData.SERVLET_URL+"MonthCalendar?month="+month+"&year="+year+"&resort="+resort+"&ID="+IDOfEditor);
   }
 
-  private void doSaveAssignments(HttpServletRequest request, PatrolData patrol, ArrayList<Assignments> paramaterAssignments) {
+  private void doSaveAssignments(HttpServletRequest request, PatrolData patrol,
+                                 ArrayList<Assignments> paramaterAssignments) {
     int i;
     Assignments data;//-----Save Mass Assignments Changes ----------------------------------------
     String param, name;
@@ -342,14 +370,16 @@ public class InnerChangeSingleDayShift extends ResourceBase {
           debugOut("param=" + param + ", name=(" + name);
           if (member == null) {
             debugOut(") no member exists");
-          } else {
+          }
+          else {
             debugOut(") id=" + member.getID());
           }
         }
 
         if (member != null && member.getID() != null) {
           data.insertAt(sessionData.getLoggedInResort(), j, member.getID());
-        } else {
+        }
+        else {
           data.insertAt(sessionData.getLoggedInResort(), j, "0");  //remove any existing member
         }
       }
@@ -362,10 +392,13 @@ public class InnerChangeSingleDayShift extends ResourceBase {
   }
 
   private void saveShiftInfo(PatrolData patrol,
-                             @SuppressWarnings("UnusedParameters") ArrayList<Assignments> assignmentsFromDisk, //includes scheduled patrollers
+                             @SuppressWarnings("UnusedParameters") ArrayList<Assignments> assignmentsFromDisk,
+                             //includes scheduled patrollers
                              ArrayList<ShiftDefinitions> parameterShifts) {  //does not include scheduled patrollers
     int assignmentSize = assignmentsFromDisk.size();
-    debugOut("---- DayShifts.saveShiftInfo(assignmentSize(fromDisk)=" + assignmentSize + ", shiftCount(fromArgs)=" + parameterShifts.size() + ")-Data was modified, selectedShift=" + selectedShift + ", szNameComment=(" + szNameComment + ")");
+    debugOut("---- DayShifts.saveShiftInfo(assignmentSize(fromDisk)=" + assignmentSize + ", shiftCount(fromArgs)=" +
+               parameterShifts.size() + ")-Data was modified, selectedShift=" + selectedShift + ", szNameComment=(" +
+               szNameComment + ")");
     int shiftIndex;
     String szAssignmentDate;
     Assignments assignment;
@@ -403,7 +436,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     String name;
     if (szNameComment != null && szNameComment.length() > 1) {
       name = szNameComment;   //typed in name
-    } else {
+    }
+    else {
       name = "";  //name from dropdown
     }
     if (selectedShift == null || selectedShift.length() <= 1) {
@@ -494,24 +528,27 @@ public class InnerChangeSingleDayShift extends ResourceBase {
 
     //was "Save Assignment" button pushed
     saveAssignmentBtn = request.getParameter("saveAssignmentBtn") != null;
-    debugOut("saveShiftBtn=" + saveShiftBtn + ", newShift=" + newShift + ", deleteAllShiftsBtn=" + deleteAllShiftsBtn + ", saveAssignmentBtn=" + saveAssignmentBtn);
+    debugOut("saveShiftBtn=" + saveShiftBtn + ", newShift=" + newShift + ", deleteAllShiftsBtn=" + deleteAllShiftsBtn +
+               ", saveAssignmentBtn=" + saveAssignmentBtn);
     //was the dropdown selected
     //    Shifts[] parameterShifts = new Shifts[shiftCount];
     selectedShift = request.getParameter("selectedShift");
     dropdownShift = request.getParameter("dropdownShift");
     dropdownShift2 = request.getParameter("dropdownShift2");
     debugOut("selectedShift = (" + selectedShift + "), dropdownShift = (" + dropdownShift
-      + "), dropdownShift2 = (" + dropdownShift2 + ")");
+               + "), dropdownShift2 = (" + dropdownShift2 + ")");
     if (dropdownShift2 != null && dropdownShift2.length() > 1) {
       selectedShift = dropdownShift = dropdownShift2;
-    } else if (dropdownShift != null && dropdownShift.length() > 1) {
+    }
+    else if (dropdownShift != null && dropdownShift.length() > 1) {
       selectedShift = dropdownShift;
     }
     //the dropdown for shifts was changed
     if (selectedShift == null) {
       selectedShift = "";
     }
-    debugOut("selectedShift=(" + selectedShift + "), szNameComment=(" + szNameComment + "), parameter shiftCount=" + shiftCount);
+    debugOut("selectedShift=(" + selectedShift + "), szNameComment=(" + szNameComment + "), parameter shiftCount=" +
+               shiftCount);
 
     String idNum;
     int y, m, d;
@@ -547,13 +584,14 @@ public class InnerChangeSingleDayShift extends ResourceBase {
           isFirst = false;
           if (deleteAllShiftsBtn) {
             szOriginalName = " ";
-          } else {
+          }
+          else {
             szOriginalName = data.getEventName();
           }
           debugOut("szOriginalName=(" + szOriginalName + ")");
         }
         //            assignmentsFromDisk[maxPos++] = data;
-        debugOut("assignmentsFromDisk.add: " + data.toString());
+        debugOut("assignmentsFromDisk.add: " + data);
         assignmentsFromDisk.add(data);
       }
     } //end while Shift ski assignmentsFromDisk
@@ -577,18 +615,19 @@ public class InnerChangeSingleDayShift extends ResourceBase {
       String tEnd = request.getParameter("endTime_" + i);
       String tCount = request.getParameter("count_" + i);
       if (tCount == null) {
-        LOG.error( "ERROR, reading past assignment data");
+        LOG.error("ERROR, reading past assignment data");
         break;
       }
       int tCnt = Integer.parseInt(tCount);
       String tShift = request.getParameter("shift_" + i);
       if (tShift == null) {
-        LOG.error( "ERROR, reading past assignment data");
+        LOG.error("ERROR, reading past assignment data");
         break;
       }
       int tType = Assignments.getTypeID(sessionData, tShift);
 
-      debugOut("shift(" + i + ") '" + tStart + "', '" + tEnd + "', cnt=" + tCount + ", " + Assignments.getShiftName(tType));
+      debugOut(
+        "shift(" + i + ") '" + tStart + "', '" + tEnd + "', cnt=" + tCount + ", " + Assignments.getShiftName(tType));
       parameterShifts.add(new ShiftDefinitions(szNameComment, tStart, tEnd, tCnt, tType, LOG));
     } //end shifts from arguments
 
@@ -603,7 +642,7 @@ public class InnerChangeSingleDayShift extends ResourceBase {
 
   private void debugOut(String msg) {
     if (DEBUG) {
-      LOG.info( "Debug-DayShifts: " + msg);
+      LOG.info("Debug-DayShifts: " + msg);
     }
   }
 
@@ -627,7 +666,9 @@ public class InnerChangeSingleDayShift extends ResourceBase {
 
   private void printBody(ArrayList<Assignments> assignmentsFromDisk, String resort) {
     //print date at top
-    out.println("<h1><font color='#FF0000'>" + StaticUtils.szDays[dayOfWeek] + " " + StaticUtils.szMonthsFull[month] + " " + szDate + ", " + szYear + "</font></h1>");
+    out.println(
+      "<h1><font color='#FF0000'>" + StaticUtils.szDays[dayOfWeek] + " " + StaticUtils.szMonthsFull[month] + " " +
+        szDate + ", " + szYear + "</font></h1>");
 
     if (isDirector) {
       if (selectedShift.equals("")) {
@@ -645,7 +686,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
       if (doAssignments) {
         //do group assignment
         showEditAssignments(Math.max(defaultShiftSize, assignmentsFromDisk.size()), assignmentsFromDisk, resort);
-      } else {
+      }
+      else {
         if ((assignmentsFromDisk.size() > 0 || defaultShiftSize > 0) && dropdownShift == null) {
           //ask if director wants to do group assignment
           out.println("<form target='_self' action='" + PatrolData.SERVLET_URL + "DayShifts' method=POST>");
@@ -660,7 +702,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
         }
         showEditShift(assignmentsFromDisk, resort);
       }
-    } else {
+    }
+    else {
       showShiftDetails(assignmentsFromDisk, resort);
     }
   } //end printBody
@@ -669,7 +712,9 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     //print table of values
     out.println("<div align='center'>");
     out.println("  <center>");
-    String goHome = PatrolData.SERVLET_URL + "MonthCalendar?month=" + month + "&year=" + year + "&resort=" + resort + "&ID=" + IDOfEditor;
+    String goHome =
+      PatrolData.SERVLET_URL + "MonthCalendar?month=" + month + "&year=" + year + "&resort=" + resort + "&ID=" +
+        IDOfEditor;
     out.println("<form target='_self' action='" + goHome + "' method=POST>");
     out.println("  <table border='3' cellpadding='0' cellspacing='0' width='438'>");
     out.println("    <tr>");
@@ -679,7 +724,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     out.println("    </tr>");
     if (assignmentsFromDisk.size() == 0) {
       out.println("    <tr><td width='340' bgcolor='#C0C0C0'>No Shift Assignments have been made this date</td></tr>");
-    } else {
+    }
+    else {
       for (Assignments data : assignmentsFromDisk) {
         int count = data.getCount();
         for (int j = 0; j < count; ++j) {
@@ -710,10 +756,12 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     out.println("  <table border='3' cellpadding='0' cellspacing='0' width='375' height='281'>");
     out.println("    <tr>");
     out.println("      <td width='554' bgcolor='#C0C0C0' height='279'>");
-    out.println("<form target='_self' action='" + PatrolData.SERVLET_URL + "DayShifts' onSubmit='return CheckEventName()' method=POST>");
+    out.println("<form target='_self' action='" + PatrolData.SERVLET_URL +
+                  "DayShifts' onSubmit='return CheckEventName()' method=POST>");
 
     out.println("<INPUT TYPE='HIDDEN' NAME='ID' VALUE='" + IDOfEditor + "'>");
-    if (dropdownShift != null && !dropdownShift.equals("") && !dropdownShift.equals("--New Shift Style--") && dropdownShift2 != null) {
+    if (dropdownShift != null && !dropdownShift.equals("") && !dropdownShift.equals("--New Shift Style--") &&
+      dropdownShift2 != null) {
       out.println("<INPUT TYPE='HIDDEN' NAME='dropdownShift2' VALUE='" + dropdownShift + "'>");
     }
 
@@ -722,15 +770,18 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     out.println("<INPUT TYPE='HIDDEN' NAME='month' VALUE='" + month + "'>");
     out.println("<INPUT TYPE='HIDDEN' NAME='year' VALUE='" + szYear + "'>");
     out.println("<INPUT TYPE='HIDDEN' NAME='resort' VALUE='" + resort + "'>");
-    out.println("          <h2 align='center'>Change Today's Shift</h2><h4>Please report any bugs to steve@gledhills.com</h4>");
+    out.println(
+      "          <h2 align='center'>Change Today's Shift</h2><h4>Please report any bugs to steve@gledhills.com</h4>");
     out.println("          <div align='center'>");
     out.println("            <table border='3' cellpadding='0' cellspacing='0' width='700' height='192'>");
 
     out.println("          <center>");
     out.println("              <tr>");
     out.println("                <td height='150' width='650'>");
-    out.println("                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-    out.println("                  Use Predefined Shift format: <select onChange='reloadPage(this)' size='1' name='selectedShift'>");
+    out.println(
+      "                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+    out.println(
+      "                  Use Predefined Shift format: <select onChange='reloadPage(this)' size='1' name='selectedShift'>");
     //popdown of predefined shifts
     PatrolData.AddShiftsToDropDown(out, shiftsTemplates, selectedShift);
     out.println("                  </select>");
@@ -738,22 +789,27 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     out.println("                  <br>");
     out.println("                  &nbsp;&nbsp;");
     out.println("                  <div align='center'>");
-    out.println("                    <table border='3' cellpadding='0' cellspacing='0' width='636' style='font-size: 12pt'>");
+    out.println(
+      "                    <table border='3' cellpadding='0' cellspacing='0' width='636' style='font-size: 12pt'>");
     out.println("                      <tr>");
     String name = szOriginalName;
     if (dropdownShift != null && dropdownShift.equalsIgnoreCase("Closed")) {
       name = dropdownShift;
-    } else if (deleteShift || newShift) {
+    }
+    else if (deleteShift || newShift) {
       if (szNameComment != null && szNameComment.length() > 1) {
         name = szNameComment;   //typed in name
       }
     }
-    out.println("                        <td width='483' colspan='5'>Event Name/Comment: <input type='text' name='newName' onKeyDown='javascript:return captureEnter(event.keyCode)' value='" + name + "' size='39'></td>");
+    out.println(
+      "                        <td width='483' colspan='5'>Event Name/Comment: <input type='text' name='newName' onKeyDown='javascript:return captureEnter(event.keyCode)' value='" +
+        name + "' size='39'></td>");
     out.println("                      </tr>");
     if (assignmentsFromDisk.size() > 0) {
       //display assignmentsFromDisk in database
       PatrolData.AddAssignmentsToTable(out, assignmentsFromDisk);
-    } else {
+    }
+    else {
       //no assignmentsFromDisk in database.
       // if shift was passed in, use it
       // otherwise get default, if one exists (by useing the dayOfWeek)
@@ -771,7 +827,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     }
     debugOut("shifts.size() = " + shiftsTemplates.size());
     debugOut("assignmentsFromDisk.size() = " + assignmentsFromDisk.size());
-    out.println("                        <td width='90'><input type='submit' value='New' " + newOK + " name='newShift'></td>");
+    out.println(
+      "                        <td width='90'><input type='submit' value='New' " + newOK + " name='newShift'></td>");
     out.println("                        <td width='113'>&nbsp;</td>");
     out.println("                        <td width='111'>&nbsp;</td>");
     out.println("                        <td width='166'>&nbsp;</td>");
@@ -783,7 +840,9 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     out.println("<p align='center'>");
     //save, Cancel, Delete All buttons
     out.println("<input type='submit' value='Save Shift Changes' name='saveShiftBtn'>&nbsp;&nbsp;");
-    String goHome = PatrolData.SERVLET_URL + "MonthCalendar?month=" + month + "&year=" + year + "&resort=" + resort + "&ID=" + IDOfEditor;
+    String goHome =
+      PatrolData.SERVLET_URL + "MonthCalendar?month=" + month + "&year=" + year + "&resort=" + resort + "&ID=" +
+        IDOfEditor;
     out.println("<input type='button' value='Cancel' name='B6' onClick=window.location='" + goHome + "'>&nbsp;&nbsp;");
     out.println("<input type='submit' value='Delete All (restore template)' name='deleteAllShiftsBtn' >");
     out.println("</p>");
@@ -792,7 +851,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     out.println("              </tr>");
     out.println("            </table>");
     out.println("          </div>");
-    out.println(" <font size='3'>NOTE: pressing <B>Add</B> or <B>Delete</B> does a <B>Save Shift Changes</B> (<B>Cancel</B> won't undo change)</font>");
+    out.println(
+      " <font size='3'>NOTE: pressing <B>Add</B> or <B>Delete</B> does a <B>Save Shift Changes</B> (<B>Cancel</B> won't undo change)</font>");
     out.println("          </form>");
     out.println("          <p>&nbsp;</center></td>");
     out.println("      </tr>");
@@ -811,13 +871,16 @@ public class InnerChangeSingleDayShift extends ResourceBase {
 
     out.println("<hr>");
     out.println("<table border='1' width='100%'>");
-    String action = PatrolData.SERVLET_URL + "DayShifts?resort=" + resort + "&dayOfWeek=" + dayOfWeek + "&date=" + date + "&month=" + month + "&year=" + year + "&ID=" + IDOfEditor;
+    String action =
+      PatrolData.SERVLET_URL + "DayShifts?resort=" + resort + "&dayOfWeek=" + dayOfWeek + "&date=" + date + "&month=" +
+        month + "&year=" + year + "&ID=" + IDOfEditor;
     //Log.log("action="+action);
     out.println("<form target='_self' action='" + action + "' method=POST>");
     out.println("<INPUT TYPE='HIDDEN' NAME='saveAssignmentBtn' VALUE='yes'>");
     out.println("  <tr>");
     out.println("    <td width='100%' bgcolor='#C0C0C0'>");
-    out.println("      <h2 align='center'>Change Today's Assignments (is mostly BROKEN! check back in a few days, or email steve@gledhills.com)</h2>");
+    out.println(
+      "      <h2 align='center'>Change Today's Assignments (is mostly BROKEN! check back in a few days, or email steve@gledhills.com)</h2>");
     out.println("    </td>");
     out.println("  </tr>");
     out.println("  <tr>");
@@ -836,7 +899,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     //build list of assignmentsFromDisk
     if (assignmentsFromDisk.size() > 0) {
       AddAllAssignments(assignmentsFromDisk);
-    } else {
+    }
+    else {
       AddBlankAssignments();
     }
     out.println("            </table>");
@@ -846,7 +910,8 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     out.println("    </td>");
     out.println("  </tr>");
     out.println("  <tr>");
-    out.println("    <td width='100%' bgcolor='#C0C0C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+    out.println(
+      "    <td width='100%' bgcolor='#C0C0C0'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
     out.println("      <input type='submit' value='Save Assignment Changes' name='B13'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
     out.println("      <input type='submit' value='Cancel, return to Calendar' onClick='history.back()'></td>");
     out.println("  </tr>");
@@ -902,10 +967,14 @@ public class InnerChangeSingleDayShift extends ResourceBase {
 
   private void AddNextAssignment(String szTime, String szName, String szTextNameField) {
     out.println("<tr>");
-    out.println(" <td width='20%' bgcolor='#C0C0C0'><input type='button' value='Insert --&gt;' onClick='insertName(this.form," + szTextNameField + ")' name='B14'></td>");
+    out.println(
+      " <td width='20%' bgcolor='#C0C0C0'><input type='button' value='Insert --&gt;' onClick='insertName(this.form," +
+        szTextNameField + ")' name='B14'></td>");
     out.println(" <td width='35%' bgcolor='#C0C0C0'>" + szTime + "</td>");
-    out.println(" <td width='30%' bgcolor='#C0C0C0'><input readonly type='text' name='" + szTextNameField + "' size='18' value='" + szName + "'></td>");
-    out.println(" <td width='15%' bgcolor='#C0C0C0'><input type='button' value='Clear' onClick='deleteName(this.form," + szTextNameField + ")' name='B18'></td>");
+    out.println(" <td width='30%' bgcolor='#C0C0C0'><input readonly type='text' name='" + szTextNameField +
+                  "' size='18' value='" + szName + "'></td>");
+    out.println(" <td width='15%' bgcolor='#C0C0C0'><input type='button' value='Clear' onClick='deleteName(this.form," +
+                  szTextNameField + ")' name='B18'></td>");
     out.println("</tr>");
 
   }

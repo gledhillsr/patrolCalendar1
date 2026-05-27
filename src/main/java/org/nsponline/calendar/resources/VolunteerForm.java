@@ -1,8 +1,10 @@
 package org.nsponline.calendar.resources;
 
 import java.io.IOException;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.*;
 
@@ -14,7 +16,8 @@ import org.nsponline.calendar.utils.*;
 public class VolunteerForm extends ResourceBase {
 
 
-  public VolunteerForm(final HttpServletRequest request, final HttpServletResponse response, Logger LOG) throws IOException {
+  public VolunteerForm(final HttpServletRequest request, final HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     String id = request.getParameter("ID"); //verify my hard coded ID from within Volunteer.htm
     if (!initBase(response) && "192443".equals(id) && "Brighton".equals(resort)) {
@@ -34,11 +37,12 @@ public class VolunteerForm extends ResourceBase {
     String subject = "Brighton volunteer application";
     String message =
       "new Ski Patrol applicant: " + request.getParameter("firstName") + " " + request.getParameter("lastName") +
-      "\n address: " + request.getParameter("city") + ", " + request.getParameter("state") + " " + request.getParameter("zip") +
-      "\n cellNumber: " + request.getParameter("cellNumber") +
-      "\n email: " + request.getParameter("email") +
-      "\n yearsSkied: " + request.getParameter("yearsSkied") +
-      "\n skiExperience: \n" + request.getParameter("skiExperience");
+        "\n address: " + request.getParameter("city") + ", " + request.getParameter("state") + " " +
+        request.getParameter("zip") +
+        "\n cellNumber: " + request.getParameter("cellNumber") +
+        "\n email: " + request.getParameter("email") +
+        "\n yearsSkied: " + request.getParameter("yearsSkied") +
+        "\n skiExperience: \n" + request.getParameter("skiExperience");
 
     Roster member = patrolData.getMemberByID(id); //use hard coded id in Volunteer.htm
     MailMan mail = new MailMan(member.getEmailAddress(), sessionData, LOG);
@@ -47,7 +51,7 @@ public class VolunteerForm extends ResourceBase {
     mail.sendMessage(subject, message, "steve@gledhills.com");
   }
 
-  private void printBottom()  {
+  private void printBottom() {
     String newLoc = PatrolData.SERVLET_URL + "MonthCalendar?resort=" + resort;
     out.println("<script type=\"text/javascript\">");
     out.println("  var timer = setTimeout(function() {");

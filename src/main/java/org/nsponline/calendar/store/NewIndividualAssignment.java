@@ -15,8 +15,8 @@ import java.sql.ResultSet;
 public class NewIndividualAssignment {
 
   final static String tableName = "newindividualassignment";
-  final static String[] tag = {"date_shift_pos", "scheduleDate", "shifttype", "flags",
-      "patrollerId", "lastModifiedDate", "lastModifiedBy"}; //string on form
+  final static String[] tag = { "date_shift_pos", "scheduleDate", "shifttype", "flags",
+    "patrollerId", "lastModifiedDate", "lastModifiedBy" }; //string on form
   // the Date string is in this format "2001-11-03_1"  where _1 is the FIRST record
   final static int DATE_SHIFT_POS_INDEX = 0;
   final static int SCHEDULE_DATE_INDEX = 1;
@@ -79,7 +79,7 @@ public class NewIndividualAssignment {
       str = newAssignmentResults.getString(tag);
     }
     catch (SQLException e) {
-      LOG.error( "ERROR NewIndividualAssignment.readString(" + tag + "), message: " + e.getMessage());
+      LOG.error("ERROR NewIndividualAssignment.readString(" + tag + "), message: " + e.getMessage());
       exceptionError = true;
     } //end try
 
@@ -102,7 +102,7 @@ public class NewIndividualAssignment {
       return newAssignmentResults.getDate(tag);
     }
     catch (SQLException e) {
-      LOG.error( "ERROR NewIndividualAssignment.readDate(" + tag + "), message: " + e.getMessage());
+      LOG.error("ERROR NewIndividualAssignment.readDate(" + tag + "), message: " + e.getMessage());
       exceptionError = true;
     } //end try
     return null;
@@ -148,17 +148,17 @@ public class NewIndividualAssignment {
   }
 
   public String getUpdateSQLString() {
-//UPDATE `newindividualassignment` SET `lastModifiedDate` = '2009-02-01 04:50:15' WHERE `date_shift_pos` = '2009-02-14_0_1' LIMIT 1
+    //UPDATE `newindividualassignment` SET `lastModifiedDate` = '2009-02-01 04:50:15' WHERE `date_shift_pos` = '2009-02-14_0_1' LIMIT 1
     lastModifiedDate = new Date();
     String szScheduleDate = DateFormatter.format(scheduleDate);
     String szLastModDate = detailedDateTimeFormatter.format(lastModifiedDate);
     String qryString = "UPDATE newindividualassignment SET " +
-        tag[SCHEDULE_DATE_INDEX] + " = '" + szScheduleDate + "', " +
-        tag[SHIFT_TYPE_INDEX] + " = '" + shiftType + "', " +
-        tag[FLAGS_INDEX] + " = '" + flags + "', " +
-        tag[PATROLLER_ID_INDEX] + " = '" + patrollerId + "', " +
-        tag[LAST_MODIFIED_DATE_INDEX] + " = '" + szLastModDate + "', " +
-        tag[LAST_MODIFIED_BY_INDEX] + " = '" + lastModifiedBy + "'";
+      tag[SCHEDULE_DATE_INDEX] + " = '" + szScheduleDate + "', " +
+      tag[SHIFT_TYPE_INDEX] + " = '" + shiftType + "', " +
+      tag[FLAGS_INDEX] + " = '" + flags + "', " +
+      tag[PATROLLER_ID_INDEX] + " = '" + patrollerId + "', " +
+      tag[LAST_MODIFIED_DATE_INDEX] + " = '" + szLastModDate + "', " +
+      tag[LAST_MODIFIED_BY_INDEX] + " = '" + lastModifiedBy + "'";
     qryString += " WHERE " + tag[DATE_SHIFT_POS_INDEX] + " = '" + dateShiftPos + "'";
     LOG.logSqlStatement(qryString);
     return qryString;
@@ -168,8 +168,8 @@ public class NewIndividualAssignment {
     String szScheduleDate = DateFormatter.format(scheduleDate);
     String szLastModDate = detailedDateTimeFormatter.format(lastModifiedDate);
     String qryString = "INSERT INTO newindividualassignment Values('" + dateShiftPos + "', \"" +
-        szScheduleDate + "\", \"" + shiftType + "\", \"" + flags + "\", \"" + patrollerId + "\", \"" +
-        szLastModDate + "\", \"" + lastModifiedBy + "\")";
+      szScheduleDate + "\", \"" + shiftType + "\", \"" + flags + "\", \"" + patrollerId + "\", \"" +
+      szLastModDate + "\", \"" + lastModifiedBy + "\")";
 
     LOG.logSqlStatement(qryString);
     return qryString;
@@ -183,9 +183,9 @@ public class NewIndividualAssignment {
 
   public String toString() {
     String ret = "dateShiftPos=" + dateShiftPos + " scheduleDate=" + scheduleDate +
-        " shiftType=" + shiftType + " flags=" + flags +
-        " patrollerId=" + patrollerId +
-        " lastModifiedDate=" + lastModifiedDate + " lastModifiedBy=" + lastModifiedBy;
+      " shiftType=" + shiftType + " flags=" + flags +
+      " patrollerId=" + patrollerId +
+      " lastModifiedDate=" + lastModifiedDate + " lastModifiedBy=" + lastModifiedBy;
     ret += " existed=" + existed;
     return ret;
 

@@ -48,12 +48,12 @@ public class DirectorSettings {
   private String szStartBlackout;         //11
   private String szEndBlackout;           //12
   private int nRemoveAccess;              //13
-  private String resort;                  //variable
-  private Logger LOG;
+  private final String resort;                  //variable
+  private final Logger LOG;
 
   //-----------------------------------------------------
-// constructor - store bogus patroller ID in each field
-//-----------------------------------------------------
+  // constructor - store bogus patroller ID in each field
+  //-----------------------------------------------------
   public DirectorSettings(String myResort, final Logger parentLogger) {
     LOG = parentLogger; // new Logger(PatrolData.class, parentLogger, myResort, Logger.INFO);
     szPatrolName = null;
@@ -88,7 +88,7 @@ public class DirectorSettings {
       nUseBlackout = resultSet.getInt(USE_BLACKOUT_FIELD);
       szStartBlackout = resultSet.getString(START_BLACKOUT_FIELD);
       szEndBlackout = resultSet.getString(END_BLACKOUT_FIELD);
-//ignore skihistory update, voucher history update, and signinLogin
+      //ignore skihistory update, voucher history update, and signinLogin
       nRemoveAccess = resultSet.getInt(REMOVE_ACCESS_FIELD);
     }
     catch (Exception e) {
@@ -151,7 +151,7 @@ public class DirectorSettings {
     szYr += yr;
     //szDate dd-mm-yy
     szDate = szDate.substring(0, 6) + szYr;
-//Log.log("in setYear("+yr+") new ="+szDate);
+    //Log.log("in setYear("+yr+") new ="+szDate);
     return szDate;
   }
 
@@ -171,12 +171,12 @@ public class DirectorSettings {
     else {
       szDate = szDate.substring(0, 3) + szMon;
     }
-//Log.log("in setMonth("+mon+") new ="+szDate);
+    //Log.log("in setMonth("+mon+") new ="+szDate);
     return szDate;
   }
 
   public String setDay(String szDate, int day) {  //format dd/mm/yy
-//Log.log("in setDay("+day+") original date="+szDate);
+    //Log.log("in setDay("+day+") original date="+szDate);
     if (day < 1 || day > 31) {
       return szDate;
     }
@@ -185,7 +185,7 @@ public class DirectorSettings {
       str += "0";
     }
     szDate = str + day + szDate.substring(2);
-//Log.log("   setDay("+day+") new ="+szDate);
+    //Log.log("   setDay("+day+") new ="+szDate);
     return szDate;
   }
 
@@ -272,9 +272,9 @@ public class DirectorSettings {
     return (sec / 3600) + ":" + ((min < 10) ? "0" : "") + min;
   }
 
-//-----------------------------------------------------
-// Setter methods
-//-----------------------------------------------------
+  //-----------------------------------------------------
+  // Setter methods
+  //-----------------------------------------------------
   public void setSendReminder(boolean flag) {
     szEmailReminder = (flag ? "1" : "0");
   }
@@ -363,9 +363,9 @@ public class DirectorSettings {
     try {
       tmp = szTime.substring(0, pos);
       seconds = Integer.parseInt(tmp) * 3600;
-//Log.log("---h="+tmp);
+      //Log.log("---h="+tmp);
       tmp = szTime.substring(pos + 1);
-//Log.log("---m="+tmp);
+      //Log.log("---m="+tmp);
       seconds += Integer.parseInt(tmp) * 60;
     }
     catch (Exception e) {
@@ -376,20 +376,20 @@ public class DirectorSettings {
 
   public String getUpdateQueryString() {
     String qryString = "UPDATE directorsettings SET " +
-        " " + EMAIL_REMINDER_FIELD + "='" + szEmailReminder +
-        "', " + REMINDER_DAYS_FIELD + "='" + nReminderDays +
-        "', " + NOTIFY_CHANGES_FIELD + "='" + szNotifyChanges +
-        "', " + USE_TEAMS_FIELD + "='" + szUseTeams +
-        "', " + DIRECTORS_CHANGE_FIELD + "='" + szDirectorsOnlyChange +
-        "', " + EMAIL_ALL_FIELD + "='" + szEMailAll +
-        "', " + NAME_FORMAT_FIELD + "='" + nNameFormat +
-        "', " + START_DATE_FIELD + "='" + szStartDate +
-        "', " + END_DATE_FIELD + "='" + szEndDate +
-        "', " + USE_BLACKOUT_FIELD + "='" + nUseBlackout +
-        "', " + START_BLACKOUT_FIELD + "='" + szStartBlackout +
-        "', " + END_BLACKOUT_FIELD + "='" + szEndBlackout +
-        "', " + REMOVE_ACCESS_FIELD + "='" + nRemoveAccess +
-        "' WHERE " + PATROL_NAME_FIELD + "= '" + szPatrolName + "'";
+      " " + EMAIL_REMINDER_FIELD + "='" + szEmailReminder +
+      "', " + REMINDER_DAYS_FIELD + "='" + nReminderDays +
+      "', " + NOTIFY_CHANGES_FIELD + "='" + szNotifyChanges +
+      "', " + USE_TEAMS_FIELD + "='" + szUseTeams +
+      "', " + DIRECTORS_CHANGE_FIELD + "='" + szDirectorsOnlyChange +
+      "', " + EMAIL_ALL_FIELD + "='" + szEMailAll +
+      "', " + NAME_FORMAT_FIELD + "='" + nNameFormat +
+      "', " + START_DATE_FIELD + "='" + szStartDate +
+      "', " + END_DATE_FIELD + "='" + szEndDate +
+      "', " + USE_BLACKOUT_FIELD + "='" + nUseBlackout +
+      "', " + START_BLACKOUT_FIELD + "='" + szStartBlackout +
+      "', " + END_BLACKOUT_FIELD + "='" + szEndBlackout +
+      "', " + REMOVE_ACCESS_FIELD + "='" + nRemoveAccess +
+      "' WHERE " + PATROL_NAME_FIELD + "= '" + szPatrolName + "'";
     LOG.logSqlStatement(qryString);
     return qryString;
   }
@@ -404,7 +404,7 @@ public class DirectorSettings {
     }
     catch (Exception e) {
       LOG.logException("Cannot load the driver: ", e);
-//      Logger.logStatic("Most likely the Java class path is incorrect.");
+      //      Logger.logStatic("Most likely the Java class path is incorrect.");
       return true;
     }
     return false;
@@ -425,21 +425,21 @@ public class DirectorSettings {
     return null;
   }
 
-//-----------------------------------------------------
-// toString
-//-----------------------------------------------------
+  //-----------------------------------------------------
+  // toString
+  //-----------------------------------------------------
   public String toString() {
     return szPatrolName +
-        " " + EMAIL_REMINDER_FIELD + "=" + szEmailReminder +
-        " " + REMINDER_DAYS_FIELD + "=" + nReminderDays +
-        " " + NOTIFY_CHANGES_FIELD + "=" + szNotifyChanges +
-        " " + USE_TEAMS_FIELD + "=" + szUseTeams +
-        " " + DIRECTORS_CHANGE_FIELD + "=" + szDirectorsOnlyChange +
-        " " + EMAIL_ALL_FIELD + "=" + szEMailAll +
-        " " + NAME_FORMAT_FIELD + "=" + nNameFormat +
-        " " + START_DATE_FIELD + "=" + szStartDate +
-        " " + END_DATE_FIELD + "=" + szEndDate +
-        " " + REMOVE_ACCESS_FIELD + "=" + nRemoveAccess;
+      " " + EMAIL_REMINDER_FIELD + "=" + szEmailReminder +
+      " " + REMINDER_DAYS_FIELD + "=" + nReminderDays +
+      " " + NOTIFY_CHANGES_FIELD + "=" + szNotifyChanges +
+      " " + USE_TEAMS_FIELD + "=" + szUseTeams +
+      " " + DIRECTORS_CHANGE_FIELD + "=" + szDirectorsOnlyChange +
+      " " + EMAIL_ALL_FIELD + "=" + szEMailAll +
+      " " + NAME_FORMAT_FIELD + "=" + nNameFormat +
+      " " + START_DATE_FIELD + "=" + szStartDate +
+      " " + END_DATE_FIELD + "=" + szEndDate +
+      " " + REMOVE_ACCESS_FIELD + "=" + nRemoveAccess;
   }
 
   public ObjectNode toNode() {

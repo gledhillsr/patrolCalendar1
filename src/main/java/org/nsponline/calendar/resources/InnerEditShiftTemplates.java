@@ -2,8 +2,10 @@ package org.nsponline.calendar.resources;
 
 import java.io.IOException;
 import java.util.ArrayList;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Assignments;
 import org.nsponline.calendar.store.ShiftDefinitions;
 import org.nsponline.calendar.utils.Logger;
@@ -23,7 +25,8 @@ public class InnerEditShiftTemplates extends ResourceBase {
   boolean SaveChangesBtn;
   boolean DeleteTemplateBtn;
 
-  public InnerEditShiftTemplates(HttpServletRequest request, HttpServletResponse response, Logger LOG) throws IOException {
+  public InnerEditShiftTemplates(HttpServletRequest request, HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     this.response = response;
   }
@@ -46,7 +49,7 @@ public class InnerEditShiftTemplates extends ResourceBase {
       selectedShift = ""; //shift no longer exists
     }
 
-//    PatrolData patrol = new PatrolData(PatrolData.FETCH_ALL_DATA, resort, sessionData, LOG); //when reading members, read full data
+    //    PatrolData patrol = new PatrolData(PatrolData.FETCH_ALL_DATA, resort, sessionData, LOG); //when reading members, read full data
     printCommonHeader();
     printTop();
     if (DeleteTemplateBtn) {
@@ -77,7 +80,8 @@ public class InnerEditShiftTemplates extends ResourceBase {
     out.println("function reloadPage(list) {");
     out.println("  var idx = list.selectedIndex");
     out.println("  var msg = list.options[idx].text");
-    out.println("  location=\"" + PatrolData.SERVLET_URL + "EditShiftTemplates?resort=" + resort + "&ID=" + szMyID + "&selectedShift=\"+msg");
+    out.println("  location=\"" + PatrolData.SERVLET_URL + "EditShiftTemplates?resort=" + resort + "&ID=" + szMyID +
+                  "&selectedShift=\"+msg");
     out.println("}");
 
     //TEXT AREA JUST LOST FOCUS
@@ -92,7 +96,8 @@ public class InnerEditShiftTemplates extends ResourceBase {
     out.println("function CheckEventName() {");
     out.println("  testName(currName)");
     out.println("  if(mustChangeName) {");
-    out.println("    alert(\"This 'shift' MUST have a valid name BEFORE anything else can be done.  '\"+currName+\"' is invalid\")");
+    out.println(
+      "    alert(\"This 'shift' MUST have a valid name BEFORE anything else can be done.  '\"+currName+\"' is invalid\")");
     out.println("    return false");
     out.println("  } else {");
     out.println("    return true");
@@ -208,7 +213,8 @@ public class InnerEditShiftTemplates extends ResourceBase {
       ++cnt;
     }
     if (displayParameters) {
-      LOG.info("DeleteTemplateBtn=" + DeleteTemplateBtn + ", deleteShift=" + deleteShift + " shiftToDelete=" + shiftToDelete);
+      LOG.info(
+        "DeleteTemplateBtn=" + DeleteTemplateBtn + ", deleteShift=" + deleteShift + " shiftToDelete=" + shiftToDelete);
     }
 
     // read Shift ski assignments for the specific day
@@ -262,7 +268,9 @@ public class InnerEditShiftTemplates extends ResourceBase {
       String start = "8:30";
       String end = "14:00";
       cnt = 1;
-      ShiftDefinitions shiftDefinition = new ShiftDefinitions(ShiftDefinitions.createShiftName(selectedShift, selectedSize), start, end, cnt, Assignments.DAY_TYPE, LOG);
+      ShiftDefinitions shiftDefinition =
+        new ShiftDefinitions(ShiftDefinitions.createShiftName(selectedShift, selectedSize), start, end, cnt,
+                             Assignments.DAY_TYPE, LOG);
       shifts.add(shiftDefinition);   //add to my local array
       patrol.writeShift(shiftDefinition);    //write to database
     }
@@ -278,7 +286,8 @@ public class InnerEditShiftTemplates extends ResourceBase {
     out.println("  <table border=\"3\" cellpadding=\"0\" cellspacing=\"0\" width=\"750\" height=\"368\">");
     out.println("    <tr>");
     out.println("      <td width=\"654\" bgcolor=\"#C0C0C0\" height=\"366\">");
-    out.println("<form target='_self' action=\"" + PatrolData.SERVLET_URL + "EditShiftTemplates\" onSubmit=\"return CheckEventName()\" method=POST>");
+    out.println("<form target='_self' action=\"" + PatrolData.SERVLET_URL +
+                  "EditShiftTemplates\" onSubmit=\"return CheckEventName()\" method=POST>");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"resort\" VALUE=\"" + resort + "\">");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"ID\" VALUE=\"" + szMyID + "\">");
     out.println("          <h2 align=\"center\">");
@@ -288,16 +297,21 @@ public class InnerEditShiftTemplates extends ResourceBase {
     out.println("          <center>");
     out.println("              <tr>");
     out.println("                <td height=\"148\" width=\"750\">");
-    out.println("                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-    out.println("                  Use Predefined Shift format : <select onChange=\"reloadPage(this)\" size=\"1\" name=\"selectedShift\">");
+    out.println(
+      "                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+    out.println(
+      "                  Use Predefined Shift format : <select onChange=\"reloadPage(this)\" size=\"1\" name=\"selectedShift\">");
     PatrolData.AddShiftsToDropDown(out, shifts, selectedShift);
     out.println("                  </select>");
     out.println("                  <br>");
     out.println("                  &nbsp;&nbsp;");
     out.println("                  <div align=\"center\">");
-    out.println("                    <table border=\"3\" cellpadding=\"0\" cellspacing=\"0\" width=\"683\" style=\"font-size: 12pt\">");
+    out.println(
+      "                    <table border=\"3\" cellpadding=\"0\" cellspacing=\"0\" width=\"683\" style=\"font-size: 12pt\">");
     out.println("                      <tr>");
-    out.println("                        <td width=\"646\" colspan=\"5\">Event Name/Day of Week: <input type=\"text\" onBlur=\"testName(this.value)\" onKeyDown=\"javascript:return captureEnter(event.keyCode)\" name=\"eventName\" value=\"" + selectedShift + "\"size=\"39\"></td>");
+    out.println(
+      "                        <td width=\"646\" colspan=\"5\">Event Name/Day of Week: <input type=\"text\" onBlur=\"testName(this.value)\" onKeyDown=\"javascript:return captureEnter(event.keyCode)\" name=\"eventName\" value=\"" +
+        selectedShift + "\"size=\"39\"></td>");
     out.println("                      </tr>");
     PatrolData.AddShiftsToTable(out, shifts, selectedShift);
     //New Button
@@ -307,7 +321,8 @@ public class InnerEditShiftTemplates extends ResourceBase {
     //12/1/08 this was wrong, the shifts.size() is the total size in the database, not the count of shifts within this shift
     //		if(shifts.size() >= Shifts.MAX_ASSIGNMENT_SIZE)
     //			newOK = " disabled";
-    out.println("                        <td width=\"90\"><input type=\"submit\" value=\"New\" " + newOK + " name=\"addShift\"></td>");
+    out.println("                        <td width=\"90\"><input type=\"submit\" value=\"New\" " + newOK +
+                  " name=\"addShift\"></td>");
     out.println("                        <td width=\"170\">&nbsp;</td>");
     out.println("                        <td width=\"170\">&nbsp;</td>");
     out.println("                        <td width=\"200\">&nbsp;</td>");
@@ -322,9 +337,12 @@ public class InnerEditShiftTemplates extends ResourceBase {
     out.println("            </table>");
     out.println("          </div>");
     out.println("NOTE: Pressing 'New' or 'Delete' will do a <b>Save Changes</b> first.");
-    out.println("          <p align=\"center\"><input type=\"submit\" value=\"Save Changes\" name=\"SaveChangesBtn\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-    out.println("          <input type=\"button\" value=\"Cancel\" name=\"B6\" onClick=\"goHome()\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-    out.println("          <input type=\"submit\" value=\"Delete Template\" name=\"DeleteTemplateBtn\" onclick=\"return confirmDelete()\">");
+    out.println(
+      "          <p align=\"center\"><input type=\"submit\" value=\"Save Changes\" name=\"SaveChangesBtn\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+    out.println(
+      "          <input type=\"button\" value=\"Cancel\" name=\"B6\" onClick=\"goHome()\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+    out.println(
+      "          <input type=\"submit\" value=\"Delete Template\" name=\"DeleteTemplateBtn\" onclick=\"return confirmDelete()\">");
     out.println("          </p>");
     out.println("          </form>");
     //      out.println("          <p>&nbsp;</center></td>");
@@ -332,11 +350,14 @@ public class InnerEditShiftTemplates extends ResourceBase {
     out.println("    </table>");
     out.println("</div>");
 
-    out.println("-- NOTE: The Shift names '<B>Sunday</B>', '<B>Monday</B>', etc. are <B>Special</B>.  If defined here, they will");
+    out.println(
+      "-- NOTE: The Shift names '<B>Sunday</B>', '<B>Monday</B>', etc. are <B>Special</B>.  If defined here, they will");
     out.println(" fill in that -empty- day-of-the-week on the calandar.<br>");
-    out.println("--Also the shift name '<B>Closed</B>' is reserved, and will not hilight the day, but it will display <font color=\"#FF0000\" size=\"4\">Closed</font>.<br>");
+    out.println(
+      "--Also the shift name '<B>Closed</B>' is reserved, and will not hilight the day, but it will display <font color=\"#FF0000\" size=\"4\">Closed</font>.<br>");
     out.println("--deleteting all the entries for a template, will delete the template.<br>");
-    out.println("--If your want more that 10 patrollers on a shift, ie 23, then create two shifts with 10 patrollers, and one with 3 patrollers (all with the same start and end time).");
+    out.println(
+      "--If your want more that 10 patrollers on a shift, ie 23, then create two shifts with 10 patrollers, and one with 3 patrollers (all with the same start and end time).");
   /*
       PatrolData patrol = new PatrolData(PatrolData.FETCH_ALL_DATA);
       MemberData member = patrol.nextMember("&nbsp;");

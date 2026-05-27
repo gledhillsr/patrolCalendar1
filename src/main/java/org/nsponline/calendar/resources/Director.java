@@ -3,8 +3,10 @@ package org.nsponline.calendar.resources;
 
 import java.io.IOException;
 import java.sql.ResultSet;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.Logger;
 import org.nsponline.calendar.utils.PatrolData;
@@ -52,7 +54,8 @@ public class Director extends ResourceBase {
     }
     if (readID.equalsIgnoreCase(sessionData.getBackDoorUser())) {
       isDirector = true;
-    } else {
+    }
+    else {
       member = patrolData.getMemberByID(readID);
       if (member == null) {
         return;
@@ -74,12 +77,16 @@ public class Director extends ResourceBase {
       out.println("<hr>");
       out.println("<CENTER>");
       out.println("<p>Sorry, you are -not- authorized for this menu.&nbsp; Try becoming a director");
-      out.println("next year <img border=\"0\" src=\"/nspImages/EvilSmile.gif\" align=\"middle\" width=\"32\" height=\"32\"></p>");
+      out.println(
+        "next year <img border=\"0\" src=\"/nspImages/EvilSmile.gif\" align=\"middle\" width=\"32\" height=\"32\"></p>");
       out.println("</CENTER>");
       //            nextPage = PatrolData.SERVLET_URL+"SetupListPatrollers?resort="+resort+"&ID="+ID;
       nextPage = "SetupListPatrollers?resort=" + resort + "&ID=" + patrollerId;
-      out.println("<br><br>Only option available is: <input type=\"button\" value=\"Customized Listing ...\"  onClick=window.location=\"" + nextPage + "\"></td>");
-    } else {
+      out.println(
+        "<br><br>Only option available is: <input type=\"button\" value=\"Customized Listing ...\"  onClick=window.location=\"" +
+          nextPage + "\"></td>");
+    }
+    else {
       //            out.println("<form action=\""+PatrolData.SERVLET_URL+"UpdateInfo\" method=POST id=form02 name=form02>");
       out.println("<form target='_self' action=\"UpdateInfo\" method=POST id=form02 name=form02>");
       out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"resort\" VALUE=\"" + resort + "\">");
@@ -93,12 +100,14 @@ public class Director extends ResourceBase {
       //
       // Patroller Maintenance
       //
-      out.println("    <td width=307 align=\"center\" bgcolor=\"#FFFFBB\"><font size=5>Patroller Maintenance:</font></td>");
+      out.println(
+        "    <td width=307 align=\"center\" bgcolor=\"#FFFFBB\"><font size=5>Patroller Maintenance:</font></td>");
       out.println("    <td width=529 bgcolor=\"#FFFFBB\">");
       out.println("      <table border=1 cellpadding=0 cellspacing=0 width=\"100%\">");
       out.println("        <tr>");
       out.println("          <td width=496 colspan=2 height=40>");
-      out.println("            <p align=\"left\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+      out.println(
+        "            <p align=\"left\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
       out.println("<INPUT TYPE=button VALUE=\"Add New Patroller ...\" onClick=window.location=\"" + nextPage + "\">");
       out.println("          </td>");
       out.println("        </tr>");
@@ -111,13 +120,16 @@ public class Director extends ResourceBase {
       out.println("                  Click button below&nbsp;</font></td>");
       out.println("              </tr>");
       out.println("              <tr>");
-      out.println("                <td width=\"100%\" align=\"center\"><INPUT TYPE=submit NAME=setNewID VALUE=\"Change ID Number ...\"> </td>");
+      out.println(
+        "                <td width=\"100%\" align=\"center\"><INPUT TYPE=submit NAME=setNewID VALUE=\"Change ID Number ...\"> </td>");
       out.println("              </tr>");
       out.println("              <tr>");
-      out.println("                <td width=\"100%\" align=\"center\"><INPUT TYPE=submit NAME=EditInfo VALUE=\"Edit Patroller Info ...\"></td>");
+      out.println(
+        "                <td width=\"100%\" align=\"center\"><INPUT TYPE=submit NAME=EditInfo VALUE=\"Edit Patroller Info ...\"></td>");
       out.println("              </tr>");
       out.println("              <tr>");
-      out.println("                <td width=\"100%\" align=\"center\"><INPUT TYPE=submit NAME=removeName VALUE=\"Delete Patroller ...\"></td>");
+      out.println(
+        "                <td width=\"100%\" align=\"center\"><INPUT TYPE=submit NAME=removeName VALUE=\"Delete Patroller ...\"></td>");
       out.println("              </tr>");
       out.println("            </table>");
       out.println("          </td>");
@@ -143,23 +155,36 @@ public class Director extends ResourceBase {
       out.println("        <tr>");
       //            nextPage = PatrolData.SERVLET_URL+"SetupListPatrollers?resort="+resort+"&ID="+ID;
       nextPage = "SetupListPatrollers?resort=" + resort + "&ID=" + patrollerId;
-      out.println("		   <td rowspan=3><input type=\"button\" value=\"Customized Listing ...\"  onClick=window.location=\"" + nextPage + "\"></td>");
+      out.println(
+        "		   <td rowspan=3><input type=\"button\" value=\"Customized Listing ...\"  onClick=window.location=\"" +
+          nextPage + "\"></td>");
       //Day Shift
       //            String disableStatus = "disabled";
       String disableStatus = "";
       //            nextPage = PatrolData.SERVLET_URL+"ListPatrollers?resort="+resort+"&CLASS=1&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&DAY_CNT=1&DAY_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID="+ID;
-      nextPage = "ListPatrollers?resort=" + resort + "&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&DAY_CNT=1&DAY_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=" + patrollerId;
-      out.println("          <td><input type=\"button\" value=\"Sorted By Day Shifts\"  onClick=window.location=\"" + nextPage + "\"></td>");
+      nextPage = "ListPatrollers?resort=" + resort +
+        "&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&DAY_CNT=1&DAY_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=" +
+        patrollerId;
+      out.println(
+        "          <td><input type=\"button\" value=\"Sorted By Day Shifts\"  onClick=window.location=\"" + nextPage +
+          "\"></td>");
       out.println("        </tr>");
       //swing shift
       out.println("        <tr>");
-      nextPage = "ListPatrollers?resort=" + resort + "&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&SWING_CNT=1&SWING_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=" + patrollerId;
-      out.println("          <td><input type=\"button\" value=\"Sorted By Swing Shifts\" " + disableStatus + "  onClick=window.location=\"" + nextPage + "\"></td>");
+      nextPage = "ListPatrollers?resort=" + resort +
+        "&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&SWING_CNT=1&SWING_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=" +
+        patrollerId;
+      out.println("          <td><input type=\"button\" value=\"Sorted By Swing Shifts\" " + disableStatus +
+                    "  onClick=window.location=\"" + nextPage + "\"></td>");
       out.println("        </tr>");
       //night shift
       out.println("        <tr>");
-      nextPage = PatrolData.SERVLET_URL + "ListPatrollers?resort=" + resort + "&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&NIGHT_CNT=1&NIGHT_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=" + patrollerId;
-      out.println("            <td><input type=\"button\" value=\"Sorted By Night Shifts\"  onClick=window.location=\"" + nextPage + "\" " + disableStatus + "></td>");
+      nextPage = PatrolData.SERVLET_URL + "ListPatrollers?resort=" + resort +
+        "&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&NIGHT_CNT=1&NIGHT_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=" +
+        patrollerId;
+      out.println(
+        "            <td><input type=\"button\" value=\"Sorted By Night Shifts\"  onClick=window.location=\"" +
+          nextPage + "\" " + disableStatus + "></td>");
       out.println("        </tr>");
       out.println("      </table>");
       out.println("    </td>");
@@ -176,19 +201,25 @@ public class Director extends ResourceBase {
       out.println("          <td align=\"left\">");
       //            nextPage = PatrolData.SERVLET_URL+"Preferences?resort="+resort+"&ID="+ID;
       nextPage = "WebSitePreferences?resort=" + resort + "&ID=" + patrollerId;
-      out.println("            <input type=\"button\" value=\"Web Site Preferences ...\" onClick=window.location=\"" + nextPage + "\"></td>");
+      out.println(
+        "            <input type=\"button\" value=\"Web Site Preferences ...\" onClick=window.location=\"" + nextPage +
+          "\"></td>");
       out.println("        </tr>");
       out.println("        <tr>");
       out.println("          <td align=\"left\">");
       //            nextPage = PatrolData.SERVLET_URL+"EditShiftTemplates?resort="+resort+"&ID="+ID;
       nextPage = "EditShiftTemplates?resort=" + resort + "&ID=" + patrollerId;
-      out.println("            <input type=\"button\" value=\"Edit Shift Templates (for Calendar) ...\" onClick=window.location=\"" + nextPage + "\"></td>");
+      out.println(
+        "            <input type=\"button\" value=\"Edit Shift Templates (for Calendar) ...\" onClick=window.location=\"" +
+          nextPage + "\"></td>");
       out.println("        </tr>");
       out.println("        <tr>");
       out.println("          <td align=\"left\">");
       //            nextPage = PatrolData.SERVLET_URL+"PurgeAssignments?resort="+resort+"&ID="+ID;
       nextPage = "PurgeAssignments?resort=" + resort + "&ID=" + patrollerId;
-      out.println("            <input type=\"button\" value=\"Delete assignments from last season ...\" onClick=window.location=\"" + nextPage + "\"></td>");
+      out.println(
+        "            <input type=\"button\" value=\"Delete assignments from last season ...\" onClick=window.location=\"" +
+          nextPage + "\"></td>");
       out.println("        </tr>");
       out.println("      </table>");
       out.println("    </td>");
@@ -203,7 +234,8 @@ public class Director extends ResourceBase {
     for (i = 0; i < rosterSize; ++i) {
       if (MyName != null && MyName.equals(sortedRoster[i])) {
         out.println("<OPTION SELECTED>" + MyName);
-      } else {
+      }
+      else {
         out.println("<OPTION>" + sortedRoster[i]);
       }
     }

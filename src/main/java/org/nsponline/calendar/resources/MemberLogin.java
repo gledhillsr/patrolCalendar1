@@ -2,8 +2,10 @@ package org.nsponline.calendar.resources;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.utils.Logger;
 import org.nsponline.calendar.utils.PatrolData;
 import org.nsponline.calendar.utils.StaticUtils;
@@ -15,7 +17,8 @@ import org.nsponline.calendar.utils.StaticUtils;
  */
 public class MemberLogin extends ResourceBase {
 
-  public MemberLogin(final HttpServletRequest request, final HttpServletResponse response, Logger LOG) throws IOException {
+  public MemberLogin(final HttpServletRequest request, final HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     if (!initBase(response)) {
       return; //"resort" not found, or requestFromBot
@@ -30,12 +33,13 @@ public class MemberLogin extends ResourceBase {
       szParent = "MonthCalendar";
     }
     if (StaticUtils.isEmpty(resort) || !PatrolData.isValidResort(resort)) {
-      out.println("ERROR, unknown resort (" + resort + "), go back to www.nsponline.org, and click on your resort<br/>");
+      out.println(
+        "ERROR, unknown resort (" + resort + "), go back to www.nsponline.org, and click on your resort<br/>");
       out.println("If you see this problem again, please email me at steve@gledhills.com with a quick " +
                     "description of what you did to see this error. and I will fix it ASAP!!!");
       return;
     }
-//    PatrolData patrol = new PatrolData(PatrolData.FETCH_ALL_DATA, resort, sessionData, LOG); //when reading members, read full data
+    //    PatrolData patrol = new PatrolData(PatrolData.FETCH_ALL_DATA, resort, sessionData, LOG); //when reading members, read full data
 
     printCommonHeader();
     // printJavaScript(out, resort, szParent);
@@ -44,9 +48,9 @@ public class MemberLogin extends ResourceBase {
     printCommonFooter();
   }
 
-//  private String getJavaScriptAndStyles() {
-//    return "";
-//  }
+  //  private String getJavaScriptAndStyles() {
+  //    return "";
+  //  }
 
   @SuppressWarnings("squid:S2068") // ignore hard coded password violation - needed for Sample resort
   private void printTop(PrintWriter out, String resort) {
@@ -80,7 +84,8 @@ public class MemberLogin extends ResourceBase {
     out.println("  <TABLE WIDTH=450 BGCOLOR=#ABABAB ALIGN=center BORDER=0 CELLSPACING=1 CELLPADDING=5>");
     out.println("   <TR>");
     out.println("       <TD>");
-    out.println("       <P>&nbsp;<TABLE WIDTH='75%' BGCOLOR=#ABABAB align=center BORDER=0 CELLSPACING=1 CELLPADDING=1>");
+    out.println(
+      "       <P>&nbsp;<TABLE WIDTH='75%' BGCOLOR=#ABABAB align=center BORDER=0 CELLSPACING=1 CELLPADDING=1>");
     out.println("   <TR>");
     out.println("       <TD><B><font face=verdana, size =2 color=white arial>Member ID Number:</font></B></TD>");
     out.println("       <TD>");
@@ -97,7 +102,8 @@ public class MemberLogin extends ResourceBase {
     out.println("   <TR>");
     out.println("       <TD colspan=2 align=middle>");
     out.println("       <font face=verdana, size =2 arial >");
-    out.println("        <A href='" + PatrolData.SERVLET_URL + "LoginHelp?resort=" + resort + "&NSPgoto=" + szParent + "' target='_self'>Login Help</a></font>");
+    out.println("        <A href='" + PatrolData.SERVLET_URL + "LoginHelp?resort=" + resort + "&NSPgoto=" + szParent +
+                  "' target='_self'>Login Help</a></font>");
     out.println("        </TD>");
     out.println("   </TR>");
     out.println("   <TR>");

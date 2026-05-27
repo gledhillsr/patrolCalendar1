@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Assignments;
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.Logger;
@@ -23,7 +25,7 @@ public class ListAssignments extends ResourceBase {
     }
     printCommonHeader();
     printTop(out);
-    printMiddle(out, resort,  sessionData.getLoggedInUserId(), sessionData);
+    printMiddle(out, resort, sessionData.getLoggedInUserId(), sessionData);
     printBottom(out);
     printCommonFooter();
   }
@@ -37,7 +39,8 @@ public class ListAssignments extends ResourceBase {
     out.println("}");
     out.println("</script>");
 
-    out.println("<h1><img border=\"0\" src=\"/images/ski_accident_md_wht.gif\" align=top>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Shift Summary</h1>");
+    out.println(
+      "<h1><img border=\"0\" src=\"/images/ski_accident_md_wht.gif\" align=top>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Shift Summary</h1>");
   }
 
   private void printMiddle(PrintWriter out, String resort, String szMyID, SessionData sessionData) {
@@ -62,27 +65,34 @@ public class ListAssignments extends ResourceBase {
     int startYear;
     int startMonth = Calendar.JULY;
 
-//    if (resort.equals("Brighton")) {
-      String displayAllAssignments = request.getParameter(DISPLAY_ALL_ASSIGNMENTS);
-      //todo if blank, look at cookie
-      if ("true".equals(displayAllAssignments)) {
-        out.println("Displaying all assignments.  <a target='main' href=\"/calendar-1/ListAssignments?resort=" + resort + "&ID=" + szMyID + "&" + DISPLAY_ALL_ASSIGNMENTS + "=false" + "\"><b>Change to current season only</b></a>");
-        startYear = 2002;
-      } else
-      {
-        out.println("Displaying current season ONLY.  <a target='main' href=\"/calendar-1/ListAssignments?resort=" + resort + "&ID=" + szMyID + "&" + DISPLAY_ALL_ASSIGNMENTS + "=true" + "\"><b>Change to display all assignments</b></a>");
-        startYear = (currentMonth < Calendar.JULY) ? currentYear - 1: currentYear;
-      }
-//    }
+    //    if (resort.equals("Brighton")) {
+    String displayAllAssignments = request.getParameter(DISPLAY_ALL_ASSIGNMENTS);
+    //todo if blank, look at cookie
+    if ("true".equals(displayAllAssignments)) {
+      out.println(
+        "Displaying all assignments.  <a target='main' href=\"/calendar-1/ListAssignments?resort=" + resort + "&ID=" +
+          szMyID + "&" + DISPLAY_ALL_ASSIGNMENTS + "=false" + "\"><b>Change to current season only</b></a>");
+      startYear = 2002;
+    }
+    else {
+      out.println(
+        "Displaying current season ONLY.  <a target='main' href=\"/calendar-1/ListAssignments?resort=" + resort +
+          "&ID=" + szMyID + "&" + DISPLAY_ALL_ASSIGNMENTS + "=true" +
+          "\"><b>Change to display all assignments</b></a>");
+      startYear = (currentMonth < Calendar.JULY) ? currentYear - 1 : currentYear;
+    }
+    //    }
 
     calendarStart.set(startYear, startMonth, 1);  //(yyyy,mm,dd) Month is 0 based
-    out.println("<p><font size=5>" + myName + "'s Assignment Schedule for " + PatrolData.getResortFullName(resort, LOG) + "</font>");
+    out.println(
+      "<p><font size=5>" + myName + "'s Assignment Schedule for " + PatrolData.getResortFullName(resort, LOG) +
+        "</font>");
     out.println("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
-//      out.println("<a href=\"javascript:printWindow()\">Print This Page</a>");
+    //      out.println("<a href=\"javascript:printWindow()\">Print This Page</a>");
     out.println("</font></p>");
     out.println("<div align=\"left\">");
     out.println("  <table border=\"1\" width=\"550\" bgcolor=\"#FFFFFF\" cellpadding=\"0\" cellspacing=\"0\">");
-//loop through all assignments
+    //loop through all assignments
     for (shiftType = 0; shiftType < Assignments.MAX_SHIFT_TYPES; ++shiftType) {
       shiftCounts[shiftType] = 0;
     }
@@ -107,7 +117,7 @@ public class ListAssignments extends ResourceBase {
       }
       int pat0;
       //loop through all patrollers on this assignment
-//        boolean isWeekendDay = false;
+      //        boolean isWeekendDay = false;
       for (shiftType = 0; shiftType < Assignments.MAX_ASSIGNMENT_SIZE; ++shiftType) {
         if (ns.getPosID(shiftType) == null || ns.getPosID(shiftType).equals("")) {
           continue;
@@ -134,11 +144,12 @@ public class ListAssignments extends ResourceBase {
     patrol.close();
     out.println("  </table>");
     out.println("</div>");
-//only display sub totals if non zero
+    //only display sub totals if non zero
     out.println("<br><b>Totals</b>");
     for (shiftType = 0; shiftType < Assignments.MAX_SHIFT_TYPES; ++shiftType) {
       if (shiftCounts[shiftType] > 0) {
-        out.println("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + Assignments.getShiftName(shiftType) + " = <b>" + shiftCounts[shiftType] + "</b>");
+        out.println("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + Assignments.getShiftName(shiftType) + " = <b>" +
+                      shiftCounts[shiftType] + "</b>");
       }
     }
     out.println("<br><b>Total shifts</b>:&nbsp;&nbsp;&nbsp;<b>" + totalShifts + "</b>"); //brighton

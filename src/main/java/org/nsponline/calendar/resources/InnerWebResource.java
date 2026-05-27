@@ -1,9 +1,11 @@
 package org.nsponline.calendar.resources;
 
 import java.io.IOException;
+
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.utils.*;
 
 /**
@@ -147,10 +149,10 @@ public class InnerWebResource {
 
   /**
    * send emails
-   * 
+   *
    * GET (don't know)
    * POST
-   * 
+   *
    * @author Steve Gledhill
    */
   public static class EmailForm extends HttpServlet {

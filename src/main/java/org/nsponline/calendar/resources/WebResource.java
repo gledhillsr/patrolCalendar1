@@ -1,9 +1,11 @@
 package org.nsponline.calendar.resources;
 
 import java.io.IOException;
+
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.utils.Logger;
 
 public class WebResource {
@@ -30,12 +32,14 @@ public class WebResource {
    */
   public static class UpdateInfo extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-      Logger LOG = new Logger(this.getClass(), request, "GET", request.getParameter("resort"), Logger.INFO); //todo restore
+      Logger LOG =
+        new Logger(this.getClass(), request, "GET", request.getParameter("resort"), Logger.INFO); //todo restore
       new org.nsponline.calendar.resources.UpdateInfo(request, response, LOG);
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-      Logger LOG = new Logger(this.getClass(), request, "POST", request.getParameter("resort"), Logger.INFO); //todo restore
+      Logger LOG =
+        new Logger(this.getClass(), request, "POST", request.getParameter("resort"), Logger.INFO); //todo restore
       new org.nsponline.calendar.resources.UpdateInfo(request, response, LOG);
     }
   }
@@ -61,7 +65,8 @@ public class WebResource {
   public static class RefresherTraining extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
       Logger LOG = new Logger(this.getClass(), request, "GET", request.getParameter("resort"), Logger.INFO);
-      new org.nsponline.calendar.resources.RefresherTraining(request, response, LOG).runner(this.getClass().getSimpleName());
+      new org.nsponline.calendar.resources.RefresherTraining(request, response, LOG).runner(
+        this.getClass().getSimpleName());
     }
   }
 
@@ -87,12 +92,14 @@ public class WebResource {
   public static class ListPatrollers extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
       Logger LOG = new Logger(this.getClass(), request, "GET", request.getParameter("resort"), Logger.INFO);
-      new org.nsponline.calendar.resources.ListPatrollers(request, response, LOG).runner(this.getClass().getSimpleName());
+      new org.nsponline.calendar.resources.ListPatrollers(request, response, LOG).runner(
+        this.getClass().getSimpleName());
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
       Logger LOG = new Logger(this.getClass(), request, "POST", request.getParameter("resort"), Logger.INFO);
-      new org.nsponline.calendar.resources.ListPatrollers(request, response, LOG).runner(this.getClass().getSimpleName());
+      new org.nsponline.calendar.resources.ListPatrollers(request, response, LOG).runner(
+        this.getClass().getSimpleName());
     }
   }
 
@@ -111,6 +118,7 @@ public class WebResource {
       Logger LOG = new Logger(this.getClass(), request, "GET", request.getParameter("resort"), Logger.INFO);
       new org.nsponline.calendar.resources.MemberList(request, response, LOG).runner(this.getClass().getSimpleName());
     }
+
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
       Logger LOG = new Logger(this.getClass(), request, "POST", request.getParameter("resort"), Logger.INFO);
       new org.nsponline.calendar.resources.MemberList(request, response, LOG).runner(this.getClass().getSimpleName());
@@ -125,7 +133,8 @@ public class WebResource {
   public static class MonthCalendar extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
       Logger LOG = new Logger(this.getClass(), request, "GET", request.getParameter("resort"), Logger.INFO);
-      new org.nsponline.calendar.resources.MonthCalendar(request, response, LOG).runner(this.getClass().getSimpleName());
+      new org.nsponline.calendar.resources.MonthCalendar(request, response, LOG).runner(
+        this.getClass().getSimpleName());
     }
   }
 

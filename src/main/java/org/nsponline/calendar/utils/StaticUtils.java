@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import javax.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,14 +16,15 @@ public final class StaticUtils {
 
   @SuppressWarnings("RegExpRedundantEscape")
   private static final String EMAIL_PATTERN =
-      "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@"
-          + "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
+    "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@"
+      + "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
 
   public static final String[] szMonthsFull = {
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
   };
-  public static final String[] szDays = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "error"};
+  public static final String[] szDays =
+    { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "error" };
   public static JsonNodeFactory nodeFactory = JsonNodeFactory.instance;
 
 
@@ -45,7 +47,8 @@ public final class StaticUtils {
     response.setStatus(204);
   }
 
-  public static void buildOkResponse(HttpServletResponse response, ObjectNode returnNode, Logger LOG) throws IOException {
+  public static void buildOkResponse(HttpServletResponse response, ObjectNode returnNode, Logger LOG)
+    throws IOException {
     LOG.info("Response OK: " + returnNode.toString());
     response.setStatus(200);
     response.setContentType("application/json");
@@ -89,14 +92,16 @@ public final class StaticUtils {
 
   public static String sqlEncode(String asciiString) {
     if (asciiString.matches(".*[<>'\"].*")) {
-      return asciiString.replaceAll("'", "0x27").replaceAll("\"", "0x22").replaceAll("<", "0x3C").replaceAll(">", "0x3E");
+      return asciiString.replaceAll("'", "0x27").replaceAll("\"", "0x22").replaceAll("<", "0x3C")
+        .replaceAll(">", "0x3E");
     }
     return asciiString;
   }
 
   public static String sqlDecode(String encodedString) {
     if (encodedString.contains("0x")) {
-      return encodedString.replaceAll("0x27", "'").replaceAll("0x22", "\"").replaceAll("0x3C", "<").replaceAll("0x3E", ">");
+      return encodedString.replaceAll("0x27", "'").replaceAll("0x22", "\"").replaceAll("0x3C", "<")
+        .replaceAll("0x3E", ">");
     }
     return encodedString;
   }

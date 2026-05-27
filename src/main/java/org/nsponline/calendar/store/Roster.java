@@ -9,7 +9,9 @@ import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Hashtable;
 import java.util.Vector;
+
 import javax.servlet.http.HttpServletRequest;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.nsponline.calendar.utils.Logger;
@@ -27,11 +29,11 @@ public class Roster {
   public static final String HARD_SPACE_NBSP = "&nbsp;";
   //static data
   final static Hashtable<String, String> lookupClassification = new Hashtable<>(10);
-  final static String[] month = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+  final static String[] month = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
   static {
     lookupClassification.put("BAS", "Basic");
-//        lookupClassification.put("INA","Inactive");
+    //        lookupClassification.put("INA","Inactive");
     lookupClassification.put("SR", "Senior");
     lookupClassification.put("SRA", "Senior Auxiliary");
     lookupClassification.put("ALM", "Alumni");
@@ -49,54 +51,56 @@ public class Roster {
   final static int TABLE_NAME = 4; //need to be a director to edit these fields (ie ID#, classification, Director)
   final static int TABLE_WIDTH = 5; //need to be a director to edit these fields (ie ID#, classification, Director)
   //note, the values in dbData and the following defines MUST match
-//      they are in the ORDER THEY APPEAR ON THE DIALOG
-//      not in the order in the actual database
+  //      they are in the ORDER THEY APPEAR ON THE DIALOG
+  //      not in the order in the actual database
   public static final String[][] dbData = {
-//DB_NAME,              DLG_NAME,                SERVLET_NAME    EDIT_BY_DIRECTOR   Column Heading    Column width
-//(name in database)  (displayed on dialog)  (passed arg name) (director only edit) (name on printout) (width on printout)
-      {"IDNumber", "ID Number:&nbsp;", "IDToEdit", "y", "ID", "40"},      //0
-      {"ClassificationCode", "Classification:&nbsp;", "Class", "y", "Class", "50"},      //1
-      {"LastName", "Last Name:&nbsp;", "LastName", "n", "Name", "90"},      //2
-      {"FirstName", "First Name:&nbsp;", "FirstName", "n", "Name", "90"},      //3
-      {"Spouse", "Spouse:&nbsp;", "Spouse", "n", "Spouse", "40"},      //4
-      {"Address", "Address:&nbsp;", "Address", "n", "Address&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;", "90"},      //5
-      {"City", "City:&nbsp;", "City", "n", "City", "90"},      //6
-      {"State", "State:&nbsp;", "State", "n", "State", "50"},      //7
-      {"ZipCode", "Zip Code:&nbsp;", "ZipCode", "n", "Zip", "60"},      //8
-      {"HomePhone", "Home Phone:&nbsp;", "HomePhone", "n", "Home", "80"},      //9
-      {"WorkPhone", "Work Phone:&nbsp;", "WorkPhone", "n", "Work", "80"},      //10
-      {"CellPhone", "Cell Phone:&nbsp;", "CellPhone", "n", "Cell", "70"},      //11
-      {"Pager", "Pager:&nbsp;", "Pager", "n", "Pager", "70"},      //12
-      {"email", "E-mail:&nbsp;", "E-mailAddress", "n", "Email", "130"},     //13
-      {"EmergencyCallUp", "Emergency Call Up:&nbsp;", "EmergencyCall", "n", "Call Up", "50"},      //14
-      {"Password", "Password:&nbsp;", "Password", "n", "Password", "60"},      //15
-      {"NightSubsitute", "Substitute List:&nbsp;", "NightSubsitute", "n", "Sub", "50"},      //16
-      {"Commitment", "Commitment:&nbsp;", "Commitment", "n", "Commitment", "50"},      //17
-      {"Instructor", "Instructor:&nbsp;", "Instructor", "n", "Instructor", "50"},      //18
-      {"Director", "Director:&nbsp;", "Director", "y", "Director", "50"},      //19
-      {"teamLead", "Team Lead Trained:", "teamLead", "y", "Team Lead", "40"},          //21
-      {"mentoring", "Currently Being Mentored:", "mentoring", "y", "Mentoring", "40"},  //20
-      {"lastUpdated", "Last Updated:&nbsp;", "lastUpdated", "y", "Last Updated", "90"},      //22
-      {"canEarnCredits", "Can Earn Credits:", "earnCredits", "y", "Can Earn Credits", "40"},      //23
-      {"lastCreditUpdate", "Last Update of Credit Info:", "lastCreditUpdate", "y", "Last Credit Update", "80"}, //24
-      {"carryOverCredits", "Carry Over Credits:", "carryOverCredits", "y", "Carry Over Credits", "50"},  //25
-      {"creditsEarned", "Total Credits Available:", "creditsEarned", "y", "Credits Available", "40"},     //26
-      {"creditsUsed", "not used:", "creditsUsed", "y", "Credits Used", "40"},       //27
-      {"comments", "Private&nbsp;Comments<br>(<b>Only</b>&nbsp;visible&nbsp;to&nbsp;directors)", "Comments", "y", "Private Comments", "100"},          //28
-      {"newPassword", "hash:&nbsp;", "newPassword", "n", "NEVER DISPLAY", "10"},          //29
-      {"", "", "", "n", "Day Shifts", "40"},              //30
-      {"", "", "", "n", "Swing Shifts", "40"},            //31
-      {"", "", "", "n", "Night Shifts", "40"},            //32
-      {"", "", "", "n", "Training Shifts", "40"},         //33
-      {"", "", "", "n", "Day Shift Details", "200"},     //34
-      {"", "", "", "n", "Swing Shift Details", "200"},   //35
-      {"", "", "", "n", "Night Shift Details", "200"},   //36
-      {"", "", "", "n", "Training Shift Details", "200"},//37
-      {"", "", "", "n", "Other Shifts", "40"},           //38
-      {"", "", "", "n", "Holiday Shifts", "40"},         //39
-      {"", "", "", "n", "Other Shift Details", "200"},   //40
-      {"", "", "", "n", "Holiday Shift Details", "200"}  //41
-};
+    //DB_NAME,              DLG_NAME,                SERVLET_NAME    EDIT_BY_DIRECTOR   Column Heading    Column width
+    //(name in database)  (displayed on dialog)  (passed arg name) (director only edit) (name on printout) (width on printout)
+    { "IDNumber", "ID Number:&nbsp;", "IDToEdit", "y", "ID", "40" },      //0
+    { "ClassificationCode", "Classification:&nbsp;", "Class", "y", "Class", "50" },      //1
+    { "LastName", "Last Name:&nbsp;", "LastName", "n", "Name", "90" },      //2
+    { "FirstName", "First Name:&nbsp;", "FirstName", "n", "Name", "90" },      //3
+    { "Spouse", "Spouse:&nbsp;", "Spouse", "n", "Spouse", "40" },      //4
+    { "Address", "Address:&nbsp;", "Address", "n",
+      "Address&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;", "90" },      //5
+    { "City", "City:&nbsp;", "City", "n", "City", "90" },      //6
+    { "State", "State:&nbsp;", "State", "n", "State", "50" },      //7
+    { "ZipCode", "Zip Code:&nbsp;", "ZipCode", "n", "Zip", "60" },      //8
+    { "HomePhone", "Home Phone:&nbsp;", "HomePhone", "n", "Home", "80" },      //9
+    { "WorkPhone", "Work Phone:&nbsp;", "WorkPhone", "n", "Work", "80" },      //10
+    { "CellPhone", "Cell Phone:&nbsp;", "CellPhone", "n", "Cell", "70" },      //11
+    { "Pager", "Pager:&nbsp;", "Pager", "n", "Pager", "70" },      //12
+    { "email", "E-mail:&nbsp;", "E-mailAddress", "n", "Email", "130" },     //13
+    { "EmergencyCallUp", "Emergency Call Up:&nbsp;", "EmergencyCall", "n", "Call Up", "50" },      //14
+    { "Password", "Password:&nbsp;", "Password", "n", "Password", "60" },      //15
+    { "NightSubsitute", "Substitute List:&nbsp;", "NightSubsitute", "n", "Sub", "50" },      //16
+    { "Commitment", "Commitment:&nbsp;", "Commitment", "n", "Commitment", "50" },      //17
+    { "Instructor", "Instructor:&nbsp;", "Instructor", "n", "Instructor", "50" },      //18
+    { "Director", "Director:&nbsp;", "Director", "y", "Director", "50" },      //19
+    { "teamLead", "Team Lead Trained:", "teamLead", "y", "Team Lead", "40" },          //21
+    { "mentoring", "Currently Being Mentored:", "mentoring", "y", "Mentoring", "40" },  //20
+    { "lastUpdated", "Last Updated:&nbsp;", "lastUpdated", "y", "Last Updated", "90" },      //22
+    { "canEarnCredits", "Can Earn Credits:", "earnCredits", "y", "Can Earn Credits", "40" },      //23
+    { "lastCreditUpdate", "Last Update of Credit Info:", "lastCreditUpdate", "y", "Last Credit Update", "80" }, //24
+    { "carryOverCredits", "Carry Over Credits:", "carryOverCredits", "y", "Carry Over Credits", "50" },  //25
+    { "creditsEarned", "Total Credits Available:", "creditsEarned", "y", "Credits Available", "40" },     //26
+    { "creditsUsed", "not used:", "creditsUsed", "y", "Credits Used", "40" },       //27
+    { "comments", "Private&nbsp;Comments<br>(<b>Only</b>&nbsp;visible&nbsp;to&nbsp;directors)", "Comments", "y",
+      "Private Comments", "100" },          //28
+    { "newPassword", "hash:&nbsp;", "newPassword", "n", "NEVER DISPLAY", "10" },          //29
+    { "", "", "", "n", "Day Shifts", "40" },              //30
+    { "", "", "", "n", "Swing Shifts", "40" },            //31
+    { "", "", "", "n", "Night Shifts", "40" },            //32
+    { "", "", "", "n", "Training Shifts", "40" },         //33
+    { "", "", "", "n", "Day Shift Details", "200" },     //34
+    { "", "", "", "n", "Swing Shift Details", "200" },   //35
+    { "", "", "", "n", "Night Shift Details", "200" },   //36
+    { "", "", "", "n", "Training Shift Details", "200" },//37
+    { "", "", "", "n", "Other Shifts", "40" },           //38
+    { "", "", "", "n", "Holiday Shifts", "40" },         //39
+    { "", "", "", "n", "Other Shift Details", "200" },   //40
+    { "", "", "", "n", "Holiday Shift Details", "200" }  //41
+  };
   //indexes into dbData array (displayed order, not defined order)
   public final static int ID_NUM = 0;
   public final static int CLASSIFICATION = 1;
@@ -161,11 +165,12 @@ public class Roster {
 
   //order is the defined sequence in the database
   static int[] order = {
-      ID_NUM, CLASSIFICATION, LAST, FIRST, SPOUSE,
-      ADDRESS, CITY, STATE, ZIPCODE,
-      HOMEPHONE, WORKPHONE, CELLPHONE, PAGER,
-      EMAIL, EMERGENCY, PASSWORD, SUB, COMMITMENT, INSTRUCTOR, DIRECTOR, LAST_UPDATED, COMMENTS,
-      CARRY_OVER_CREDITS, LAST_CREDIT_UPDATE, CAN_EARN_CREDITS, CREDITS_EARNED, CREDITS_USED, TEAM_LEAD, MENTORING, NEW_PASSWORD}; //BRIGHTON ONLY
+    ID_NUM, CLASSIFICATION, LAST, FIRST, SPOUSE,
+    ADDRESS, CITY, STATE, ZIPCODE,
+    HOMEPHONE, WORKPHONE, CELLPHONE, PAGER,
+    EMAIL, EMERGENCY, PASSWORD, SUB, COMMITMENT, INSTRUCTOR, DIRECTOR, LAST_UPDATED, COMMENTS,
+    CARRY_OVER_CREDITS, LAST_CREDIT_UPDATE, CAN_EARN_CREDITS, CREDITS_EARNED, CREDITS_USED, TEAM_LEAD, MENTORING,
+    NEW_PASSWORD }; //BRIGHTON ONLY
 
   //instance data
   boolean exceptionError;
@@ -231,7 +236,7 @@ public class Roster {
           String szMonth = request.getParameter("voucherMonth");
           String szYear = request.getParameter("voucherYear");
           //if values are valid, parse into milliseconds
-//Log.log("in MemberData constructor, szDay="+szDay+" szMonth="+szMonth+" szYear="+szYear);
+          //Log.log("in MemberData constructor, szDay="+szDay+" szMonth="+szMonth+" szYear="+szYear);
           if (szDay != null && szMonth != null && szYear != null) {
             int m, d, y;
             try {
@@ -263,7 +268,7 @@ public class Roster {
         //replace all " characters with a ' character.  The " character is a delimiter for SQL
         memberData[i] = memberData[i].replace('"', '\'');
       }
-//Log.log("Constructor-MemberData["+i+"] = ("+memberData[i]+")");
+      //Log.log("Constructor-MemberData["+i+"] = ("+memberData[i]+")");
     }
 
   }
@@ -281,7 +286,7 @@ public class Roster {
     out.println(" <td>" + getHomePhone() + "</td>");
     out.println(" <td>" + getWorkPhone() + "</td>");
     out.println(" <td>" + getCellPhone() + "</td>");
-//    out.println(" <td>" + getPager() + "</td>");
+    //    out.println(" <td>" + getPager() + "</td>");
     String str = getEmailAddress();
     if (!HARD_SPACE_NBSP.equals(getEmailAddress())) {
       str = "<a href=\"mailto:" + getEmailAddress() + "\">" + getEmailAddress() + "</a>";
@@ -304,17 +309,17 @@ public class Roster {
   }
 
   public static void printMemberListRowHeading(PrintWriter out, String resort) {
-//Log.log("in printMemberListRowHeading, lastColumn="+lastColumn);
+    //Log.log("in printMemberListRowHeading, lastColumn="+lastColumn);
     for (int i = 0; i < lastColumn; ++i) {
       //String title = (String)columns.elementAt(i);
       int idx = columns[i];
-//Log.log("idx="+idx);
+      //Log.log("idx="+idx);
       String title = "Error";
       String wid = "Error";
       if (idx < FULL_DB_SIZE) {
-//                if(idx == SHOW_NIGHT_CNT && !resort.equalsIgnoreCase("Brighton"))
-//                    title = "Shift Cnt";
-//                else
+        //                if(idx == SHOW_NIGHT_CNT && !resort.equalsIgnoreCase("Brighton"))
+        //                    title = "Shift Cnt";
+        //                else
         title = dbData[idx][TABLE_NAME];
         wid = dbData[idx][TABLE_WIDTH];
       }
@@ -327,19 +332,20 @@ public class Roster {
         wid = "200";
       }
 
-      out.println("  <td width=\"" + wid + "\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\">" + title + "</font></td>");
-// font now specified it style
-//          out.println("  <td width=\""+wid+"\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">"+title+"</font></font></td>");
+      out.println("  <td width=\"" + wid + "\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\">" + title +
+                    "</font></td>");
+      // font now specified it style
+      //          out.println("  <td width=\""+wid+"\" bgcolor=\"#C0C0C0\"><font face=\"Verdana, Arial, Helvetica\"><font size=\"2\">"+title+"</font></font></td>");
     }
   }
 
   public void printMemberListRowData(PrintWriter out) {
     out.println("<tr>");
-//System.out.print("----------");
+    //System.out.print("----------");
     for (int i = 0; i < lastColumn; ++i) {
       //String title = (String)columns.elementAt(i);
       int idx = columns[i];
-//System.out.print(" ("+idx+")");
+      //System.out.print(" ("+idx+")");
       String str = "";
       String align = "";
       switch (idx) {
@@ -416,26 +422,26 @@ public class Roster {
         case COMMENTS:
           str = getComments();
           break;
-//        CARRY_OVER_CREDITS,LAST_CREDIT_UPDATE,CAN_EARN_CREDITS, CREDITS_EARNED, CREDITS_USED, TEAM_LEAD, MENTORING }; //BRIGHTON ONLY
-//        case CARRY_OVER_CREDITS:
-//          str = getCarryOverCredits();
-//          align = " align=center";
-//          break;
-//        case LAST_CREDIT_UPDATE:
-//          str = getLastCreditDateStr();
-//          break;
-//        case CAN_EARN_CREDITS:
-//          str = getCanEarnCredits().equals("1") ? "Yes" : "No";
-//          align = " align=center";
-//          break;
-//        case CREDITS_EARNED:
-//          str = getCreditsEarned();
-//          align = " align=center";
-//          break;
-//        case CREDITS_USED:
-//          str = getCreditsUsed();
-//          align = " align=center";
-//          break;
+        //        CARRY_OVER_CREDITS,LAST_CREDIT_UPDATE,CAN_EARN_CREDITS, CREDITS_EARNED, CREDITS_USED, TEAM_LEAD, MENTORING }; //BRIGHTON ONLY
+        //        case CARRY_OVER_CREDITS:
+        //          str = getCarryOverCredits();
+        //          align = " align=center";
+        //          break;
+        //        case LAST_CREDIT_UPDATE:
+        //          str = getLastCreditDateStr();
+        //          break;
+        //        case CAN_EARN_CREDITS:
+        //          str = getCanEarnCredits().equals("1") ? "Yes" : "No";
+        //          align = " align=center";
+        //          break;
+        //        case CREDITS_EARNED:
+        //          str = getCreditsEarned();
+        //          align = " align=center";
+        //          break;
+        //        case CREDITS_USED:
+        //          str = getCreditsUsed();
+        //          align = " align=center";
+        //          break;
         case TEAM_LEAD:
           str = getTeamLead().equals("1") ? "Yes" : "No";
           align = " align=center";
@@ -490,7 +496,7 @@ public class Roster {
       }
       out.print(" <td" + align + ">" + str + "</td>");
     }
-//Log.log("=======");
+    //Log.log("=======");
     out.println("</tr>\n");
   }
 
@@ -507,9 +513,9 @@ public class Roster {
   public static String getInstructorString(String szTmp) {
     String str = Roster.HARD_SPACE_NBSP;
     try {
-//Log.log("instructor=("+szTmp+")");
+      //Log.log("instructor=("+szTmp+")");
       int idx = Integer.parseInt(szTmp);
-//Log.log("idx="+idx);
+      //Log.log("idx="+idx);
       if ((idx & 1) == 1) {
         str += "OEC";
         idx -= 1;
@@ -568,7 +574,7 @@ public class Roster {
       String originalValue = rosterResults.getString(tag);
       String str = originalValue == null ? "" : originalValue.replaceAll("''", "'");
 
-//todo srg 2017 - decode all roster data here
+      //todo srg 2017 - decode all roster data here
       String unescapedStr = StringEscapeUtils.unescapeHtml4(str);
       if (!testIfValid(unescapedStr)) {
         return szDefault;
@@ -603,7 +609,7 @@ public class Roster {
       }
       qryString.append(dbData[order[i]][DB_NAME]);
     }
-//Log.log(qryString);
+    //Log.log(qryString);
     return qryString.toString();
   }
 
@@ -618,14 +624,14 @@ public class Roster {
       }
       qryString.append(szTmp);
     }
-//Log.log(qryString);
+    //Log.log(qryString);
     return qryString.toString();
   }
 
   public String getInsertSQLString(String resort, SessionData sessionData) {
     int i;
     //at time of insert/Modify, set the lastModified date value
-//lastUpdated
+    //lastUpdated
     setLastUpdatedFieldToNow();
 
     String qryString = "INSERT INTO roster (";
@@ -652,9 +658,9 @@ public class Roster {
 
 
   public String getUpdateSQLString(String resort, SessionData sessionData) {
-//at time of insert/Modify, set the lastUpdated date value
+    //at time of insert/Modify, set the lastUpdated date value
     setLastUpdatedFieldToNow();
-//UPDATE phone_book SET name = 'John Doe', number = '555-1212'
+    //UPDATE phone_book SET name = 'John Doe', number = '555-1212'
     LOG.debug("starting getUpdateRosterSQLString DB_SIZE=" + DB_SIZE);
     String qryString = "UPDATE roster SET ";
     qryString += buildBodyForUpdateQuery(sessionData);
@@ -693,7 +699,7 @@ public class Roster {
       if (isUnsupportedCreditsField(order[i])) {
         valueStr = "0";
       }
-      else if ( i == NEW_PASSWORD) {
+      else if (i == NEW_PASSWORD) {
         //new password is calculated,  it did not previously exist
         try {
           SaltUtils saltShaker = new SaltUtils();
@@ -731,7 +737,7 @@ public class Roster {
         //the password field is blank, which is normal when not CHANGING the password.  So DON'T accidentally overwrite the existing password
         continue;
       }
-      else if ( order[i] == NEW_PASSWORD) {
+      else if (order[i] == NEW_PASSWORD) {
         if (memberData[PASSWORD] == null || memberData[PASSWORD].trim().isEmpty()) {
           //the password field is blank, which is normal when not CHANGING the password.  So DON'T accidentally overwrite the existing "new password"
           continue;
@@ -912,7 +918,8 @@ public class Roster {
   }
 
   public static boolean isUnsupportedCreditsField(int i) {
-    return i == Roster.CAN_EARN_CREDITS || i == Roster.LAST_CREDIT_UPDATE || i == Roster.CARRY_OVER_CREDITS || i == Roster.CREDITS_EARNED || i == Roster.CREDITS_USED;
+    return i == Roster.CAN_EARN_CREDITS || i == Roster.LAST_CREDIT_UPDATE || i == Roster.CARRY_OVER_CREDITS ||
+      i == Roster.CREDITS_EARNED || i == Roster.CREDITS_USED;
   }
 
   public String getLastCreditDateStr() {
@@ -1047,11 +1054,11 @@ public class Roster {
   }
 
   public boolean okToDisplay(boolean EveryBody, boolean SubList, boolean bListAll,
-                      Vector vClassificationsToDisplay, int iCommitmentToDisplay,
-                      boolean listDirector, int instructorFlags, int MinDays) {
+                             Vector vClassificationsToDisplay, int iCommitmentToDisplay,
+                             boolean listDirector, int instructorFlags, int MinDays) {
 
     boolean ok = false;
-//----check overrides
+    //----check overrides
     if (EveryBody) {
       return true;
     }
@@ -1064,14 +1071,14 @@ public class Roster {
       }
       return false;
     }
-//----end overrides
+    //----end overrides
 
-//1st test classification
+    //1st test classification
     if (!vClassificationsToDisplay.contains(getClassification())) {
       return false;
     }
 
-//AND 2nd test commitment
+    //AND 2nd test commitment
     String str = getCommitment();
     int value = 3;
     try {
@@ -1080,13 +1087,13 @@ public class Roster {
     catch (Exception e) {
       //ignore
     }
-//Log.log("commitment status = "+value);
+    //Log.log("commitment status = "+value);
     if (value == 3 || iCommitmentToDisplay == 0 || ((1 << value & iCommitmentToDisplay) == 0)) {
       return false;
     }
 
-//AND 3rd test Everyone/director/cpr/oec/ski/toboggan
-//Log.log(member.getID()+ ") listDirector = "+listDirector+"  isDirector="+member.isDirector());
+    //AND 3rd test Everyone/director/cpr/oec/ski/toboggan
+    //Log.log(member.getID()+ ") listDirector = "+listDirector+"  isDirector="+member.isDirector());
     if (bListAll) {
       ok = true;
     }
@@ -1109,14 +1116,14 @@ public class Roster {
     if (!ok) {
       return false;
     }
-// end of 3rd group ----
+    // end of 3rd group ----
 
     if (MinDays > 0) {
       int totalDays = 0;
       for (int j = 0; j < Assignments.MAX_SHIFT_TYPES; ++j) {
         totalDays += AssignmentCount[j];
       }
-//Log.log("in OKToDisplay, "+getID()+": totalDays="+totalDays+", MinDays="+MinDays);
+      //Log.log("in OKToDisplay, "+getID()+": totalDays="+totalDays+", MinDays="+MinDays);
       return totalDays < MinDays;
     }
 

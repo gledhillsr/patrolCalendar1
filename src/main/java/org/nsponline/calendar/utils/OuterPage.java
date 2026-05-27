@@ -17,11 +17,11 @@ import static com.amazonaws.util.StringUtils.isNullOrEmpty;
 public class OuterPage {
   private static final boolean DEBUG = false;
 
-  private String javaScript;
-  private String loggedInUserId;
-  private ResortData resortData;
+  private final String javaScript;
+  private final String loggedInUserId;
+  private final ResortData resortData;
   private static final int MAX_BUFFER = 4000;
-  private Logger LOG;
+  private final Logger LOG;
 
   public OuterPage(ResortData resort, String javaScriptAndStyles, String loggedInUserId, Logger LOG) {
     resortData = resort;
@@ -44,17 +44,17 @@ public class OuterPage {
     }
     String userIdTag = isNullOrEmpty(loggedInUserId) ? "" : "&ID=" + loggedInUserId;
     String str1 = header.
-        replaceAll("__RESORT_SHORT", resortData.getResortShortName()).
-        replaceAll("__RESORT_LONG", resortData.getResortFullName()).
-        replaceAll("__USER_ID_TAG", userIdTag).
-        replaceAll("__RESORT_URL", resortData.getResortURL()).
-        replaceAll("__RESORT_IMG_HEIGHT", "" + resortData.getImageHeight()).
-        replaceAll("__RESORT_IMAGE", resortData.getResortImage()).
-        replaceAll("__JAVA_SCRIPT", javaScript);
+      replaceAll("__RESORT_SHORT", resortData.getResortShortName()).
+      replaceAll("__RESORT_LONG", resortData.getResortFullName()).
+      replaceAll("__USER_ID_TAG", userIdTag).
+      replaceAll("__RESORT_URL", resortData.getResortURL()).
+      replaceAll("__RESORT_IMG_HEIGHT", "" + resortData.getImageHeight()).
+      replaceAll("__RESORT_IMAGE", resortData.getResortImage()).
+      replaceAll("__JAVA_SCRIPT", javaScript);
     if (!isNullOrEmpty(loggedInUserId)) {
       String buttonClass = "Brighton".equals(resortData.getResortShortName()) ? "class='button'" : "";
       String logout = "<a " + buttonClass + " href='/calendar-1/Logout?resort=" + resortData.getResortShortName() + "' "
-          + "target='_self'>Logout</a>";
+        + "target='_self'>Logout</a>";
       str1 = str1.replace("__LOGOUT", logout);
     }
     else {

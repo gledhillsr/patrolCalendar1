@@ -16,9 +16,9 @@ import java.text.SimpleDateFormat;
  */
 @SuppressWarnings("unused")
 public class ShiftDefinitions {
-  private Logger LOG;
+  private final Logger LOG;
 
-  public static final String[] tags = {"EventName", "StartTime", "EndTime", "Count", "ShiftType"};  //string on form
+  public static final String[] tags = { "EventName", "StartTime", "EndTime", "Count", "ShiftType" };  //string on form
   private static final int EVENT_NAME_INDEX = 0;
   private static final int START_TIME_INDEX = 1;
   private static final int END_TIME_INDEX = 2;
@@ -61,10 +61,10 @@ public class ShiftDefinitions {
 
   public boolean equals(ShiftDefinitions other) {
     return other.eventName.equals(eventName) &&
-        other.startTime.equals(startTime) &&
-        other.endTime.equals(endTime) &&
-        (other.count == count) &&
-        (other.type == type);
+      other.startTime.equals(startTime) &&
+      other.endTime.equals(endTime) &&
+      (other.count == count) &&
+      (other.type == type);
   }
 
   public boolean read(ResultSet shiftResults) {
@@ -130,18 +130,18 @@ public class ShiftDefinitions {
 
   public String getUpdateShiftDefinitionsQueryString(String resort) {
     String qryString = "UPDATE shiftdefinitions SET " +
-        " " + tags[START_TIME_INDEX] + "='" + startTime +
-        "', " + tags[END_TIME_INDEX] + "='" + endTime +
-        "', " + tags[COUNT_INDEX] + "='" + count +
-        "', " + tags[TYPE_INDEX] + "='" + type +
-        "' WHERE " + tags[EVENT_NAME_INDEX] + "= '" + eventName + "'";
+      " " + tags[START_TIME_INDEX] + "='" + startTime +
+      "', " + tags[END_TIME_INDEX] + "='" + endTime +
+      "', " + tags[COUNT_INDEX] + "='" + count +
+      "', " + tags[TYPE_INDEX] + "='" + type +
+      "' WHERE " + tags[EVENT_NAME_INDEX] + "= '" + eventName + "'";
     LOG.logSqlStatement(qryString);
     return qryString;
   }
 
   public String getInsertShiftDefinitionsQueryString(String resort) {
     String qryString = "INSERT INTO shiftdefinitions " +
-        " Values('" + eventName + "','" + startTime + "','" + endTime + "','" + count + "'," + type + ")";
+      " Values('" + eventName + "','" + startTime + "','" + endTime + "','" + count + "'," + type + ")";
     LOG.logSqlStatement(qryString);
     return qryString;
   }
@@ -154,9 +154,10 @@ public class ShiftDefinitions {
   }
 
   public String toString() {
-//        int start = startTime.get(Calendar.HOUR)*startTime.get(Calendar.MINUTE);
-//        int end = endTime.get(Calendar.HOUR)*endTime.get(Calendar.MINUTE);
-    return eventName + " starts: " + startTime + " ends: " + endTime + " count=" + count + " type=" + Assignments.getShiftName(type) + " existed=" + existed;
+    //        int start = startTime.get(Calendar.HOUR)*startTime.get(Calendar.MINUTE);
+    //        int end = endTime.get(Calendar.HOUR)*endTime.get(Calendar.MINUTE);
+    return eventName + " starts: " + startTime + " ends: " + endTime + " count=" + count + " type=" +
+      Assignments.getShiftName(type) + " existed=" + existed;
   }
 
   public void setExists(boolean exists) {

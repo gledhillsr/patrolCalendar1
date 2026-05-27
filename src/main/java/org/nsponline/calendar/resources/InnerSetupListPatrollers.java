@@ -3,8 +3,10 @@ package org.nsponline.calendar.resources;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Calendar;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.Logger;
 import org.nsponline.calendar.utils.PatrolData;
@@ -12,10 +14,12 @@ import org.nsponline.calendar.utils.PatrolData;
 public class InnerSetupListPatrollers extends ResourceBase {
   final private HttpServletResponse response; //todo move into ResourceBase
 
-  private static final String[] szMonths = {"Error", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+  private static final String[] szMonths =
+    { "Error", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
 
-  public InnerSetupListPatrollers(HttpServletRequest request, HttpServletResponse response, Logger LOG) throws IOException {
+  public InnerSetupListPatrollers(HttpServletRequest request, HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     this.response = response;
   }
@@ -64,8 +68,10 @@ public class InnerSetupListPatrollers extends ResourceBase {
     //        out.println("   if (index < nLen)");
     //        out.println("       document.form1.DAY_CNT.checked=1;");
     //        out.println("       document.form1.NIGHT_CNT.checked=1;");
-    out.println("   if(!document.form1.DAY_CNT.checked && !document.form1.SWING_CNT.checked && !document.form1.NIGHT_CNT.checked && !document.form1.TRAINING_CNT.checked && !document.form1.OTHER_CNT.checked && !document.form1.HOLIDAY_CNT.checked) {");
-    out.println("       alert(\"Must first check any combination of \\nDay, Swing, Night, Training, Other, and/or Holiday!\");");
+    out.println(
+      "   if(!document.form1.DAY_CNT.checked && !document.form1.SWING_CNT.checked && !document.form1.NIGHT_CNT.checked && !document.form1.TRAINING_CNT.checked && !document.form1.OTHER_CNT.checked && !document.form1.HOLIDAY_CNT.checked) {");
+    out.println(
+      "       alert(\"Must first check any combination of \\nDay, Swing, Night, Training, Other, and/or Holiday!\");");
     out.println("       document.form1.MIN_DAYS.checked=0;");
     //
     out.println("    } else {");
@@ -126,8 +132,10 @@ public class InnerSetupListPatrollers extends ResourceBase {
     out.println("    <table border=\"0\" width=\"100%\">");
     out.println("      <tr>");
     out.println("        <td width=\"20%\" bgcolor=\"#E5E5E5\">");
-    out.println("          <input type=\"radio\" value=\"FIRST\" name=\"NAME\">First&nbsp;Name&nbsp;Last&nbsp;Name<br>");
-    out.println("          <input type=\"radio\" value=\"LAST\" name=\"NAME\" checked>Last&nbsp;Name,&nbsp;First&nbsp;Name<br>");
+    out.println(
+      "          <input type=\"radio\" value=\"FIRST\" name=\"NAME\">First&nbsp;Name&nbsp;Last&nbsp;Name<br>");
+    out.println(
+      "          <input type=\"radio\" value=\"LAST\" name=\"NAME\" checked>Last&nbsp;Name,&nbsp;First&nbsp;Name<br>");
     out.println("          <input type=\"checkbox\" name=\"CLASS\">Classification<br>");
     out.println("          <input type=\"checkbox\" name=\"SHOW_ID\">Patroller&nbsp;ID<br>");
     out.println("          <input type=\"checkbox\" name=\"SHOW_BLANK\">Slim&nbsp;Blank&nbsp;Column<br>");
@@ -149,14 +157,14 @@ public class InnerSetupListPatrollers extends ResourceBase {
     out.println("          <input type=\"checkbox\" name=\"CITY\">City<br>");
     out.println("          <input type=\"checkbox\" name=\"STATE\">State<br>");
     out.println("          <input type=\"checkbox\" name=\"ZIP\">Zip&nbsp;Code<br>");
-//    if (resort.equalsIgnoreCase("Brighton") && isDirector) {
-//      out.println("<font color=RED>");
-//      out.println("<br>   <input type=\"checkbox\" name=\"CAN_EARN_CREDITS\">Can&nbsp;Earn&nbsp;Credit<br>");
-//      //        out.println("          <input type=\"checkbox\" name=\"CARRY_OVER_CREDITS\">Old&nbsp;Credits");
-//      out.println(" <input type=\"checkbox\" name=\"CREDITS_EARNED\">Credits&nbsp;Available<br>");
-//      out.println(" <input type=\"checkbox\" name=\"LAST_CREDIT_UPDATE\">Date of Credit Update");
-//      out.println("</font>");
-//    }
+    //    if (resort.equalsIgnoreCase("Brighton") && isDirector) {
+    //      out.println("<font color=RED>");
+    //      out.println("<br>   <input type=\"checkbox\" name=\"CAN_EARN_CREDITS\">Can&nbsp;Earn&nbsp;Credit<br>");
+    //      //        out.println("          <input type=\"checkbox\" name=\"CARRY_OVER_CREDITS\">Old&nbsp;Credits");
+    //      out.println(" <input type=\"checkbox\" name=\"CREDITS_EARNED\">Credits&nbsp;Available<br>");
+    //      out.println(" <input type=\"checkbox\" name=\"LAST_CREDIT_UPDATE\">Date of Credit Update");
+    //      out.println("</font>");
+    //    }
     out.println("        </td>");
     out.println("        <td width=\"15%\" bgcolor=\"#E5E5E5\">");
     out.println("          <input type=\"checkbox\" name=\"HOME\" Checked >Home Phone<br>");
@@ -198,7 +206,8 @@ public class InnerSetupListPatrollers extends ResourceBase {
     }
     out.println("  </select>&nbsp;&nbsp;<select size=\"1\" name=\"StartMonth\">");
     for (i = 1; i <= 12; ++i) {
-      out.println("    <option value=\"" + i + "\" " + ((i == StartMonth) ? "selected" : "") + ">" + szMonths[i] + "</option>");
+      out.println(
+        "    <option value=\"" + i + "\" " + ((i == StartMonth) ? "selected" : "") + ">" + szMonths[i] + "</option>");
     }
     out.println("  </select>&nbsp;&nbsp;<select size=\"1\" name=\"StartYear\">");
     for (i = year - 2; i <= year + 2; ++i) {
@@ -212,7 +221,8 @@ public class InnerSetupListPatrollers extends ResourceBase {
     }
     out.println("  </select>&nbsp;&nbsp;<select size=\"1\" name=\"EndMonth\">");
     for (i = 1; i <= 12; ++i) {
-      out.println("    <option value=\"" + i + "\" " + ((i == EndMonth) ? "selected" : "") + ">" + szMonths[i] + "</option>");
+      out.println(
+        "    <option value=\"" + i + "\" " + ((i == EndMonth) ? "selected" : "") + ">" + szMonths[i] + "</option>");
     }
     out.println("  </select>&nbsp;&nbsp;<select size=\"1\" name=\"EndYear\">");
     for (i = year - 2; i <= year + 2; ++i) {
@@ -268,18 +278,21 @@ public class InnerSetupListPatrollers extends ResourceBase {
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"FirstSort\" value=\"Name\" checked>Name<br>");
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"FirstSort\" value=\"Class\">Classification<br>");
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"FirstSort\" value=\"Comm\">Commitment<br>");
-    out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"FirstSort\" value=\"shiftCnt\"># of Shift Assignments<br>");
+    out.println(
+      "          &nbsp;&nbsp; <input type=\"radio\" name=\"FirstSort\" value=\"shiftCnt\"># of Shift Assignments<br>");
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"FirstSort\" value=\"Updt\">Last Updated Date<br>");
     out.println("        </td>");
     out.println("        <td width=\"33%\" bgcolor=\"#E5E5E5\">");
-    out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"SecondSort\" value=\"None\" checked>NO second sort field<br>");
+    out.println(
+      "          &nbsp;&nbsp; <input type=\"radio\" name=\"SecondSort\" value=\"None\" checked>NO second sort field<br>");
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"SecondSort\" value=\"Name\">Name<br>");
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"SecondSort\" value=\"Class\">Classification<br>");
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"SecondSort\" value=\"Comm\">Commitment<br>");
     //    out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"SecondSort\" disabled value=\"shiftCnt\"># of Shift Assignments<br>");
     //    out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"SecondSort\" disabled value=\"Updt\">Last Updated Date</td>");
     out.println("        <td width=\"33%\" bgcolor=\"#E5E5E5\">");
-    out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"ThirdSort\" value=\"None\" checked>NO third sort field<br>");
+    out.println(
+      "          &nbsp;&nbsp; <input type=\"radio\" name=\"ThirdSort\" value=\"None\" checked>NO third sort field<br>");
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"ThirdSort\" value=\"Name\">Name<br>");
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"ThirdSort\" value=\"Class\">Classification<br>");
     out.println("          &nbsp;&nbsp; <input type=\"radio\" name=\"ThirdSort\" value=\"Comm\">Commitment<br>");
@@ -298,7 +311,8 @@ public class InnerSetupListPatrollers extends ResourceBase {
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"resort\" VALUE=\"" + resort + "\">");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"ID\" VALUE=\"" + IDOfPatroller + "\">");
     //step 1
-    out.println("  <p align=\"left\"><font size=\"4\">Step 1) </font><font size=\"4\">Only include patrollers: (MUST select at least 1 from each category)</font></p>");
+    out.println(
+      "  <p align=\"left\"><font size=\"4\">Step 1) </font><font size=\"4\">Only include patrollers: (MUST select at least 1 from each category)</font></p>");
     printStep1InstructionsAsTable(out);
     out.print("  <p align=\"left\"><font size=\"4\">Step 2) Select what fields to display:");
     if (resort.equalsIgnoreCase("Brighton") && isDirector) {

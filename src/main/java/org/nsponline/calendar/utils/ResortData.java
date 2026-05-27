@@ -4,15 +4,16 @@ package org.nsponline.calendar.utils;
  * @author Steve Gledhill
  */
 public class ResortData {
-  private String resortShortName;
-  private String resortFullName;
-  private String directorsVerifiedEmail;
-  private String resortURL;
-  private String resortImage;
-  private int imageHeight;
-  private int imageWidth;
+  private final String resortShortName;
+  private final String resortFullName;
+  private final String directorsVerifiedEmail;
+  private final String resortURL;
+  private final String resortImage;
+  private final int imageHeight;
+  private final int imageWidth;
 
-  public ResortData(String resortShortName, String resortFullName, String verifiedEmail, String resortURL, String resortImage, int imageHeight, int imageWidth) {
+  public ResortData(String resortShortName, String resortFullName, String verifiedEmail, String resortURL,
+                    String resortImage, int imageHeight, int imageWidth) {
     this.resortShortName = resortShortName;
     this.resortFullName = resortFullName;
     this.directorsVerifiedEmail = verifiedEmail;

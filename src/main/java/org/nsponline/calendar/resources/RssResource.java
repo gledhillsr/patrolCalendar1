@@ -4,6 +4,7 @@ import java.io.*;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -15,6 +16,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -52,20 +54,21 @@ public class RssResource {
 
     @SuppressWarnings("InnerClassMayBeStatic")
     private class GetRss {
-      private String pid;
-      private String fullName;
-      private ObjectMapper mapper = new ObjectMapper();
+      private final String pid;
+      private final String fullName;
+      private final ObjectMapper mapper = new ObjectMapper();
 
-      private GetRss(HttpServletRequest request, HttpServletResponse response, String methodType, Logger LOG) throws IOException {
+      private GetRss(HttpServletRequest request, HttpServletResponse response, String methodType, Logger LOG)
+        throws IOException {
         JsonNode node = mapper.readTree(request.getInputStream());
         pid = node.path("pid").asText();
         fullName = node.path("fullName").asText();
         nameCache.put(pid, fullName);
-        if(StaticUtils.isEmpty(pid)) {
+        if (StaticUtils.isEmpty(pid)) {
           StaticUtils.buildAndLogErrorResponse(response, 400, "missing required field 'pid'", LOG);
           return;
         }
-        if(StaticUtils.isEmpty(fullName)) {
+        if (StaticUtils.isEmpty(fullName)) {
           StaticUtils.buildAndLogErrorResponse(response, 400, "missing required field 'fullName'", LOG);
           return;
         }
@@ -87,9 +90,11 @@ public class RssResource {
           myWriter.close();
           LOG.info("Successfully wrote to the file." + rssFeedNameJson);
           StaticUtils.buildOkResponse(response, toNode(pid, fullName), LOG);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
           LOG.info("An error occurred. e.getMessage=" + e.getMessage());
-          StaticUtils.buildAndLogErrorResponse(response, 400, "Failed to create RSS feed.  Exception " + e.getMessage(), LOG);
+          StaticUtils.buildAndLogErrorResponse(response, 400, "Failed to create RSS feed.  Exception " + e.getMessage(),
+                                               LOG);
         }
         writeXml(pid, fullName, null);
       }
@@ -170,7 +175,8 @@ public class RssResource {
 
         // description element
         Element description = document.createElement("description");
-        description.appendChild(document.createTextNode("Ancestor images from FamilySearch for " + fullName + " - " + pid));
+        description.appendChild(
+          document.createTextNode("Ancestor images from FamilySearch for " + fullName + " - " + pid));
         channel.appendChild(description);
 
         // pubDate element
@@ -191,11 +197,11 @@ public class RssResource {
 
         if (rssNode != null) {
           //loop adding item's
-  //        <item>
-  //            <title>Rex Karl Naegle</title>
-  //            <enclosure url="https://sg31b0.familysearch.org/service/records/storage/das-mem/patron/v2/TH-303-38090-73-8/dist.jpg" length="1062139" type="image/jpeg" />
-  //            <pubDate>Thu, 23 April 2020 12:45:32 -0600</pubDate>
-  //        </item>
+          //        <item>
+          //            <title>Rex Karl Naegle</title>
+          //            <enclosure url="https://sg31b0.familysearch.org/service/records/storage/das-mem/patron/v2/TH-303-38090-73-8/dist.jpg" length="1062139" type="image/jpeg" />
+          //            <pubDate>Thu, 23 April 2020 12:45:32 -0600</pubDate>
+          //        </item>
           System.out.println("new xml items=" + rssNode.path("rss").path("channel").path("items"));
           if (rssNode.path("rss").path("channel").path("items").isArray()) {
             for (JsonNode itemNode : rssNode.path("rss").path("channel").path("items")) {
@@ -203,12 +209,12 @@ public class RssResource {
               Element itemElement = document.createElement("item");
               addElementIfExists(itemNode.path("title").asText(), "title", document, itemElement);
               addElementIfExists(date, "pubDate", document, itemElement);
-  //            addElementIfExists(itemNode, "type", itemElement);
-  //            addElementIfExists(itemNode, "size", itemElement);
+              //            addElementIfExists(itemNode, "type", itemElement);
+              //            addElementIfExists(itemNode, "size", itemElement);
               addElementIfExists(itemNode.path("height").asText(), "height", document, itemElement);
               addElementIfExists(itemNode.path("width").asText(), "width", document, itemElement);
               addEnclosure(document, itemElement, itemNode.path("url"), itemNode.path("size"), itemNode.path("type"));
-  //            itemElement.appendChild(document.createTextNode("Ancestor images from FamilySearch for " + fullName + " - " + pid));
+              //            itemElement.appendChild(document.createTextNode("Ancestor images from FamilySearch for " + fullName + " - " + pid));
               channel.appendChild(itemElement);
             }
           }
@@ -230,15 +236,18 @@ public class RssResource {
 
         System.out.println("Done creating XML File");
 
-      } catch (ParserConfigurationException pce) {
+      }
+      catch (ParserConfigurationException pce) {
         System.out.println(pce.getMessage());
-      } catch (TransformerException tfe) {
+      }
+      catch (TransformerException tfe) {
         System.out.println(tfe.getMessage());
       }
     }
 
-    private static void addEnclosure(final Document document, final Element itemElement, final JsonNode url, final JsonNode length, final JsonNode type) {
-  //            <enclosure url="https://sg31b0.familysearch.org/service/records/storage/das-mem/patron/v2/TH-303-38090-73-8/dist.jpg" length="1062139" type="image/jpeg" />
+    private static void addEnclosure(final Document document, final Element itemElement, final JsonNode url,
+                                     final JsonNode length, final JsonNode type) {
+      //            <enclosure url="https://sg31b0.familysearch.org/service/records/storage/das-mem/patron/v2/TH-303-38090-73-8/dist.jpg" length="1062139" type="image/jpeg" />
       System.out.println("addEnclosure=" + url.asText() + "  as " + "enclosure");
       Element enclosure = document.createElement("enclosure");
       Attr attr = document.createAttribute("url");
@@ -257,7 +266,8 @@ public class RssResource {
       itemElement.appendChild(enclosure);
     }
 
-    private static void addElementIfExists(String itemText, String elementName, Document document, final Element itemElement) {
+    private static void addElementIfExists(String itemText, String elementName, Document document,
+                                           final Element itemElement) {
       System.out.println("addElementIfExists=" + itemText + "  as " + elementName);
       if (itemText != null && !itemText.trim().equals("")) {
         Element element = document.createElement(elementName);
@@ -281,12 +291,12 @@ public class RssResource {
   @SuppressWarnings("JavaDoc")
   public static class RssAddItem extends HttpServlet {
 
-    private  ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     //  public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-  //    new GetRss(request, response, "GET");
-  //  }
-  //
+    //    new GetRss(request, response, "GET");
+    //  }
+    //
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
       Logger LOG = new Logger(this.getClass(), request, "GET", request.getParameter("resort"), MIN_LOG_LEVEL);
       new GetRss(request, response, "POST", LOG);
@@ -303,7 +313,8 @@ public class RssResource {
       private String title = "";
       private String description = "";
 
-      private GetRss(HttpServletRequest request, HttpServletResponse response, String methodType, Logger LOG) throws IOException {
+      private GetRss(HttpServletRequest request, HttpServletResponse response, String methodType, Logger LOG)
+        throws IOException {
         JsonNode node = mapper.readTree(request.getInputStream());
         pid = node.path("pid").asText();
         url = node.path("url").asText();
@@ -313,15 +324,15 @@ public class RssResource {
         width = node.path("width").asText();
         title = node.path("title").asText();
         description = node.path("description").asText();
-        if(StaticUtils.isEmpty(pid)) {
+        if (StaticUtils.isEmpty(pid)) {
           StaticUtils.buildAndLogErrorResponse(response, 400, "missing required field 'pid'", LOG);
           return;
         }
-        if(StaticUtils.isEmpty(url)) {
+        if (StaticUtils.isEmpty(url)) {
           StaticUtils.buildAndLogErrorResponse(response, 400, "missing required field 'url'", LOG);
           return;
         }
-        if(StaticUtils.isEmpty(mimeType)) {
+        if (StaticUtils.isEmpty(mimeType)) {
           StaticUtils.buildAndLogErrorResponse(response, 400, "missing required field 'mimeType'", LOG);
           return;
         }
@@ -340,11 +351,11 @@ public class RssResource {
         try {
           String date = new Date().toString();
           InputStream targetStream = new FileInputStream(rssFile);
-          ObjectNode rssNode = (ObjectNode)mapper.readTree(targetStream);
+          ObjectNode rssNode = (ObjectNode) mapper.readTree(targetStream);
           targetStream.close();
 
           System.out.println("before rssNode=" + rssNode.toPrettyString());
-          addItem(date, (ObjectNode)rssNode.path("rss"), pid, url, mimeType, size, height, width, title, description);
+          addItem(date, (ObjectNode) rssNode.path("rss"), pid, url, mimeType, size, height, width, title, description);
           System.out.println("after rssNode=" + rssNode.toPrettyString());
 
           FileWriter myWriter = new FileWriter(rssFeedName);
@@ -353,19 +364,23 @@ public class RssResource {
           System.out.println("Successfully wrote to the file." + rssFeedName);
           StaticUtils.buildOkResponse(response, rssNode, LOG);
           RssInit.writeXml(pid, null, rssNode);
-        } catch (FileNotFoundException e) {
+        }
+        catch (FileNotFoundException e) {
           System.out.println("FileNotFoundException: " + e.getMessage());
-          StaticUtils.buildAndLogErrorResponse(response, 400, "Error reading RSS feed for " + pid + " err=" + e.getMessage(), LOG);
-          return;
-        } catch (Exception e) {
+          StaticUtils.buildAndLogErrorResponse(response, 400,
+                                               "Error reading RSS feed for " + pid + " err=" + e.getMessage(), LOG);
+        }
+        catch (Exception e) {
           System.out.println("Exception: " + e.getMessage());
-          StaticUtils.buildAndLogErrorResponse(response, 400, "Error writing RSS feed for " + pid + " err=" + e.getMessage(), LOG);
-          return;
+          StaticUtils.buildAndLogErrorResponse(response, 400,
+                                               "Error writing RSS feed for " + pid + " err=" + e.getMessage(), LOG);
         }
       }
 
-      private void addItem(String date, final ObjectNode rssNode, final String pid, final String url, final String mimeType, final String size, final String height, final String width, final String title, final String description) {
-        ObjectNode channel = (ObjectNode)rssNode.path("channel");
+      private void addItem(String date, final ObjectNode rssNode, final String pid, final String url,
+                           final String mimeType, final String size, final String height, final String width,
+                           final String title, final String description) {
+        ObjectNode channel = (ObjectNode) rssNode.path("channel");
         channel.put("pubDate", date);
         channel.put("lastBuildDate", date);
 
@@ -373,30 +388,31 @@ public class RssResource {
         if (items.isMissingNode()) {
           channel.set("items", StaticUtils.nodeFactory.arrayNode());
         }
-        ArrayNode itemsArray = (ArrayNode)channel.path("items");
+        ArrayNode itemsArray = (ArrayNode) channel.path("items");
         ObjectNode item = toNode(date, pid, url, mimeType, size, height, width, title, description);
         itemsArray.add(item);
       }
 
-      public ObjectNode toNode(String date, String pid, final String url, final String mimeType, final String size, final String height, final String width, final String title, final String description) {
+      public ObjectNode toNode(String date, String pid, final String url, final String mimeType, final String size,
+                               final String height, final String width, final String title, final String description) {
         ObjectNode itemNode = StaticUtils.nodeFactory.objectNode();
         itemNode.put("pubDate", date);
-  //      ObjectNode enclosure = Utils.nodeFactory.objectNode();
+        //      ObjectNode enclosure = Utils.nodeFactory.objectNode();
         itemNode.put("url", url);
         itemNode.put("type", mimeType);
-        if(!StringUtils.isEmpty(size)) {
+        if (!StringUtils.isEmpty(size)) {
           itemNode.put("size", size);
         }
-        if(!StringUtils.isEmpty(height)) {
+        if (!StringUtils.isEmpty(height)) {
           itemNode.put("height", height);
         }
-        if(!StringUtils.isEmpty(width)) {
+        if (!StringUtils.isEmpty(width)) {
           itemNode.put("width", width);
         }
-        if(!StringUtils.isEmpty(title)) {
+        if (!StringUtils.isEmpty(title)) {
           itemNode.put("title", title);
         }
-        if(!StringUtils.isEmpty(description)) {
+        if (!StringUtils.isEmpty(description)) {
           itemNode.put("description", description);
         }
 
@@ -426,12 +442,13 @@ public class RssResource {
 
     @SuppressWarnings("InnerClassMayBeStatic")
     private class DeleteRss {
-      private String pid;
+      private final String pid;
 
-      private DeleteRss(HttpServletRequest request, HttpServletResponse response, String methodType, Logger LOG) throws IOException {
+      private DeleteRss(HttpServletRequest request, HttpServletResponse response, String methodType, Logger LOG)
+        throws IOException {
         pid = request.getParameter("pid");
         System.out.println("delete rss feed for pid=" + pid);
-        if(StaticUtils.isEmpty(pid)) {
+        if (StaticUtils.isEmpty(pid)) {
           StaticUtils.buildAndLogErrorResponse(response, 400, "missing required field 'pid'", LOG);
           return;
         }

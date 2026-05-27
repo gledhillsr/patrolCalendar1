@@ -35,9 +35,10 @@ public class Assignments {
   public final static int MAX_SHIFT_TYPES = 6;
 
   //private fields
-  final private static String[] szShiftTypes = {"Day Shift", "Swing Shift", "Night Shift", "Training Shift", "Other Shift", "Holiday Shift"};
-  final private static String[] tag = {"Date", "StartTime", "EndTime", "EventName", "ShiftType",
-      "Count", "P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"}; //string on form
+  final private static String[] szShiftTypes =
+    { "Day Shift", "Swing Shift", "Night Shift", "Training Shift", "Other Shift", "Holiday Shift" };
+  final private static String[] tag = { "Date", "StartTime", "EndTime", "EventName", "ShiftType",
+    "Count", "P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9" }; //string on form
   //NOTE: the Date string is in this format "2001-11-03_1"  where _1 is the FIRST record
   final private static int DATE_INDEX = 0;
   final private static int START_INDEX = 1;
@@ -47,17 +48,17 @@ public class Assignments {
   final private static int COUNT_INDEX = 5;
   final private static int P0_INDEX = 6;
   // Format the current time.
-//E=day of Week (ie. Tuesday), y=year, M=month, d=day, H=hour (24 hour clock), m=minute, s=second
+  //E=day of Week (ie. Tuesday), y=year, M=month, d=day, H=hour (24 hour clock), m=minute, s=second
   final private static SimpleDateFormat expandedDateTimeFormatter = new SimpleDateFormat("EEEE, MMMM d yyyy");
   final private static SimpleDateFormat DateFormatter = new SimpleDateFormat("yyyy-MM-dd");
-//  final static SimpleDateFormat normalDateFormatter = new SimpleDateFormat("MM'/'dd'/'yyyy");
+  //  final static SimpleDateFormat normalDateFormatter = new SimpleDateFormat("MM'/'dd'/'yyyy");
 
   // ALL the following global data MUST be initialized in the constructor
   private String szDate;
   private String szStartTime, szEndTime, szEventName;
   private int type;
   private int count;
-  private String patrollerID[];           //patroller ID for each assignment
+  private String[] patrollerID;           //patroller ID for each assignment
   private boolean existed;                //did this date already exist in the database
   private boolean exceptionError;
   private Logger LOG;
@@ -280,6 +281,7 @@ public class Assignments {
   /*************************************************************************/
   /* getPosIndex - given an ID, which position(index) is that patroller    */
   /*  ASSUMES you cannot assign a patroller to two positions on same day   */
+
   /*************************************************************************/
   public int getPosIndex(String id) {
     int i;
@@ -293,6 +295,7 @@ public class Assignments {
 
   /*******************************************************/
   /* getPosID - return the patroller ID at position nPos */
+
   /*******************************************************/
   public String getPosID(int nPos) {
     if (nPos >= 0 && nPos < MAX_ASSIGNMENT_SIZE) {       //validate pos
@@ -326,7 +329,7 @@ public class Assignments {
     String encodedEndTime = sqlStrip(szEndTime);
 
     String qryString = "UPDATE assignments SET StartTime =\"" + encodedStartTime + "\", EndTime =\"" + encodedEndTime +
-        "\", EventName=\"" + encodedEventName + "\", ShiftType=" + type + ", Count=" + count;
+      "\", EventName=\"" + encodedEventName + "\", ShiftType=" + type + ", Count=" + count;
     // +
     for (i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
       if (i >= count) {
@@ -335,7 +338,7 @@ public class Assignments {
       }
       qryString += ", " + tag[P0_INDEX + i] + "='" + getPosID(i) + "'"; //fixes bug where string starts with 0 zero
     }
-    qryString += " WHERE Date=\'" + szDate + "\'";
+    qryString += " WHERE Date='" + szDate + "'";
     LOG.logSqlStatement(qryString);
     return qryString;
   }
@@ -346,7 +349,7 @@ public class Assignments {
     String encodedStartTime = sqlStrip(szStartTime);
     String encodedEndTime = sqlStrip(szEndTime);
 
-    String qryString = "INSERT INTO assignments Values(\'" + szDate + "', \"" +
+    String qryString = "INSERT INTO assignments Values('" + szDate + "', \"" +
       encodedStartTime + "\", \"" + encodedEndTime + "\", \"" + encodedEventName + "\", \"" + type + "\", " + count;
     for (i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
       qryString += ", '" + getPosID(i) + "'";
@@ -371,7 +374,7 @@ public class Assignments {
 
   public String toString() {
     String ret = "Date=" + szDate + " StartTime=" + szStartTime + " EndTime=" + szEndTime +
-        " EventName=" + szEventName + " ShiftType=" + type + " Count=" + count;
+      " EventName=" + szEventName + " ShiftType=" + type + " Count=" + count;
     for (int i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
       ret += " " + patrollerID[i];
     }
@@ -407,7 +410,7 @@ public class Assignments {
     returnNode.put("ShiftType", String.valueOf(type));
     returnNode.put("Count", String.valueOf(count));
     ArrayNode patrollerIds = StaticUtils.nodeFactory.arrayNode();
-    for (int i=0; i < count; ++i) {
+    for (int i = 0; i < count; ++i) {
       patrollerIds.add(patrollerID[i]);
     }
     returnNode.set("patrollerIds", patrollerIds);

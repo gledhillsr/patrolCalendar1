@@ -3,8 +3,10 @@ package org.nsponline.calendar.resources;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.util.Calendar;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.nsponline.calendar.store.Assignments;
 import org.nsponline.calendar.store.DirectorSettings;
 import org.nsponline.calendar.utils.Logger;
@@ -21,7 +23,8 @@ class InnerPurgeAssignments extends ResourceBase {
   int startMonth;
   int startYear;
 
-  public InnerPurgeAssignments(HttpServletRequest request, HttpServletResponse response, Logger LOG) throws IOException {
+  public InnerPurgeAssignments(HttpServletRequest request, HttpServletResponse response, Logger LOG)
+    throws IOException {
     super(request, response, LOG);
     this.response = response;
   }
@@ -50,7 +53,8 @@ class InnerPurgeAssignments extends ResourceBase {
     out.println("<SCRIPT LANGUAGE=\"JavaScript\">");
     //cancel button pressed
     out.println("function goHome() {");
-    out.println("   location.href = \"" + PatrolData.SERVLET_URL + "Directors?resort=" + resort + "&ID=" + szMyID + "\"");
+    out.println(
+      "   location.href = \"" + PatrolData.SERVLET_URL + "Directors?resort=" + resort + "&ID=" + szMyID + "\"");
     out.println("}");
     //confirmation dialog
     out.println("function validate() {");
@@ -104,7 +108,7 @@ class InnerPurgeAssignments extends ResourceBase {
 
     LOG.info("Purging ALL shifts on and before " + startDay + "/" + startMonth + "/" + startYear);
 
-    ResultSet assignmentResults= patrol.resetAssignments();
+    ResultSet assignmentResults = patrol.resetAssignments();
     while ((assignment = patrol.readNextAssignment(assignmentResults)) != null) {
       year = assignment.getYear();
       month = assignment.getMonth();
@@ -124,8 +128,10 @@ class InnerPurgeAssignments extends ResourceBase {
   }
 
   public void printBody() {
-    out.println("<h1 align=\"center\">Delete Old Assignments for " + PatrolData.getResortFullName(resort, LOG) + "</h1>");
-    out.println("<form target='_self' onSubmit=\"return validate()\" action=\"" + PatrolData.SERVLET_URL + "PurgeAssignments\" method=POST>");
+    out.println(
+      "<h1 align=\"center\">Delete Old Assignments for " + PatrolData.getResortFullName(resort, LOG) + "</h1>");
+    out.println("<form target='_self' onSubmit=\"return validate()\" action=\"" + PatrolData.SERVLET_URL +
+                  "PurgeAssignments\" method=POST>");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"resort\" VALUE=\"" + resort + "\">");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"ID\" VALUE=\"" + szMyID + "\">");
     out.println("<INPUT TYPE=\"HIDDEN\" NAME=\"XYZ\" VALUE=\"XYZ\">");
@@ -137,7 +143,8 @@ class InnerPurgeAssignments extends ResourceBase {
     }
     out.println("  </select>&nbsp;&nbsp;<select size=\"1\" name=\"startMonth\">");
     for (int i = 1; i <= 12; ++i) {
-      out.println("&nbsp;&nbsp;<option value=\"" + i + "\" " + ((i == startMonth) ? "selected" : "") + ">" + StaticUtils.szMonthsFull[i - 1] + "</option>");
+      out.println("&nbsp;&nbsp;<option value=\"" + i + "\" " + ((i == startMonth) ? "selected" : "") + ">" +
+                    StaticUtils.szMonthsFull[i - 1] + "</option>");
     }
     out.println("  </select>&nbsp;&nbsp;<select size=\"1\" name=\"startYear\">");
     for (int i = 0; i < 4; ++i) {
