@@ -37,5 +37,16 @@ public class MemberLogoutControllerTest {
         session = new MockHttpSession();
     }
 
-    // Tests will be added in subsequent tasks
+    @Test
+    public void testLogoutRedirectsToMonthCalendar() throws Exception {
+        // Set up authenticated session
+        session.setAttribute("loggedInUserId", "123");
+        session.setAttribute("loggedInResort", "Sample");
+
+        mockMvc.perform(get("/MemberLogout")
+                .param("resort", "Sample")
+                .session(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/MonthCalendar?resort=Sample"));
+    }
 }
