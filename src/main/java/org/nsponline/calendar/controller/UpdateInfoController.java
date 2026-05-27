@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 
 @Controller
 public class UpdateInfoController {
@@ -525,11 +526,134 @@ public class UpdateInfoController {
                 return "update-info"; // Re-display form with validation errors
             }
 
-            // TODO: Task 5 - Implement database update
-            // - Load member roster
-            // - Apply form data using memberForm.applyToRoster(member, LOG)
-            // - Call member.updateMember(connection)
-            // - Redirect to success page
+            // 9. Load existing member record
+            Roster member = patrolData.getMemberByID(patrollerId);
+            if (member == null) {
+                model.addAttribute("resort", resort);
+                model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+                model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("errorMessage", "Member not found: " + patrollerId);
+                model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("memberForm", memberForm);
+
+                // Add resort metadata for header
+                ResortData resortData = PatrolData.getResortInfo(resort);
+                if (resortData != null) {
+                    model.addAttribute("resortUrl", resortData.getResortURL());
+                    model.addAttribute("resortImage", resortData.getResortImage());
+                    model.addAttribute("resortImgHeight", resortData.getImageHeight());
+                }
+
+                return "update-info";
+            }
+
+            // 10. Apply form values to roster
+            memberForm.applyToRoster(member, sessionData, LOG);
+
+            // 11. Update database
+            try {
+                Connection connection = patrolData.getConnection(resort, sessionData, LOG);
+                String sql = member.getUpdateSQLString(resort, sessionData);
+                PreparedStatement statement = connection.prepareStatement(sql);
+                statement.executeUpdate();
+                connection.close();
+                LOG.info("Successfully updated member: " + patrollerId);
+            } catch (Exception e) {
+                LOG.logException("Failed to update member: " + patrollerId, e);
+
+                // Re-populate form on error
+                model.addAttribute("resort", resort);
+                model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+                model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("memberName", member.getFullName());
+                model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("memberForm", memberForm);
+                model.addAttribute("errorMessage", "Database error: Failed to update profile. Please try again.");
+
+                // Add read-only display attributes
+                model.addAttribute("idNumber", member.memberData[Roster.ID_NUM]);
+                model.addAttribute("classification", getClassificationLabel(member));
+                model.addAttribute("commitment", getCommitmentLabel(member.memberData[Roster.COMMITMENT]));
+                model.addAttribute("instructor", getInstructorLabel(member.memberData[Roster.INSTRUCTOR]));
+                model.addAttribute("lastUpdated", member.memberData[Roster.LAST_UPDATED]);
+
+                // Add hidden field values
+                model.addAttribute("hiddenClassification", member.memberData[Roster.CLASSIFICATION]);
+                model.addAttribute("hiddenCommitment", member.memberData[Roster.COMMITMENT]);
+                model.addAttribute("hiddenInstructor", member.memberData[Roster.INSTRUCTOR]);
+                model.addAttribute("hiddenDirector", member.memberData[Roster.DIRECTOR]);
+                model.addAttribute("hiddenTeamLead", member.memberData[Roster.TEAM_LEAD]);
+                model.addAttribute("hiddenMentoring", member.memberData[Roster.MENTORING]);
+                model.addAttribute("hiddenComments", member.memberData[Roster.COMMENTS]);
+
+                // Add resort metadata for header
+                ResortData resortData = PatrolData.getResortInfo(resort);
+                if (resortData != null) {
+                    model.addAttribute("resortUrl", resortData.getResortURL());
+                    model.addAttribute("resortImage", resortData.getResortImage());
+                    model.addAttribute("resortImgHeight", resortData.getImageHeight());
+                }
+
+                return "update-info";
+            }
+
+            // 12. Reload member to get updated timestamp
+            member = patrolData.getMemberByID(patrollerId);
+            if (member == null) {
+                // This shouldn't happen, but handle gracefully
+                model.addAttribute("resort", resort);
+                model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+                model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("errorMessage", "Failed to reload updated member data");
+                model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("memberForm", memberForm);
+
+                // Add resort metadata for header
+                ResortData resortData = PatrolData.getResortInfo(resort);
+                if (resortData != null) {
+                    model.addAttribute("resortUrl", resortData.getResortURL());
+                    model.addAttribute("resortImage", resortData.getResortImage());
+                    model.addAttribute("resortImgHeight", resortData.getImageHeight());
+                }
+
+                return "update-info";
+            }
+
+            // 13. Populate form from reloaded member
+            MemberUpdateForm updatedForm = MemberUpdateForm.populateFromRoster(member);
+
+            // 14. Add all model attributes for success display
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", patrollerId);
+            model.addAttribute("memberName", member.getFullName());
+            model.addAttribute("isBackdoorUser", false);
+            model.addAttribute("memberForm", updatedForm);
+            model.addAttribute("updateSuccess", true);
+
+            // 15. Add read-only display attributes
+            model.addAttribute("idNumber", member.memberData[Roster.ID_NUM]);
+            model.addAttribute("classification", getClassificationLabel(member));
+            model.addAttribute("commitment", getCommitmentLabel(member.memberData[Roster.COMMITMENT]));
+            model.addAttribute("instructor", getInstructorLabel(member.memberData[Roster.INSTRUCTOR]));
+            model.addAttribute("lastUpdated", member.memberData[Roster.LAST_UPDATED]);
+
+            // 16. Add hidden field values
+            model.addAttribute("hiddenClassification", member.memberData[Roster.CLASSIFICATION]);
+            model.addAttribute("hiddenCommitment", member.memberData[Roster.COMMITMENT]);
+            model.addAttribute("hiddenInstructor", member.memberData[Roster.INSTRUCTOR]);
+            model.addAttribute("hiddenDirector", member.memberData[Roster.DIRECTOR]);
+            model.addAttribute("hiddenTeamLead", member.memberData[Roster.TEAM_LEAD]);
+            model.addAttribute("hiddenMentoring", member.memberData[Roster.MENTORING]);
+            model.addAttribute("hiddenComments", member.memberData[Roster.COMMENTS]);
+
+            // 17. Add resort metadata for header
+            ResortData resortData = PatrolData.getResortInfo(resort);
+            if (resortData != null) {
+                model.addAttribute("resortUrl", resortData.getResortURL());
+                model.addAttribute("resortImage", resortData.getResortImage());
+                model.addAttribute("resortImgHeight", resortData.getImageHeight());
+            }
 
             return "update-info";
 
