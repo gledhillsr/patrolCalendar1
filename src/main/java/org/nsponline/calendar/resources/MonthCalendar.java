@@ -422,7 +422,7 @@ public class MonthCalendar extends ResourceBase {
     out.println("</TD></TR></table>");
     out.println("");
     out.println(
-      "<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='0' WIDTH='100%'><TR><TD><img src='/images/ncclear.gif' width='3' height='3'></TD></TR></table>");
+      "<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='0' WIDTH='100%'><TR><TD><img src='/calendar-1/images/ncclear.gif' width='3' height='3'></TD></TR></table>");
     out.println("");
     //style='font-size: 10pt; face='Verdana, Arial, Helvetica'
     //make default font small for calendar shifts
@@ -458,7 +458,7 @@ public class MonthCalendar extends ResourceBase {
       szPrevHTML += "&noLogin=1";
     }
     out.println("<a target='_self' href='" + szPrevHTML +
-                  "'><IMG SRC='/images/ncvwprev.gif' BORDER='0' ALT='Previous month' ALIGN='MIDDLE' width='32' height='23'></a>");
+                  "'><IMG SRC='/calendar-1/images/ncvwprev.gif' BORDER='0' ALT='Previous month' ALIGN='MIDDLE' width='32' height='23'></a>");
     //insert page for next button
     String szNextHTML = "MonthCalendar?resort=" + resort + patrollerIdTag + "&month=" + nextMonth + "&year=" + nextYear;
     if (notLoggedIn) {
@@ -466,7 +466,7 @@ public class MonthCalendar extends ResourceBase {
     }
     //    szNextHTML += idParameter;
     out.println("<a target='_self' href='" + szNextHTML +
-                  "'><IMG SRC='/images/ncvwnext.gif' BORDER='0' ALT='Next month' ALIGN='MIDDLE' width='32' height='23'></a>");
+                  "'><IMG SRC='/calendar-1/images/ncvwnext.gif' BORDER='0' ALT='Next month' ALIGN='MIDDLE' width='32' height='23'></a>");
     //home month button
     String szCurrHTML =
       "MonthCalendar?resort=" + resort + patrollerIdTag + "&month=" + realCurrMonth + "&year=" + realCurrYear;
@@ -474,7 +474,7 @@ public class MonthCalendar extends ResourceBase {
       szCurrHTML += "&noLogin=1";
     }
     out.println(
-      "<a href='" + szCurrHTML + "' Target='_self'><IMG SRC='/images/ncgohome.gif' BORDER='0' ALT='Return to " +
+      "<a href='" + szCurrHTML + "' Target='_self'><IMG SRC='/calendar-1/images/ncgohome.gif' BORDER='0' ALT='Return to " +
         StaticUtils.szMonthsFull[realCurrMonth] + " " + realCurrYear + "' ALIGN='MIDDLE' width='32' height='32'></a>");
     out.println(" </FONT></TD></TR>");
     out.println("<TR><TD VALIGN='Bottom' ALIGN='RIGHT' height='21'>");
@@ -486,7 +486,7 @@ public class MonthCalendar extends ResourceBase {
   public void printEndOfPage(PrintWriter out, String resort) {
     out.println("</TABLE>");
     out.println(
-      "<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='0' WIDTH='100%'><TR><TD><img src='/images/ncclear.gif' width='3' height='4'></TD></TR></table>");
+      "<TABLE BORDER='0' CELLSPACING='0' CELLPADDING='0' WIDTH='100%'><TR><TD><img src='/calendar-1/images/ncclear.gif' width='3' height='4'></TD></TR></table>");
     out.println("<font size=1>As of: " + trialTime);
     //removed Set 13, 2015
     //      out.println("&nbsp;&nbsp;");

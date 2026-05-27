@@ -36,131 +36,131 @@ public class PatrolData {
 
   static {
     resortMap.put("Afton", new ResortData("Afton", "Afton Alps", null, "http://www.aftonalpsskipatrol.org",
-                                          "/images/AftonLogo.jpg", IMG_HEIGHT, 90));
-    //    resortMap.put("AlpineMt",       new ResortData("AlpineMt", "Alpine Mt", null, "http://www.alpinemtskipatrol.org", "/images/AlpineMt.jpg", IMG_HEIGHT, 80));
+                                          "/calendar-1/images/AftonLogo.jpg", IMG_HEIGHT, 90));
+    //    resortMap.put("AlpineMt",       new ResortData("AlpineMt", "Alpine Mt", null, "http://www.alpinemtskipatrol.org", "/calendar-1/images/AlpineMt.jpg", IMG_HEIGHT, 80));
     resortMap.put("Andes", new ResortData("Andes", "Andes Tower Hills", "andestowerhillsskipatrol@gmail.com",
-                                          "http://www.andestowerhills.com", "/images/Coldbarnstar.png", IMG_HEIGHT,
+                                          "http://www.andestowerhills.com", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT,
                                           80));
     resortMap.put("AntelopeButte",
                   new ResortData("AntelopeButte", "Antelope Butte", null, "http://www.antelopebuttefoundation.org",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     //BigHorn, and changed to Meadowlark (for now, use the BigHorn DB)
     resortMap.put("BigHorn", new ResortData("BigHorn", "Meadowlark", "Meadowlarkskipatrol@gmail.com",
-                                            "https://www.lodgesofthebighorns.com/", "/images/Meadowlark.png",
+                                            "https://www.lodgesofthebighorns.com/", "/calendar-1/images/Meadowlark.png",
                                             IMG_HEIGHT, 80));
     resortMap.put("BigRock", new ResortData("BigRock", "BigRock", "null", "https://www.bigrockmaine.com",
-                                            "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                            "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     //note Black River Basin was BlackjackMountain
     resortMap.put("BlackjackMountain",
                   new ResortData("BlackjackMountain", "Black River Basin", "Teagan.knudson@snowriver.com",
-                                 "http://www.snowriver.com", "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "http://www.snowriver.com", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("BlackMountain", new ResortData("BlackMountain", "Black Mountain", null, "http://www.blackmt.com",
-                                                  "/images/Coldbarnstar.png", IMG_HEIGHT, 142));
+                                                  "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 142));
     resortMap.put("Brighton",
                   new ResortData("Brighton", "Brighton", "brightonskipatrol@gmail.com", "http://www.brightonresort.com",
-                                 "/images/Brighton.gif", 60, 261));
+                                 "/calendar-1/images/Brighton.gif", 60, 261));
     resortMap.put("BuenaVista", new ResortData("BuenaVista", "Buena Vista", null, "http://www.bvskiarea.com",
-                                               "/images/Coldbarnstar.png", 75, 300));
+                                               "/calendar-1/images/Coldbarnstar.png", 75, 300));
     resortMap.put("CasperMountain", new ResortData("CasperMountain", "Casper Mountain", "caspermtnskipatrol@gmail.com",
                                                    "https://www.caspermountainskipatrol.org/",
-                                                   "/images/CasperMountain.png", IMG_HEIGHT, 87));
+                                                   "/calendar-1/images/CasperMountain.png", IMG_HEIGHT, 87));
     resortMap.put("CoffeeMill", new ResortData("CoffeeMill", "CoffeeMill", null, "https://cm-skipatrol.org/",
-                                               "/images/Coldbarnstar.png", IMG_HEIGHT, 87));
+                                               "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 87));
     resortMap.put("DetroitMountain",
                   new ResortData("DetroitMountain", "Detroit Mountain", null, "http://detroitmountain.com/",
-                                 "/images/Coldbarnstar.png", 73, 121));
+                                 "/calendar-1/images/Coldbarnstar.png", 73, 121));
     resortMap.put("DevilsHead", new ResortData("DevilsHead", "Devil's Head", "tim.theisen@ieee.org",
-                                               "https://www.devilsheadresort.com/", "/images/DevilsHeadSkiPatrol.png",
+                                               "https://www.devilsheadresort.com/", "/calendar-1/images/DevilsHeadSkiPatrol.png",
                                                IMG_HEIGHT, 160));
     resortMap.put("GrandTarghee",
                   new ResortData("GrandTarghee", "Teton Valley Mountain", null, "http://www.GrandTarghee.com",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("GrandTargheeHosts", new ResortData("GrandTargheeHosts", "Grand Targhee (Mountain Hosts)", null,
-                                                      "http://www.GrandTarghee.com", "/images/Coldbarnstar.png",
+                                                      "http://www.GrandTarghee.com", "/calendar-1/images/Coldbarnstar.png",
                                                       IMG_HEIGHT, 80));
     resortMap.put("GreatDivide", new ResortData("GreatDivide", "Great Divide", null, "http://www.skigd.com",
-                                                "/images/Coldbarnstar.png", IMG_HEIGHT, 274));
+                                                "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 274));
     resortMap.put("HermonMountain",
                   new ResortData("HermonMountain", "Hermon Mountain", null, "http://www.skihermonmountain.com",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("Hesperus", new ResortData("Hesperus", "Hesperus", null, "http://www.ski-hesperus.com/",
-                                             "/images/Coldbarnstar.png", 84, 192));
+                                             "/calendar-1/images/Coldbarnstar.png", 84, 192));
     resortMap.put("HolidayMountain",
                   new ResortData("HolidayMountain", "Holiday Mountain", null, "http://www.skiholidaymtn.com/",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 185));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 185));
     resortMap.put("HylandHills", new ResortData("HylandHills", "Hyland Hills Park", null,
                                                 " https://threeriversparks.org/parks/hyland-lake-park/hyland-hills-ski-area.aspx",
-                                                "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                                "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("IFNordic",
-                  new ResortData("IFNordic", "IF Nordic", null, "", "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                  new ResortData("IFNordic", "IF Nordic", null, "", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("IndianHeadMountain",
                   new ResortData("IndianHeadMountain", "Jackson Creek Summit", "Teagan.knudson@snowriver.com",
-                                 "http://www.snowriver.com", "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "http://www.snowriver.com", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("KellyCanyon", new ResortData("KellyCanyon", "Kelly Canyon", null, "http://www.SkiKelly.com",
-                                                "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                                "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("LeeCanyon", new ResortData("LeeCanyon", "Lee Canyon", "schedule@leecanyonskipatrol.org",
-                                              "http://www.leecanyonskipatrol.org", "/images/Coldbarnstar.png",
+                                              "http://www.leecanyonskipatrol.org", "/calendar-1/images/Coldbarnstar.png",
                                               IMG_HEIGHT, 80));
     resortMap.put("LonesomePine",
                   new ResortData("LonesomePine", "Lonesome Pine Trails", null, "http://www.lonesomepines.org",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("MagicMountain",
                   new ResortData("MagicMountain", "Magic Mountain", null, "http://www.magicmountainresort.com/",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 145));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 145));
     resortMap.put("psiaMagicMountain",
                   new ResortData("psiaMagicMountain", "Magic Mountain Snowsports School", "jwkluth@gmail.com",
-                                 "http://www.magicmountainresort.com/", "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "http://www.magicmountainresort.com/", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("MtBaldy", new ResortData("MtBaldy", "Mount Baldy", "HansGLudwig+SkiPatrol+MBSP@gmail.com",
-                                            "https://www.mtbaldyresort.com/", "/images/MtBaldySkiPatrolLogo.jpg",
+                                            "https://www.mtbaldyresort.com/", "/calendar-1/images/MtBaldySkiPatrolLogo.jpg",
                                             IMG_HEIGHT, 80));
     resortMap.put("MountKato", new ResortData("MountKato", "Mount Kato", null, "http://www.mtkatoskipatrol.com",
-                                              "/images/MountKato.jpg", IMG_HEIGHT, 80));
+                                              "/calendar-1/images/MountKato.jpg", IMG_HEIGHT, 80));
     resortMap.put("MountPleasant", new ResortData("MountPleasant", "Mount Pleasant", "dfarbotnik@gmail.com",
-                                                  "http://www.skimountpleasant.com ", "/images/Coldbarnstar.png",
+                                                  "http://www.skimountpleasant.com ", "/calendar-1/images/Coldbarnstar.png",
                                                   IMG_HEIGHT, 80));
     resortMap.put("NorwayMountain", new ResortData("NorwayMountain", "Norway Mountain", null, "http://www.norwaymt.com",
-                                                   "/images/NorwayMtnLogo.png", IMG_HEIGHT, 80));
+                                                   "/calendar-1/images/NorwayMtnLogo.png", IMG_HEIGHT, 80));
     resortMap.put("PaidSnowCreek",
                   new ResortData("PaidSnowCreek", "Paid Snow Creek", null, "http://www.skisnowcreek.com",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("PaulBunyan", new ResortData("PaulBunyan", "Paul Bunyan", null, "http://www.nspOnline.org",
-                                               "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                               "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("PineCreek", new ResortData("PineCreek", "Pine Creek", null, "http://www.pinecreekskiresort.com",
-                                              "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                              "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("PineMountain", new ResortData("PineMountain", "Pine Mountain", "schedule@PineMountainSkiPatrol.com",
-                                                 "http://www.PineMountainResort.com", "/images/Coldbarnstar.png",
+                                                 "http://www.PineMountainResort.com", "/calendar-1/images/Coldbarnstar.png",
                                                  IMG_HEIGHT, 80));
     resortMap.put("psiaPineMountain",
                   new ResortData("psiaPineMountain", "Pine Mountain (Ski Instructors)", "jwkluth@gmail.com",
-                                 "http://www.PineMountainResort.com", "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "http://www.PineMountainResort.com", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("Plattekill", new ResortData("Plattekill", "Plattekill Mountain", null, "http://plattekill.com/",
-                                               "/images/Coldbarnstar.png", IMG_HEIGHT, 147));
+                                               "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 147));
     resortMap.put("Pomerelle", new ResortData("Pomerelle", "Pomerelle", null, "http://www.pomerelle-mtn.com",
-                                              "/images/PomerellePatrol.jpg", IMG_HEIGHT, 80));
+                                              "/calendar-1/images/PomerellePatrol.jpg", IMG_HEIGHT, 80));
     resortMap.put("RMSP",
-                  new ResortData("RMSP", "Ragged Mountain", null, "http://www.rmskipatrol.com", "/images/RMSP_logo.JPG",
+                  new ResortData("RMSP", "Ragged Mountain", null, "http://www.rmskipatrol.com", "/calendar-1/images/RMSP_logo.JPG",
                                  IMG_HEIGHT, 80));
     resortMap.put("Sample", new ResortData("Sample", "Sample Resort", null, "http://www.nspOnline.org",
-                                           "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                           "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("Snowbowl", new ResortData("Snowbowl", "Snowbowl", null, "http://www.snowbowlskipatrol.org",
-                                             "/images/Coldbarnstar.png", 80, 80));
+                                             "/calendar-1/images/Coldbarnstar.png", 80, 80));
     resortMap.put("SnowCreek", new ResortData("SnowCreek", "Snow Creek", null, "http://www.skisnowcreek.com",
-                                              "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                              "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("SnowKing",
-                  new ResortData("SnowKing", "SnowKing", null, "http://www.SnowKing.com", "/images/Coldbarnstar.png",
+                  new ResortData("SnowKing", "SnowKing", null, "http://www.SnowKing.com", "/calendar-1/images/Coldbarnstar.png",
                                  IMG_HEIGHT, 80));
     resortMap.put("SoldierMountain",
                   new ResortData("SoldierMountain", "Soldier Mountain", null, "http://www.soldiermountain.com",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("Steeplechase",
                   new ResortData("Steeplechase", "Steeplechase", null, "http://www.steeplechaseevents.com",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("WhitePine",
                   new ResortData("WhitePine", "White Pine", "gawilson@wyoming.com", "http://www.WhitePineSki.com",
-                                 "/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("Willamette",
                   new ResortData("Willamette", "Willamette Backcountry", null, "http://www.deetour.net/wbsp",
-                                 "/images/Willamette.jpeg", IMG_HEIGHT, 80));
+                                 "/calendar-1/images/Willamette.jpeg", IMG_HEIGHT, 80));
   }
 
   private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";

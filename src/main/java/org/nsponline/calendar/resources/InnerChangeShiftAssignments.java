@@ -101,7 +101,7 @@ public class InnerChangeShiftAssignments extends ResourceBase {
     out.println("<td VALIGN=\"MIDDLE\" ALIGN=\"RIGHT\" NOWRAP><FONT SIZE=\"2\" FACE=\"Arial, Helvetica\">");
     out.println("<a target='_self' href=\"MonthCalendar?resort=" + resort + "&month=" + parameters.month + "&year=" +
                   parameters.year +
-                  "\"><IMG SRC=\"/images/ncgohome.gif\" BORDER=\"0\" ALT=\"Return to Volunteer Roster\" ALIGN=\"BOTTOM\" width=\"32\" height=\"32\"></a>");
+                  "\"><IMG SRC=\"/calendar-1/images/ncgohome.gif\" BORDER=\"0\" ALT=\"Return to Volunteer Roster\" ALIGN=\"BOTTOM\" width=\"32\" height=\"32\"></a>");
     out.println("</font>");
     out.println("</td></tr>");
     out.println("</table>");

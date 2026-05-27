@@ -40,7 +40,7 @@ public class ListAssignments extends ResourceBase {
     out.println("</script>");
 
     out.println(
-      "<h1><img border=\"0\" src=\"/images/ski_accident_md_wht.gif\" align=top>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Shift Summary</h1>");
+      "<h1><img border=\"0\" src=\"/calendar-1/images/ski_accident_md_wht.gif\" align=top>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Shift Summary</h1>");
   }
 
   private void printMiddle(PrintWriter out, String resort, String szMyID, SessionData sessionData) {
