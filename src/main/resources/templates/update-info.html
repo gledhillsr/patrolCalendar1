@@ -170,9 +170,93 @@
                     </td>
                 </tr>
 
-                <!-- Emergency Contact Section - next task -->
+                <!-- Patrol Preferences Section -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Patrol Preferences</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Emergency Call Up:</font></td>
+                    <td width="600">
+                        <select th:field="*{emergencyCallUp}">
+                            <option value="Y">Yes</option>
+                            <option value="N">No</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Substitute List:</font></td>
+                    <td width="600">
+                        <select th:field="*{subList}">
+                            <option value="Y">Yes</option>
+                            <option value="N">No</option>
+                        </select>
+                    </td>
+                </tr>
 
-                <!-- Medical Information Section - next task -->
+                <!-- Security Section -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Security</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Password:</font></td>
+                    <td width="600">
+                        <input type="password" th:field="*{password}" size="30" placeholder="Leave blank to keep current password" />
+                    </td>
+                </tr>
+
+                <!-- Read-Only Information Section -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Read-Only Information</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">ID:</font></td>
+                    <td width="600">
+                        <span th:text="${patrollerId}">ID</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Classification:</font></td>
+                    <td width="600">
+                        <span th:text="${memberForm.classification}">Classification</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Commitment:</font></td>
+                    <td width="600">
+                        <span th:text="${memberForm.commitment}">Commitment</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Instructor:</font></td>
+                    <td width="600">
+                        <span th:text="${memberForm.instructor}">Instructor</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Last Updated:</font></td>
+                    <td width="600">
+                        <span th:text="${#temporals.format(memberForm.lastUpdated, 'yyyy-MM-dd HH:mm:ss')}">Last Updated</span>
+                    </td>
+                </tr>
+
+                <!-- Hidden fields to preserve director-controlled values -->
+                <tr style="display: none;">
+                    <td colspan="2">
+                        <input type="hidden" name="hiddenClassification" th:value="${hiddenClassification}" />
+                        <input type="hidden" name="hiddenCommitment" th:value="${hiddenCommitment}" />
+                        <input type="hidden" name="hiddenInstructor" th:value="${hiddenInstructor}" />
+                        <input type="hidden" name="hiddenDirector" th:value="${hiddenDirector}" />
+                        <input type="hidden" name="hiddenTeamLead" th:value="${hiddenTeamLead}" />
+                        <input type="hidden" name="hiddenMentoring" th:value="${hiddenMentoring}" />
+                        <input type="hidden" name="hiddenComments" th:value="${hiddenComments}" />
+                    </td>
+                </tr>
 
                 <!-- Submit button -->
                 <tr>
