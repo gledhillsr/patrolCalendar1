@@ -51,6 +51,7 @@ Application starts on `http://localhost:8080/calendar-1/`
 
 - `/ListPatrollers` - Spring Boot controller with Thymeleaf template
 - `/MemberLogin` - Spring Boot controller with Thymeleaf template (login + password reset)
+- `/SubList` - Spring Boot controller with Thymeleaf template
 
 ### Security Improvements
 
