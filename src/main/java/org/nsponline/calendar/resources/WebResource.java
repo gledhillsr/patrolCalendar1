@@ -71,18 +71,6 @@ public class WebResource {
   }
 
   /**
-   * Directors tab
-   * GET
-   * @author Steve Gledhill
-   **/
-  public static class Directors extends HttpServlet {
-    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-      Logger LOG = new Logger(this.getClass(), request, "GET", request.getParameter("resort"), Logger.INFO);
-      new org.nsponline.calendar.resources.Director(request, response, LOG).runner(this.getClass().getSimpleName());
-    }
-  }
-
-  /**
    * Patrollers tab for Brighton, also directors screen
    * ALMOST SAME as MemberList (Patrollers tab, for other resorts)
    * GET
