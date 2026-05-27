@@ -85,7 +85,33 @@ public class SubListController {
             // 6. Get logged-in user info
             String patrollerId = sessionData.getLoggedInUserId();
 
-            // TODO: Load data and populate model (next task)
+            // 7. Load substitute list
+            List<SubstituteInfo> substitutes = new ArrayList<>();
+            ResultSet rosterResults = patrolData.resetRoster();
+            Roster member = patrolData.nextMember("&nbsp;", rosterResults);
+
+            while (member != null) {
+                // Check if member opted in as substitute
+                String subField = member.getSub();
+                if (subField != null && (subField.startsWith("y") || subField.startsWith("Y"))) {
+                    // Create SubstituteInfo with contact details
+                    String name = member.getFullName_lastNameFirst();
+                    String homePhone = member.getHomePhone();
+                    String workPhone = member.getWorkPhone();
+                    String cellPhone = member.getCellPhone();
+                    String email = member.getEmailAddress();
+
+                    substitutes.add(new SubstituteInfo(name, homePhone, workPhone, cellPhone, email));
+                }
+
+                member = patrolData.nextMember("&nbsp;", rosterResults);
+            }
+
+            // 8. Add model attributes
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", patrollerId);
+            model.addAttribute("substitutes", substitutes);
 
             return "sub-list";
 
