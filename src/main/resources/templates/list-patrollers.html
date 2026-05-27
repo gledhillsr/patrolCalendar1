@@ -44,7 +44,7 @@
     </script>
 </head>
 <body>
-    <div th:replace="~{fragments/header :: header(${resort})}"></div>
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${userId})}"></div>
 
     <p><center><h2 th:text="'Members of the ' + ${resortFullName} + ' Ski Patrol'">Members</h2></center></p>
 

@@ -66,6 +66,7 @@ public class VolunteerFormController {
 
       // 6. Prepare model for template
       model.addAttribute("resort", resort);
+      model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
       model.addAttribute("redirectUrl", PatrolData.SERVLET_URL + "MonthCalendar?resort=" + resort);
 
       return "volunteer-form-success";

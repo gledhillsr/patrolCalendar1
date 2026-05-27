@@ -90,7 +90,7 @@
 </head>
 <body>
     <!-- Reuse header fragment -->
-    <div th:replace="~{fragments/header :: header(${resort})}"></div>
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${null})}"></div>
 
     <!-- Page title -->
     <p><h2 th:text="${resortFullName} + ' Ski Patrol Login'">Ski Patrol Login</h2></p>

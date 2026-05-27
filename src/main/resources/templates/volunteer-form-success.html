@@ -7,7 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/styles.css}">
 </head>
 <body>
-    <div th:replace="~{fragments/header :: header(resort=${resort})}"></div>
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${null})}"></div>
 
     <div class="content">
         <br><br><br><br><br><br>
