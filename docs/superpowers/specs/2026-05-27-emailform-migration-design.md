@@ -85,8 +85,9 @@ EmailForm is an authenticated feature that allows patrol directors to compose an
 
 - **Validation errors:** Display at top of form with field-level highlights (Spring validation)
 - **No recipients selected:** Validation error on `patrollerIds` field
-- **Invalid session:** Redirect to MemberLogin
+- **Invalid session:** Redirect to MemberLogin with `?resort={resort}` parameter
 - **Individual email failures:** Logged but don't stop batch processing (matches current behavior)
+- **SMTP failures:** Log error, continue with remaining recipients in batch
 
 ## Data Transfer Objects
 
@@ -481,9 +482,10 @@ public class AsyncConfig {
 - No specific director check required (any member can email filtered lists)
 
 **Input Validation:**
-- Spring validation on all form inputs
-- Email address validation via `StaticUtils.isValidEmailAddress()`
-- Escape HTML in error messages (Thymeleaf handles automatically)
+- Spring validation on all form inputs (`@Valid` annotation on controller method parameter)
+- Email address validation via `StaticUtils.isValidEmailAddress()` in service layer
+- Escape HTML in error messages (Thymeleaf handles automatically with `th:text`)
+- Resort parameter validated against `PatrolData.resortMap`
 
 **Data Protection:**
 - Don't log email message content (contains PII)
