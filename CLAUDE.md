@@ -51,6 +51,7 @@ Application starts on `http://localhost:8080/calendar-1/`
 
 - `/ListPatrollers` - Patrol member roster display (Spring Boot + Thymeleaf)
 - `/MemberLogin` - Member login page with password reset (Spring Boot + Thymeleaf)
+- `/MemberLogout` - Member logout action (Spring Boot + redirect)
 - `/VolunteerForm` - Public volunteer signup form (Spring Boot + Thymeleaf)
 - `/MonthCalendar` - Monthly shift calendar (Spring Boot + Thymeleaf)
 - `/Directors` - Director administration panel (Spring Boot + Thymeleaf)
