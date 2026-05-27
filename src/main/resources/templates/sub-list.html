@@ -42,7 +42,7 @@
     </style>
 </head>
 <body>
-    <div th:replace="~{fragments/header :: header(resort=${resort})}"></div>
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
     <h2 th:text="'Substitute List for ' + ${resortFullName}">Substitute List</h2>
 

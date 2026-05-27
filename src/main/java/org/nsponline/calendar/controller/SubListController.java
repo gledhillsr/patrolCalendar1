@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.*;
+import org.nsponline.calendar.utils.ResortData;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -131,6 +132,15 @@ public class SubListController {
             model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
             model.addAttribute("patrollerId", patrollerId);
             model.addAttribute("substitutes", substitutes);
+
+            // 8a. Add resort metadata for header
+            ResortData resortData = PatrolData.getResortInfo(resort);
+            if (resortData != null) {
+                model.addAttribute("resortUrl", resortData.getResortURL());
+                model.addAttribute("resortImage", resortData.getResortImage());
+                model.addAttribute("resortImgHeight", resortData.getImageHeight());
+            }
+            model.addAttribute("logoutLink", ""); // TODO: Add logout functionality
 
             // 9. Build EmailForm URL with SubList parameter
             String emailFormUrl = "EmailForm?resort=" + resort + "&ID=" + patrollerId + "&SubList=1";
