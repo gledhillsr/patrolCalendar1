@@ -55,8 +55,75 @@
         Have a great day<br>
     </div>
 
-    <!-- Main form content placeholder -->
-    <!-- Form content will be added in next task -->
+    <!-- Main form content -->
+    <div th:unless="${isBackdoorUser}">
+        <!-- Success message -->
+        <div th:if="${updateSuccess}" class="success-message">
+            Your information has been updated successfully.
+        </div>
+
+        <!-- Error message -->
+        <div th:if="${errorMessage}" class="error-message">
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- Validation errors -->
+        <div th:if="${#fields.hasAnyErrors()}" class="error-message">
+            <ul>
+                <li th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</li>
+            </ul>
+        </div>
+
+        <!-- Main form -->
+        <form th:action="@{/UpdateInfo(resort=${resort}, ID=${patrollerId})}"
+              th:object="${memberForm}"
+              method="post"
+              onsubmit="return validate()">
+
+            <table border="0" width="900">
+                <!-- Personal Information Section -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Personal Information</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">First Name:</td>
+                    <td>
+                        <input type="text" th:field="*{firstName}" id="firstName" size="30" />
+                        <span th:if="${#fields.hasErrors('firstName')}" class="error-message" th:errors="*{firstName}">First Name Error</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">Last Name:</td>
+                    <td>
+                        <input type="text" th:field="*{lastName}" id="lastName" size="30" />
+                        <span th:if="${#fields.hasErrors('lastName')}" class="error-message" th:errors="*{lastName}">Last Name Error</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right">Spouse:</td>
+                    <td>
+                        <input type="text" th:field="*{spouse}" size="30" />
+                    </td>
+                </tr>
+
+                <!-- Contact Information Section - next task -->
+
+                <!-- Emergency Contact Section - next task -->
+
+                <!-- Medical Information Section - next task -->
+
+                <!-- Submit button -->
+                <tr>
+                    <td colspan="2" align="center">
+                        <br>
+                        <input type="submit" value="Update Information" />
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
 
     <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
