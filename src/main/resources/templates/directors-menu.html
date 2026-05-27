@@ -10,9 +10,7 @@
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
     <div class="content">
-        <center>
-            <h1 th:text="'Database Maintenance for ' + ${resortFullName}">Database Maintenance</h1>
-        </center>
+        <h1 th:text="'Database Maintenance for ' + ${resortFullName}">Database Maintenance</h1>
 
         <!-- Non-Director View -->
         <div th:if="${!isDirector}">
