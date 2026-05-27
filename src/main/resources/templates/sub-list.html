@@ -55,7 +55,36 @@
         </b>
     </p>
 
-    <!-- Table section - next step -->
+    <!-- Substitute table -->
+    <table class="substitute-list">
+        <tr>
+            <th width="148">Name</th>
+            <th width="90">Home</th>
+            <th width="83">Work</th>
+            <th width="70">Cell</th>
+            <th width="136">Email</th>
+        </tr>
+
+        <!-- Empty state message -->
+        <tr th:if="${substitutes.isEmpty()}">
+            <td colspan="5" style="text-align: center; padding: 20px;">
+                No substitutes currently available
+            </td>
+        </tr>
+
+        <!-- Substitute rows -->
+        <tr th:each="sub : ${substitutes}">
+            <td th:text="${sub.name}">Name</td>
+            <td th:text="${sub.homePhone != null and sub.homePhone != '' ? sub.homePhone : ''}">Home</td>
+            <td th:text="${sub.workPhone != null and sub.workPhone != '' ? sub.workPhone : ''}">Work</td>
+            <td th:text="${sub.cellPhone != null and sub.cellPhone != '' ? sub.cellPhone : ''}">Cell</td>
+            <td>
+                <a th:if="${sub.email != null and sub.email != ''}"
+                   th:href="'mailto:' + ${sub.email}"
+                   th:text="${sub.email}">email</a>
+            </td>
+        </tr>
+    </table>
 
     <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
