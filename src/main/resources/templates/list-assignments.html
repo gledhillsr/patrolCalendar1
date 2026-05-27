@@ -41,7 +41,30 @@
             <font size="5" th:text="${memberName} + '\'s Assignment Schedule for ' + ${resortFullName}">Assignment Schedule</font>
         </p>
 
-        <!-- Assignment table - next step -->
+        <!-- Assignment table -->
+        <div align="left">
+            <table border="1" width="550" bgcolor="#FFFFFF" cellpadding="0" cellspacing="0">
+                <!-- Empty state -->
+                <tr th:if="${assignments.isEmpty()}">
+                    <td colspan="2" valign="middle" align="left">
+                        &nbsp;No shifts were scheduled
+                    </td>
+                </tr>
+
+                <!-- Assignment rows -->
+                <tr th:each="assignment : ${assignments}" th:attr="bgcolor=${assignment.bgColor}">
+                    <td th:if="${assignment.missedShift}" valign="middle" bgcolor="#80ffff" align="left">
+                        &nbsp;<span th:text="${assignment.dateTimeRange}">Date</span> &lt;Shift Missed&gt;
+                    </td>
+                    <td th:unless="${assignment.missedShift}" valign="middle" align="left">
+                        &nbsp;<span th:text="${assignment.dateTimeRange}">Date</span>
+                    </td>
+                    <td>
+                        &nbsp;<span th:text="${assignment.shiftType}">Type</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
         <!-- Shift counts - next step -->
     </div>
