@@ -191,7 +191,43 @@ public class ListAssignmentsController {
                 }
             }
 
-            // TODO: Populate model (next task)
+            // 14. Convert shift counts array to map (only non-zero)
+            Map<String, Integer> shiftCountsMap = new LinkedHashMap<>();
+            for (int shiftType = 0; shiftType < Assignments.MAX_SHIFT_TYPES; shiftType++) {
+                if (shiftCounts[shiftType] > 0) {
+                    String shiftTypeName = Assignments.getShiftName(shiftType);
+                    shiftCountsMap.put(shiftTypeName, shiftCounts[shiftType]);
+                }
+            }
+
+            // 15. Build toggle URL and text
+            String toggleUrl = "ListAssignments?resort=" + resort + "&ID=" + patrollerId +
+                "&" + DISPLAY_ALL_ASSIGNMENTS + "=" + !displayAllAssignments;
+            String toggleText = displayAllAssignments
+                ? "Change to current season only"
+                : "Change to display all assignments";
+
+            // 16. Add model attributes
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", patrollerId);
+            model.addAttribute("memberName", memberName);
+            model.addAttribute("displayAllAssignments", displayAllAssignments);
+            model.addAttribute("toggleUrl", toggleUrl);
+            model.addAttribute("toggleText", toggleText);
+            model.addAttribute("assignments", assignments);
+            model.addAttribute("shiftCounts", shiftCountsMap);
+            model.addAttribute("totalShifts", totalShifts);
+            model.addAttribute("isBackdoorUser", false);
+
+            // 17. Add resort metadata for header
+            ResortData resortData = PatrolData.getResortInfo(resort);
+            if (resortData != null) {
+                model.addAttribute("resortUrl", resortData.getResortURL());
+                model.addAttribute("resortImage", resortData.getResortImage());
+                model.addAttribute("resortImgHeight", resortData.getImageHeight());
+            }
+            model.addAttribute("logoutLink", "");
 
             return "list-assignments";
 
