@@ -51,7 +51,8 @@
         <b>
             <input type="button"
                    value="e-mail THESE patrollers"
-                   th:onclick="'window.location=\'' + ${emailFormUrl} + '\''"/>
+                   th:data-url="${emailFormUrl}"
+                   onclick="window.location=this.getAttribute('data-url')"/>
         </b>
     </p>
 
