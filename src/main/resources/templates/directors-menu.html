@@ -24,7 +24,8 @@
             <br><br>
             Only option available is:
             <input type="button" value="Customized Listing ..."
-                   th:onclick="'window.location=\'SetupListPatrollers?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                   th:data-url="|SetupListPatrollers?resort=${resort}&ID=${patrollerId}|"
+                   onclick="window.location=this.dataset.url">
         </div>
 
         <!-- Director View -->
@@ -43,7 +44,8 @@
                                     <td width="496" colspan="2" height="40">
                                         <p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                         <input type="button" value="Add New Patroller ..."
-                                               th:onclick="'window.location=\'UpdateInfo?resort=' + ${resort} + '&Purpose=Add_Patroller&ID=' + ${patrollerId} + '\''">
+                                               th:data-url="|UpdateInfo?resort=${resort}&Purpose=Add_Patroller&ID=${patrollerId}|"
+                                               onclick="window.location=this.dataset.url">
                                         </p>
                                     </td>
                                 </tr>
@@ -92,23 +94,27 @@
                                 <tr>
                                     <td rowspan="3">
                                         <input type="button" value="Customized Listing ..."
-                                               th:onclick="'window.location=\'SetupListPatrollers?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                               th:data-url="|SetupListPatrollers?resort=${resort}&ID=${patrollerId}|"
+                                               onclick="window.location=this.dataset.url">
                                     </td>
                                     <td>
                                         <input type="button" value="Sorted By Day Shifts"
-                                               th:onclick="'window.location=\'ListPatrollers?resort=' + ${resort} + '&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&DAY_CNT=1&DAY_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=' + ${patrollerId} + '\''">
+                                               th:data-url="|ListPatrollers?resort=${resort}&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&DAY_CNT=1&DAY_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=${patrollerId}|"
+                                               onclick="window.location=this.dataset.url">
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>
                                         <input type="button" value="Sorted By Swing Shifts"
-                                               th:onclick="'window.location=\'ListPatrollers?resort=' + ${resort} + '&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&SWING_CNT=1&SWING_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=' + ${patrollerId} + '\''">
+                                               th:data-url="|ListPatrollers?resort=${resort}&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&SWING_CNT=1&SWING_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=${patrollerId}|"
+                                               onclick="window.location=this.dataset.url">
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>
                                         <input type="button" value="Sorted By Night Shifts"
-                                               th:onclick="'window.location=\'' + /*[[@{/}]]*/ '' + 'ListPatrollers?resort=' + ${resort} + '&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&NIGHT_CNT=1&NIGHT_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=' + ${patrollerId} + '\''">
+                                               th:data-url="|ListPatrollers?resort=${resort}&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&NIGHT_CNT=1&NIGHT_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=${patrollerId}|"
+                                               onclick="window.location=this.dataset.url">
                                     </td>
                                 </tr>
                             </table>
@@ -123,19 +129,22 @@
                                 <tr>
                                     <td align="left">
                                         <input type="button" value="Web Site Preferences ..."
-                                               th:onclick="'window.location=\'WebSitePreferences?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                               th:data-url="|WebSitePreferences?resort=${resort}&ID=${patrollerId}|"
+                                               onclick="window.location=this.dataset.url">
                                     </td>
                                 </tr>
                                 <tr>
                                     <td align="left">
                                         <input type="button" value="Edit Shift Templates (for Calendar) ..."
-                                               th:onclick="'window.location=\'EditShiftTemplates?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                               th:data-url="|EditShiftTemplates?resort=${resort}&ID=${patrollerId}|"
+                                               onclick="window.location=this.dataset.url">
                                     </td>
                                 </tr>
                                 <tr>
                                     <td align="left">
                                         <input type="button" value="Delete assignments from last season ..."
-                                               th:onclick="'window.location=\'PurgeAssignments?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                               th:data-url="|PurgeAssignments?resort=${resort}&ID=${patrollerId}|"
+                                               onclick="window.location=this.dataset.url">
                                     </td>
                                 </tr>
                             </table>
