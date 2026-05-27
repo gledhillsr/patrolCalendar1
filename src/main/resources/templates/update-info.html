@@ -108,7 +108,67 @@
                     </td>
                 </tr>
 
-                <!-- Contact Information Section - next task -->
+                <!-- Contact Information Section -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Contact Information</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Address:</font></td>
+                    <td width="600">
+                        <input type="text" th:field="*{address}" size="30" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">City:</font></td>
+                    <td width="600">
+                        <input type="text" th:field="*{city}" size="30" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">State:</font></td>
+                    <td width="600">
+                        <input type="text" th:field="*{state}" size="30" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Zip Code:</font></td>
+                    <td width="600">
+                        <input type="text" th:field="*{zipCode}" size="30" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Home Phone:</font></td>
+                    <td width="600">
+                        <input type="text" th:field="*{homePhone}" size="30" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Work Phone:</font></td>
+                    <td width="600">
+                        <input type="text" th:field="*{workPhone}" size="30" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Cell Phone:</font></td>
+                    <td width="600">
+                        <input type="text" th:field="*{cellPhone}" size="30" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">Pager:</font></td>
+                    <td width="600">
+                        <input type="text" th:field="*{pager}" size="30" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="351" align="right"><font size="3">E-mail:</font></td>
+                    <td width="600">
+                        <input type="email" th:field="*{email}" size="30" />
+                        <span th:if="${#fields.hasErrors('email')}" class="error-message" th:errors="*{email}">Email Error</span>
+                    </td>
+                </tr>
 
                 <!-- Emergency Contact Section - next task -->
 
