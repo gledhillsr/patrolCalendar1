@@ -49,6 +49,16 @@ public class SubListController {
         public String getEmail() { return email; }
     }
 
+    /**
+     * Clean field value by removing null, empty, or &nbsp; values
+     */
+    private String cleanField(String value) {
+        if (value == null || value.trim().isEmpty() || "&nbsp;".equals(value.trim())) {
+            return "";
+        }
+        return value.trim();
+    }
+
     @GetMapping("/SubList")
     public String showSubList(HttpServletRequest request, HttpServletResponse response,
                               Model model) throws IOException {
@@ -97,10 +107,10 @@ public class SubListController {
                 if (subField != null && (subField.startsWith("y") || subField.startsWith("Y"))) {
                     // Create SubstituteInfo with contact details
                     String name = member.getFullName_lastNameFirst();
-                    String homePhone = (member.getHomePhone() != null) ? member.getHomePhone().trim() : "";
-                    String workPhone = (member.getWorkPhone() != null) ? member.getWorkPhone().trim() : "";
-                    String cellPhone = (member.getCellPhone() != null) ? member.getCellPhone().trim() : "";
-                    String email = (member.getEmailAddress() != null) ? member.getEmailAddress().trim() : "";
+                    String homePhone = cleanField(member.getHomePhone());
+                    String workPhone = cleanField(member.getWorkPhone());
+                    String cellPhone = cleanField(member.getCellPhone());
+                    String email = cleanField(member.getEmailAddress());
 
                     substitutes.add(new SubstituteInfo(name, homePhone, workPhone, cellPhone, email));
 
