@@ -3,6 +3,7 @@ package org.nsponline.calendar.controller;
 import org.nsponline.calendar.controller.ServletAdapter;
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.*;
+import org.nsponline.calendar.utils.ResortData;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,12 +51,19 @@ public class DirectorsController {
       RosterData rosterData = readRoster(patrollerId, sessionData, patrolData);
 
       // 6. Prepare model for template
+      ResortData resortData = patrolData.getResortInfo();
       model.addAttribute("resort", resort);
       model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
       model.addAttribute("patrollerId", patrollerId);
       model.addAttribute("isDirector", rosterData.isDirector);
       model.addAttribute("myName", rosterData.myName);
       model.addAttribute("sortedRoster", rosterData.sortedRoster);
+
+      // Header attributes
+      model.addAttribute("resortUrl", resortData.getResortURL());
+      model.addAttribute("resortImage", resortData.getResortImage());
+      model.addAttribute("resortImgHeight", resortData.getImageHeight());
+      model.addAttribute("logoutLink", "<a href='/calendar-1/MemberLogout?resort=" + resort + "' target='_self'>Logout</a>");
 
       return "directors-menu";
 
