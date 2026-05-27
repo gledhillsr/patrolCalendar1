@@ -36,8 +36,8 @@ The system is multi-tenant, supporting multiple ski patrol organizations with se
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd patrolCalendar
+git clone https://github.com/gledhillsr/patrolCalendar1.git
+cd patrolCalendar1
 ```
 
 ### 2. Configure Database
@@ -141,12 +141,13 @@ Note: If you update dependency versions in `pom.xml`, update the classpath in `d
 ## Project Structure
 
 ```
-calendar/
+patrolCalendar1/
 ├── src/
 │   ├── main/
 │   │   ├── java/org/nsponline/calendar/
 │   │   │   ├── CalendarApplication.java # Spring Boot entry point
 │   │   │   ├── controller/       # Spring MVC controllers
+│   │   │   │   ├── ListPatrollersController.java
 │   │   │   │   ├── MemberLoginController.java
 │   │   │   │   ├── VolunteerFormController.java
 │   │   │   │   ├── DirectorsController.java
@@ -154,25 +155,42 @@ calendar/
 │   │   │   │   └── ServletAdapter.java
 │   │   │   ├── resources/        # Legacy servlet classes
 │   │   │   │   ├── Inner*.java   # Authenticated pages (legacy)
-│   │   │   │   └── Api*.java     # REST API endpoints (legacy)
-│   │   │   ├── store/            # Data models
+│   │   │   │   ├── Outer*.java   # Public pages (legacy)
+│   │   │   │   └── ApiResources.java # REST API endpoints (legacy)
+│   │   │   ├── store/            # Data models & database access
+│   │   │   │   ├── Roster.java
+│   │   │   │   ├── Assignments.java
+│   │   │   │   ├── ShiftDefinitions.java
+│   │   │   │   ├── NspSession.java
+│   │   │   │   ├── PasswordResetToken.java
+│   │   │   │   └── DirectorSettings.java
 │   │   │   ├── utils/            # Utilities and helpers
+│   │   │   │   ├── PatrolData.java # Database & resort config
+│   │   │   │   ├── SessionData.java
+│   │   │   │   ├── MailMan.java
+│   │   │   │   └── ...
 │   │   │   └── DailyReminder.java # Email reminder job
-│   │   ├── resources/
-│   │   │   ├── templates/        # Thymeleaf templates
-│   │   │   │   ├── member-login.html
-│   │   │   │   ├── volunteer-form-success.html
-│   │   │   │   ├── directors-menu.html
-│   │   │   │   ├── month-calendar.html
-│   │   │   │   └── fragments/    # Reusable fragments
-│   │   │   ├── static/           # CSS, JS, images
-│   │   │   └── doReminder.sh     # Cron job script
-│   │   └── webapp/WEB-INF/
-│   │       └── web.xml           # Legacy servlet mappings
+│   │   └── resources/
+│   │       ├── templates/        # Thymeleaf templates
+│   │       │   ├── list-patrollers.html
+│   │       │   ├── member-login.html
+│   │       │   ├── reset-password.html
+│   │       │   ├── volunteer-form-success.html
+│   │       │   ├── directors-menu.html
+│   │       │   ├── month-calendar.html
+│   │       │   └── fragments/    # Reusable fragments
+│   │       ├── application.properties # Spring Boot config
+│   │       └── doReminder.sh     # Cron job script
 │   └── test/
 │       └── java/                 # Unit and integration tests
+├── docs/
+│   ├── migrations/               # Migration checkpoints
+│   └── superpowers/              # Design specs and plans
+├── sql                           # Database schema file
 ├── pom.xml                       # Maven configuration
 ├── CLAUDE.md                     # AI assistant guidance
+├── MIGRATION-STATUS.md           # Spring Boot migration tracking
+├── LICENSE                       # Apache License 2.0
 └── README.md                     # This file
 ```
 
@@ -190,9 +208,8 @@ Valid resort names are configured in `PatrolData.resortMap`.
 ### Key Endpoints
 
 **Spring Boot Controllers (Migrated):**
-- `/MemberLogin` - Member login page (Spring MVC + Thymeleaf)
-- `/LoginHelp` - Password reset request (Spring MVC + Thymeleaf)
-- `/ResetPassword` - Password reset form (Spring MVC + Thymeleaf)
+- `/ListPatrollers` - Patrol member roster display (Spring MVC + Thymeleaf)
+- `/MemberLogin` - Member login page with password reset (Spring MVC + Thymeleaf)
 - `/VolunteerForm` - Public volunteer signup form (Spring MVC + Thymeleaf)
 - `/MonthCalendar` - Monthly shift calendar (Spring MVC + Thymeleaf)
 - `/Directors` - Director administration panel (Spring MVC + Thymeleaf)
@@ -232,10 +249,13 @@ The application has been migrated from traditional Servlet API 2.5 to Spring Boo
 
 ### Completed Migrations
 
-- **MemberLoginController** - Login, password reset flow
+- **ListPatrollersController** - Patrol member roster with filtering and sorting
+- **MemberLoginController** - Login, password reset flow with secure token system
 - **VolunteerFormController** - Volunteer application submission
 - **DirectorsController** - Director administration menu
 - **MonthCalendarController** - Monthly shift calendar display
+
+See `MIGRATION-STATUS.md` for detailed migration progress.
 
 ### Migration Approach
 
@@ -273,10 +293,31 @@ For integration tests:
 2. Attach debugger to port 7070
 3. Set breakpoints in test classes
 
+## Security Features
+
+The Spring Boot migration introduced enhanced security:
+
+- **Password Reset Tokens**: Cryptographically random 24-byte tokens (URL-safe Base64)
+- **Token Expiration**: 1-hour validity with automatic cleanup
+- **One-time Use**: Tokens invalidated immediately after password reset
+- **Secure Storage**: Tokens stored with expiration timestamps in `{resort}_password_reset_tokens` table
+- **Email Delivery**: AWS SES integration via JavaMail API
+
+See `docs/migrations/password_reset_tokens.sql` for the database schema.
+
+## Multi-Tenant Architecture
+
+Each ski patrol organization operates independently:
+
+- **Database Isolation**: Separate tables per resort using name prefix (e.g., `Sample_roster`, `Sample_assignments`)
+- **Resort Parameter**: All requests require `?resort=ResortName` to identify the organization
+- **Configuration**: Resort metadata stored in `PatrolData.resortMap`
+- **Session Management**: Separate sessions per resort
+
 ## License
 
-[Add license information]
+Apache License 2.0 - See LICENSE file for details
 
-## Contact
+## Support
 
-For questions or support, contact [contact information]
+For questions or issues, please open an issue on [GitHub](https://github.com/gledhillsr/patrolCalendar1/issues)
