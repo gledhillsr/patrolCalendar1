@@ -29,11 +29,11 @@
         <!-- Toggle link -->
         <p th:if="${displayAllAssignments}">
             Displaying all assignments.
-            <a target="main" th:href="${toggleUrl}"><b th:text="${toggleText}">Toggle</b></a>
+            <a th:href="${toggleUrl}"><b th:text="${toggleText}">Toggle</b></a>
         </p>
         <p th:unless="${displayAllAssignments}">
             Displaying current season ONLY.
-            <a target="main" th:href="${toggleUrl}"><b th:text="${toggleText}">Toggle</b></a>
+            <a th:href="${toggleUrl}"><b th:text="${toggleText}">Toggle</b></a>
         </p>
 
         <!-- Member name and resort -->
