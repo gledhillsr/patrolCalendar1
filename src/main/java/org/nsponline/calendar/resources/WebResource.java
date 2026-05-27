@@ -128,19 +128,6 @@ public class WebResource {
 
   /**
    * @author Steve Gledhill
-   * <p>
-   * clear cookies, and push to MonthCalendar (no longer logged in)
-   */
-  public static class MemberLogout extends HttpServlet {
-
-    public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-      Logger LOG = new Logger(this.getClass(), request, "GET", request.getParameter("resort"), Logger.INFO);
-      new org.nsponline.calendar.resources.MemberLogout(request, response, LOG);
-    }
-  }
-
-  /**
-   * @author Steve Gledhill
    *         <p/>
    *         1) validate user/password
    *         2) if valid, go to parent page
