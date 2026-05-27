@@ -49,9 +49,13 @@ Application starts on `http://localhost:8080/calendar-1/`
 
 ### Migrated Endpoints
 
-- `/ListPatrollers` - Spring Boot controller with Thymeleaf template
-- `/MemberLogin` - Spring Boot controller with Thymeleaf template (login + password reset)
-- `/SubList` - Spring Boot controller with Thymeleaf template
+- `/ListPatrollers` - Patrol member roster display (Spring Boot + Thymeleaf)
+- `/MemberLogin` - Member login page with password reset (Spring Boot + Thymeleaf)
+- `/VolunteerForm` - Public volunteer signup form (Spring Boot + Thymeleaf)
+- `/MonthCalendar` - Monthly shift calendar (Spring Boot + Thymeleaf)
+- `/Directors` - Director administration panel (Spring Boot + Thymeleaf)
+- `/SubList` - Substitute patroller list (Spring Boot + Thymeleaf)
+- `/MemberList` - All active members list (Spring Boot + Thymeleaf)
 
 ### Security Improvements
 
