@@ -113,6 +113,31 @@ public class SubListController {
             model.addAttribute("patrollerId", patrollerId);
             model.addAttribute("substitutes", substitutes);
 
+            // 9. Build comma-separated email list for EmailForm button
+            StringBuilder emailList = new StringBuilder();
+            rosterResults = patrolData.resetRoster();
+            member = patrolData.nextMember("&nbsp;", rosterResults);
+
+            while (member != null) {
+                String subField = member.getSub();
+                if (subField != null && (subField.startsWith("y") || subField.startsWith("Y"))) {
+                    String email = member.getEmailAddress();
+                    // Validate email address
+                    if (StaticUtils.isValidEmailAddress(email)) {
+                        if (emailList.length() > 0) {
+                            emailList.append(",");
+                        }
+                        emailList.append(email);
+                    }
+                }
+                member = patrolData.nextMember("&nbsp;", rosterResults);
+            }
+
+            // 10. Build EmailForm URL with SubList parameter
+            String emailFormUrl = "EmailForm?resort=" + resort + "&ID=" + patrollerId + "&SubList=1";
+            model.addAttribute("emailFormUrl", emailFormUrl);
+            model.addAttribute("emailList", emailList.toString());
+
             return "sub-list";
 
         } finally {
