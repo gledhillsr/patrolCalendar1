@@ -26,9 +26,20 @@
 
     <!-- Main content for normal users -->
     <div th:unless="${isBackdoorUser}">
-        <!-- Toggle link - next step -->
+        <!-- Toggle link -->
+        <p th:if="${displayAllAssignments}">
+            Displaying all assignments.
+            <a target="main" th:href="${toggleUrl}"><b th:text="${toggleText}">Toggle</b></a>
+        </p>
+        <p th:unless="${displayAllAssignments}">
+            Displaying current season ONLY.
+            <a target="main" th:href="${toggleUrl}"><b th:text="${toggleText}">Toggle</b></a>
+        </p>
 
-        <!-- Member info - next step -->
+        <!-- Member name and resort -->
+        <p>
+            <font size="5" th:text="${memberName} + '\'s Assignment Schedule for ' + ${resortFullName}">Assignment Schedule</font>
+        </p>
 
         <!-- Assignment table - next step -->
 
