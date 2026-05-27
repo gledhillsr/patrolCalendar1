@@ -95,7 +95,13 @@ public class MemberListController {
             // 6. Get logged-in user info
             String patrollerId = sessionData.getLoggedInUserId();
 
-            // TODO: Load data and populate model (next task)
+            // 7. Check director status and emailAll permission
+            DirectorSettings ds = patrolData.readDirectorSettings();
+            Roster editor = patrolData.getMemberByID(patrollerId);
+            boolean isDirector = editor != null && editor.isDirector();
+            boolean showEmailButton = isDirector || (ds != null && ds.getEmailAll());
+
+            // TODO: Load roster data (next task)
 
             return "member-list";
 
