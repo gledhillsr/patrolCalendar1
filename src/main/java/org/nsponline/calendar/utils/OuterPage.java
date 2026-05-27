@@ -53,7 +53,7 @@ public class OuterPage {
       replaceAll("__JAVA_SCRIPT", javaScript);
     if (!isNullOrEmpty(loggedInUserId)) {
       String buttonClass = "Brighton".equals(resortData.getResortShortName()) ? "class='button'" : "";
-      String logout = "<a " + buttonClass + " href='/calendar-1/Logout?resort=" + resortData.getResortShortName() + "' "
+      String logout = "<a " + buttonClass + " href='/calendar-1/MemberLogout?resort=" + resortData.getResortShortName() + "' "
         + "target='_self'>Logout</a>";
       str1 = str1.replace("__LOGOUT", logout);
     }

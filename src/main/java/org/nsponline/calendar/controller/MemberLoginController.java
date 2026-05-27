@@ -2,6 +2,7 @@ package org.nsponline.calendar.controller;
 
 import org.nsponline.calendar.store.*;
 import org.nsponline.calendar.utils.*;
+import org.nsponline.calendar.utils.ResortData;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,6 +44,15 @@ public class MemberLoginController {
     model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
     model.addAttribute("gotoPage", gotoPage);
     model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+
+    // 5a. Add resort metadata for header
+    ResortData resortData = PatrolData.getResortInfo(resort);
+    if (resortData != null) {
+      model.addAttribute("resortUrl", resortData.getResortURL());
+      model.addAttribute("resortImage", resortData.getResortImage());
+      model.addAttribute("resortImgHeight", resortData.getImageHeight());
+    }
+    model.addAttribute("logoutLink", "");
 
     // 6. Return template
     return "member-login";
@@ -231,6 +241,16 @@ public class MemberLoginController {
                            PatrolData.getResortFullName(resort, LOG));
         model.addAttribute("gotoPage", gotoPage);
         model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+
+        // Add resort metadata for header
+        ResortData resortData = PatrolData.getResortInfo(resort);
+        if (resortData != null) {
+          model.addAttribute("resortUrl", resortData.getResortURL());
+          model.addAttribute("resortImage", resortData.getResortImage());
+          model.addAttribute("resortImgHeight", resortData.getImageHeight());
+        }
+        model.addAttribute("logoutLink", "");
+
         return "member-login";
       }
 
@@ -287,6 +307,16 @@ public class MemberLoginController {
         model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
         model.addAttribute("gotoPage", gotoPage);
         model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+
+        // Add resort metadata for header
+        ResortData resortData = PatrolData.getResortInfo(resort);
+        if (resortData != null) {
+          model.addAttribute("resortUrl", resortData.getResortURL());
+          model.addAttribute("resortImage", resortData.getResortImage());
+          model.addAttribute("resortImgHeight", resortData.getImageHeight());
+        }
+        model.addAttribute("logoutLink", "");
+
         return "member-login";
       }
 
@@ -299,6 +329,16 @@ public class MemberLoginController {
         model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
         model.addAttribute("gotoPage", gotoPage);
         model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+
+        // Add resort metadata for header
+        ResortData resortData = PatrolData.getResortInfo(resort);
+        if (resortData != null) {
+          model.addAttribute("resortUrl", resortData.getResortURL());
+          model.addAttribute("resortImage", resortData.getResortImage());
+          model.addAttribute("resortImgHeight", resortData.getImageHeight());
+        }
+        model.addAttribute("logoutLink", "");
+
         return "member-login";
       }
 
@@ -328,6 +368,16 @@ public class MemberLoginController {
       model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
       model.addAttribute("gotoPage", gotoPage);
       model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+
+      // Add resort metadata for header
+      ResortData resortData = PatrolData.getResortInfo(resort);
+      if (resortData != null) {
+        model.addAttribute("resortUrl", resortData.getResortURL());
+        model.addAttribute("resortImage", resortData.getResortImage());
+        model.addAttribute("resortImgHeight", resortData.getImageHeight());
+      }
+      model.addAttribute("logoutLink", "");
+
       return "member-login";
 
     }
@@ -339,6 +389,16 @@ public class MemberLoginController {
       model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
       model.addAttribute("gotoPage", gotoPage);
       model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+
+      // Add resort metadata for header
+      ResortData resortData = PatrolData.getResortInfo(resort);
+      if (resortData != null) {
+        model.addAttribute("resortUrl", resortData.getResortURL());
+        model.addAttribute("resortImage", resortData.getResortImage());
+        model.addAttribute("resortImgHeight", resortData.getImageHeight());
+      }
+      model.addAttribute("logoutLink", "");
+
       return "member-login";
 
     }

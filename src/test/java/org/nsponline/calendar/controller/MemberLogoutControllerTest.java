@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
  */
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
-public class MemberLogoutControllerTest {
+class MemberLogoutControllerTest {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -32,13 +32,13 @@ public class MemberLogoutControllerTest {
     private MockHttpSession session;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         mockMvc = webAppContextSetup(webApplicationContext).build();
         session = new MockHttpSession();
     }
 
     @Test
-    public void testLogoutRedirectsToMonthCalendar() throws Exception {
+    void testLogoutRedirectsToMonthCalendar() throws Exception {
         // Set up authenticated session
         session.setAttribute("loggedInUserId", "123");
         session.setAttribute("loggedInResort", "Sample");
@@ -51,7 +51,7 @@ public class MemberLogoutControllerTest {
     }
 
     @Test
-    public void testLogoutClearsCookie() throws Exception {
+    void testLogoutClearsCookie() throws Exception {
         // Set up authenticated session
         session.setAttribute("loggedInUserId", "123");
         session.setAttribute("loggedInResort", "Sample");
@@ -84,7 +84,7 @@ public class MemberLogoutControllerTest {
     }
 
     @Test
-    public void testLogoutWithInvalidResort() throws Exception {
+    void testLogoutWithInvalidResort() throws Exception {
         mockMvc.perform(get("/MemberLogout")
                 .param("resort", "InvalidResort"))
                 .andExpect(status().isBadRequest());

@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
-public class DirectorsControllerTest {
+class DirectorsControllerTest {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -29,7 +29,7 @@ public class DirectorsControllerTest {
     private MockHttpSession session;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         session = new MockHttpSession();
     }
@@ -38,7 +38,7 @@ public class DirectorsControllerTest {
      * Test that accessing Directors without authentication redirects to login.
      */
     @Test
-    public void testDirectorsRequiresAuthentication() throws Exception {
+    void testDirectorsRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/Directors")
                 .param("resort", "Sample"))
                 .andExpect(status().is3xxRedirection())
@@ -52,7 +52,7 @@ public class DirectorsControllerTest {
      * or test database setup is needed.
      */
     @Test
-    public void testNonDirectorSeesNotAuthorizedMessage() throws Exception {
+    void testNonDirectorSeesNotAuthorizedMessage() throws Exception {
         // Set up session with non-director user
         session.setAttribute("loggedInUserId", "12345");
         session.setAttribute("loggedInResort", "Sample");
@@ -72,7 +72,7 @@ public class DirectorsControllerTest {
      * Note: This test verifies the page structure but may need database setup.
      */
     @Test
-    public void testDirectorSeesFullMenu() throws Exception {
+    void testDirectorSeesFullMenu() throws Exception {
         // Set up session with director user
         session.setAttribute("loggedInUserId", "DIRECTOR_001");
         session.setAttribute("loggedInResort", "Sample");
@@ -97,7 +97,7 @@ public class DirectorsControllerTest {
      * Note: This test may need proper backdoor user configuration to pass.
      */
     @Test
-    public void testBackdoorUserGetsDirectorAccess() throws Exception {
+    void testBackdoorUserGetsDirectorAccess() throws Exception {
         // Set up session with backdoor user identifier
         // The actual backdoor user ID comes from credentials.properties
         session.setAttribute("loggedInUserId", "backdoor");
