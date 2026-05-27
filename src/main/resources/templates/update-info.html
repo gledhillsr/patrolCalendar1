@@ -67,18 +67,18 @@
             <span th:text="${errorMessage}">Error message</span>
         </div>
 
-        <!-- Validation errors -->
-        <div th:if="${#fields.hasAnyErrors()}" class="error-message">
-            <ul>
-                <li th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</li>
-            </ul>
-        </div>
-
         <!-- Main form -->
         <form th:action="@{/UpdateInfo(resort=${resort}, ID=${patrollerId})}"
               th:object="${memberForm}"
               method="post"
               onsubmit="return validate()">
+
+            <!-- Validation errors -->
+            <div th:if="${#fields.hasAnyErrors()}" class="error-message">
+                <ul>
+                    <li th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</li>
+                </ul>
+            </div>
 
             <table border="0" width="900">
                 <!-- Personal Information Section -->
