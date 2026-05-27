@@ -87,7 +87,50 @@ public class ListAssignmentsController {
             // 6. Get logged-in user info
             String patrollerId = sessionData.getLoggedInUserId();
 
-            // TODO: Load data and populate model (next task)
+            // 7. Check for backdoor user
+            boolean isBackdoorUser = patrollerId.equalsIgnoreCase(sessionData.getBackDoorUser());
+
+            if (isBackdoorUser) {
+                // Backdoor user - skip assignment loading
+                model.addAttribute("resort", resort);
+                model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+                model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("isBackdoorUser", true);
+                model.addAttribute("assignments", new ArrayList<AssignmentInfo>());
+                model.addAttribute("shiftCounts", new LinkedHashMap<String, Integer>());
+                model.addAttribute("totalShifts", 0);
+
+                // Add resort metadata for header
+                ResortData resortData = PatrolData.getResortInfo(resort);
+                if (resortData != null) {
+                    model.addAttribute("resortUrl", resortData.getResortURL());
+                    model.addAttribute("resortImage", resortData.getResortImage());
+                    model.addAttribute("resortImgHeight", resortData.getImageHeight());
+                }
+                model.addAttribute("logoutLink", "");
+
+                return "list-assignments";
+            }
+
+            // 8. Get DisplayAllAssignments parameter
+            String displayAllParam = request.getParameter(DISPLAY_ALL_ASSIGNMENTS);
+            boolean displayAllAssignments = "true".equals(displayAllParam);
+
+            // 9. Calculate season start date
+            Calendar calendarStart = new GregorianCalendar();
+            int currentYear = calendarStart.get(Calendar.YEAR);
+            int currentMonth = calendarStart.get(Calendar.MONTH);
+            int startYear;
+            int startMonth = Calendar.JULY;
+
+            if (displayAllAssignments) {
+                startYear = 2002;
+            } else {
+                startYear = (currentMonth < Calendar.JULY) ? currentYear - 1 : currentYear;
+            }
+            calendarStart.set(startYear, startMonth, 1);
+
+            // TODO: Load assignments (next task)
 
             return "list-assignments";
 
