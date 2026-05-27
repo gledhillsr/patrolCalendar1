@@ -49,4 +49,37 @@ public class MemberLogoutControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/MonthCalendar?resort=Sample"));
     }
+
+    @Test
+    public void testLogoutClearsCookie() throws Exception {
+        // Set up authenticated session
+        session.setAttribute("loggedInUserId", "123");
+        session.setAttribute("loggedInResort", "Sample");
+
+        // Perform logout and capture result
+        MvcResult result = mockMvc.perform(get("/MemberLogout")
+                .param("resort", "Sample")
+                .session(session))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        // Verify nspToken cookie is cleared
+        Cookie[] cookies = result.getResponse().getCookies();
+        assertNotNull(cookies, "Response should contain cookies");
+
+        boolean foundClearedCookie = false;
+        for (Cookie cookie : cookies) {
+            if ("nspToken".equals(cookie.getName())) {
+                foundClearedCookie = true;
+                assertEquals(0, cookie.getMaxAge(),
+                    "nspToken cookie should have maxAge=0 to clear it");
+                assertTrue(cookie.getValue() == null || cookie.getValue().isEmpty(),
+                    "nspToken cookie should have empty value");
+                break;
+            }
+        }
+
+        assertTrue(foundClearedCookie,
+            "Response should contain nspToken cookie with maxAge=0");
+    }
 }
