@@ -3,6 +3,7 @@ package org.nsponline.calendar.controller;
 import org.nsponline.calendar.controller.ServletAdapter;
 import org.nsponline.calendar.store.Roster;
 import org.nsponline.calendar.utils.*;
+import org.nsponline.calendar.utils.ResortData;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,6 +57,14 @@ public class DirectorsController {
       model.addAttribute("isDirector", rosterData.isDirector);
       model.addAttribute("myName", rosterData.myName);
       model.addAttribute("sortedRoster", rosterData.sortedRoster);
+
+      // 7. Add resort metadata for header
+      ResortData resortData = PatrolData.getResortInfo(resort);
+      if (resortData != null) {
+        model.addAttribute("resortUrl", resortData.getResortURL());
+        model.addAttribute("resortImage", resortData.getResortImage());
+        model.addAttribute("resortImgHeight", resortData.getImageHeight());
+      }
 
       return "directors-menu";
 
