@@ -82,4 +82,11 @@ public class MemberLogoutControllerTest {
         assertTrue(foundClearedCookie,
             "Response should contain nspToken cookie with maxAge=0");
     }
+
+    @Test
+    public void testLogoutWithInvalidResort() throws Exception {
+        mockMvc.perform(get("/MemberLogout")
+                .param("resort", "InvalidResort"))
+                .andExpect(status().isBadRequest());
+    }
 }
