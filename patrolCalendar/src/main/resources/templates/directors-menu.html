@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Database Maintenance - ' + ${resortFullName}">Database Maintenance</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header(resort=${resort})}"></div>
+
+    <div class="content">
+        <center>
+            <h1 th:text="'Database Maintenance for ' + ${resortFullName}">Database Maintenance</h1>
+        </center>
+
+        <!-- Non-Director View -->
+        <div th:if="${!isDirector}">
+            <hr>
+            <center>
+                <p>Sorry, you are -not- authorized for this menu.&nbsp; Try becoming a director
+                next year <img border="0" src="/nspImages/EvilSmile.gif" align="middle" width="32" height="32"></p>
+            </center>
+            <br><br>
+            Only option available is:
+            <input type="button" value="Customized Listing ..."
+                   th:onclick="'window.location=\'SetupListPatrollers?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+        </div>
+
+        <!-- Director View -->
+        <div th:if="${isDirector}">
+            <form target="_self" action="UpdateInfo" method="POST" id="form02" name="form02">
+                <input type="hidden" name="resort" th:value="${resort}">
+                <input type="hidden" name="ID" th:value="${patrollerId}">
+
+                <table border="2" cellpadding="0" cellspacing="3" width="820" bgcolor="#E4E4E4">
+                    <!-- Patroller Maintenance Section -->
+                    <tr>
+                        <td width="307" align="center" bgcolor="#FFFFBB"><font size="5">Patroller Maintenance:</font></td>
+                        <td width="529" bgcolor="#FFFFBB">
+                            <table border="1" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td width="496" colspan="2" height="40">
+                                        <p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        <input type="button" value="Add New Patroller ..."
+                                               th:onclick="'window.location=\'UpdateInfo?resort=' + ${resort} + '&Purpose=Add_Patroller&ID=' + ${patrollerId} + '\''">
+                                        </p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td width="288">
+                                        <table border="0" cellpadding="2" cellspacing="0" width="100%">
+                                            <tr>
+                                                <td width="100%"><font face="AR Sans Serif" size="1">Select
+                                                    Patroller on right then<br>
+                                                    Click button below&nbsp;</font></td>
+                                            </tr>
+                                            <tr>
+                                                <td width="100%" align="center"><input type="submit" name="setNewID" value="Change ID Number ..."> </td>
+                                            </tr>
+                                            <tr>
+                                                <td width="100%" align="center"><input type="submit" name="EditInfo" value="Edit Patroller Info ..."></td>
+                                            </tr>
+                                            <tr>
+                                                <td width="100%" align="center"><input type="submit" name="removeName" value="Delete Patroller ..."></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td width="208">
+                                        <select name="NameToEdit" size="7">
+                                            <option th:each="name : ${sortedRoster}"
+                                                    th:value="${name}"
+                                                    th:text="${name}"
+                                                    th:selected="${name == myName}">
+                                            </option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Patrol Listings Section -->
+                    <tr>
+                        <td width="307" align="center" bgcolor="#F2928C"><font size="5">Patrol Listings:</font></td>
+                        <td width="529" bgcolor="#F2928C">
+                            <table border="0" cellspacing="0" width="500" cellpadding="2">
+                                <tr>
+                                    <td>&nbsp;&nbsp;<font size="2">&nbsp;&nbsp; Custom Reports:</font></td>
+                                    <td>&nbsp;&nbsp;<font size="2">&nbsp;&nbsp; Quick Reports:</font></td>
+                                </tr>
+                                <tr>
+                                    <td rowspan="3">
+                                        <input type="button" value="Customized Listing ..."
+                                               th:onclick="'window.location=\'SetupListPatrollers?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                    </td>
+                                    <td>
+                                        <input type="button" value="Sorted By Day Shifts"
+                                               th:onclick="'window.location=\'ListPatrollers?resort=' + ${resort} + '&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&DAY_CNT=1&DAY_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=' + ${patrollerId} + '\''">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <input type="button" value="Sorted By Swing Shifts"
+                                               th:onclick="'window.location=\'ListPatrollers?resort=' + ${resort} + '&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&SWING_CNT=1&SWING_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=' + ${patrollerId} + '\''">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <input type="button" value="Sorted By Night Shifts"
+                                               th:onclick="'window.location=\'' + /*[[@{/}]]*/ '' + 'ListPatrollers?resort=' + ${resort} + '&NAME=LAST&AUX=1&BAS=1&SR=1&SRA=1&TRA=1&CAN=1&PRO=1&ALM=1&INA=1&FullTime=1&PartTime=1&Inactive=1&FIRST=1&NIGHT_CNT=1&NIGHT_DETAILS=1&ALL=1&FirstSort=shiftCnt&SecondSort=None&ThirdSort=None&FontSize=12&ID=' + ${patrollerId} + '\''">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Patrol Setup / Cleanup Section -->
+                    <tr>
+                        <td width="307" align="center" bgcolor="#49D3FC"><font size="5">Patrol Setup / Cleanup:</font></td>
+                        <td width="529" bgcolor="#49D3FC">
+                            <table border="0" cellpadding="2" cellspacing="0" width="500">
+                                <tr>
+                                    <td align="left">
+                                        <input type="button" value="Web Site Preferences ..."
+                                               th:onclick="'window.location=\'WebSitePreferences?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="left">
+                                        <input type="button" value="Edit Shift Templates (for Calendar) ..."
+                                               th:onclick="'window.location=\'EditShiftTemplates?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="left">
+                                        <input type="button" value="Delete assignments from last season ..."
+                                               th:onclick="'window.location=\'PurgeAssignments?resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

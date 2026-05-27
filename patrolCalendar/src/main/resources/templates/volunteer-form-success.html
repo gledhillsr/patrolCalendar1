@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Submitted - Patrol Calendar</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header(resort=${resort})}"></div>
+
+    <div class="content">
+        <br><br><br><br><br><br>
+        <h2>Submitting application... please wait</h2>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <script type="text/javascript" th:inline="javascript">
+        var timer = setTimeout(function() {
+            window.alert("Application submitted");
+            window.location = /*[[${redirectUrl}]]*/ '';
+        }, 2000);
+    </script>
+</body>
+</html>

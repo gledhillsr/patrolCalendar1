@@ -1,0 +1,12 @@
+*.class
+dependency.tree
+createNewEc2Instance.txt
+# Package Files #
+*.jar
+*.war
+*.ear
+*.iws
+.DS_Store
+credentials.properties
+.idea/
+target/
