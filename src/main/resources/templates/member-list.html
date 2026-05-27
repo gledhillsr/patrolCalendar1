@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'List of Members of the ' + ${resortFullName} + ' Ski Patrollers'">Member List</title>
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        table.member-list {
+            font-size: 10pt;
+            font-family: Verdana, Arial, Helvetica;
+            border-width: 1px;
+            border-color: #003366;
+            border-style: solid;
+            border-collapse: collapse;
+            width: 99%;
+        }
+        table.member-list th {
+            font-size: 10pt;
+            font-family: Verdana, Arial, Helvetica;
+            font-weight: normal;
+            color: #000000;
+            background-color: #C0C0C0;
+            border-width: 1px;
+            border-color: #003366;
+            border-style: solid;
+            padding: 2px;
+        }
+        table.member-list td {
+            font-size: 10pt;
+            font-family: Verdana, Arial, Helvetica;
+            color: #000000;
+            background-color: #ffffff;
+            border-width: 1px;
+            border-color: #C0C0C0;
+            border-style: solid;
+            padding: 2px;
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <p><center><h2 th:text="'List of Members of the ' + ${resortFullName} + ' Ski Patrollers'">Member List</h2></center></p>
+
+    <!-- Email button -->
+    <p th:if="${showEmailButton}">
+        <b>
+            <input type="button"
+                   value="e-mail THESE patrollers"
+                   th:data-url="${emailFormUrl}"
+                   onclick="window.location=this.getAttribute('data-url')"/>
+        </b>
+    </p>
+
+    <!-- Member table -->
+    <table class="member-list">
+        <tr>
+            <th width="160">Name</th>
+            <th width="90">Home</th>
+            <th width="83">Work</th>
+            <th width="70">Cell</th>
+            <th width="136">Email</th>
+        </tr>
+
+        <!-- Empty state message -->
+        <tr th:if="${members.isEmpty()}">
+            <td colspan="5" style="text-align: center; padding: 20px;">
+                No active members
+            </td>
+        </tr>
+
+        <!-- Member rows -->
+        <tr th:each="member : ${members}">
+            <td th:text="${member.name}">Name</td>
+            <td th:text="${member.homePhone != null and member.homePhone != '' ? member.homePhone : ''}">Home</td>
+            <td th:text="${member.workPhone != null and member.workPhone != '' ? member.workPhone : ''}">Work</td>
+            <td th:text="${member.cellPhone != null and member.cellPhone != '' ? member.cellPhone : ''}">Cell</td>
+            <td>
+                <a th:if="${member.email != null and member.email != ''}"
+                   th:href="'mailto:' + ${member.email}"
+                   th:text="${member.email}">email</a>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Member count -->
+    <br>
+    <b><span th:text="${memberCount} + ' members listed.'">0 members listed.</span></b>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
