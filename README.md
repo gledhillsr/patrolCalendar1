@@ -38,6 +38,7 @@ The system is multi-tenant, supporting multiple ski patrol organizations with se
 ```bash
 git clone https://github.com/gledhillsr/patrolCalendar1.git
 cd patrolCalendar1
+git checkout master
 ```
 
 ### 2. Configure Database
