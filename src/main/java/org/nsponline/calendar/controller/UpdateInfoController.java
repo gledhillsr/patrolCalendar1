@@ -7,8 +7,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import org.nsponline.calendar.store.Roster;
-import org.nsponline.calendar.utils.Logger;
-import org.nsponline.calendar.utils.PatrolData;
+import org.nsponline.calendar.utils.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -16,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import java.io.IOException;
 import java.sql.Connection;
 
 @Controller
@@ -198,14 +198,69 @@ public class UpdateInfoController {
     }
 
     @GetMapping("/UpdateInfo")
-    public String showUpdateForm(HttpServletRequest request, HttpServletResponse response, Model model) {
-        // TODO: Implement GET handler
-        // - Extract resort parameter and validate
-        // - Get session and validate credentials
-        // - Load current member data from roster
-        // - Populate MemberUpdateForm
-        // - Add form to model
-        return "update-info";
+    public String showUpdateForm(HttpServletRequest request, HttpServletResponse response,
+                                 Model model) throws IOException {
+        // 1. Read resort and ID parameters
+        String resort = request.getParameter("resort");
+        String patrollerId = request.getParameter("ID");
+
+        // 2. Use ServletAdapter for legacy code compatibility
+        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+        Logger LOG = new Logger(UpdateInfoController.class, javaxRequest, "GET", resort, Logger.INFO);
+
+        // 3. Validate resort
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
+
+        // 4. Initialize session and patrol data
+        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        try {
+            // 5. Validate credentials
+            ValidateCredentialsRedirectIfNeeded credentials =
+                new ValidateCredentialsRedirectIfNeeded(
+                    sessionData, javaxRequest, javaxResponse,
+                    "UpdateInfo", patrolData, LOG);
+
+            if (credentials.hasInvalidCredentials()) {
+                return null; // Redirect already sent
+            }
+
+            // 6. Get logged-in user info
+            patrollerId = sessionData.getLoggedInUserId();
+
+            // 7. Check for backdoor user
+            boolean isBackdoorUser = patrollerId.equalsIgnoreCase(sessionData.getBackDoorUser());
+
+            if (isBackdoorUser) {
+                // Backdoor user - show friendly message
+                model.addAttribute("resort", resort);
+                model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+                model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("isBackdoorUser", true);
+
+                // Add resort metadata for header
+                ResortData resortData = PatrolData.getResortInfo(resort);
+                if (resortData != null) {
+                    model.addAttribute("resortUrl", resortData.getResortURL());
+                    model.addAttribute("resortImage", resortData.getResortImage());
+                    model.addAttribute("resortImgHeight", resortData.getImageHeight());
+                }
+
+                return "update-info";
+            }
+
+            // TODO: Load member data and populate form (next task)
+
+            return "update-info";
+
+        } finally {
+            patrolData.close();
+        }
     }
 
     @PostMapping("/UpdateInfo")
