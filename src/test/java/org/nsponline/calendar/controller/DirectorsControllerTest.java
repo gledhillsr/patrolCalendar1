@@ -34,5 +34,14 @@ public class DirectorsControllerTest {
         session = new MockHttpSession();
     }
 
-    // Tests will be added in subsequent tasks
+    /**
+     * Test that accessing Directors without authentication redirects to login.
+     */
+    @Test
+    public void testDirectorsRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/Directors")
+                .param("resort", "Sample"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/MemberLogin?resort=Sample"));
+    }
 }
