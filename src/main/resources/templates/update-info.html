@@ -188,7 +188,7 @@
                 <tr>
                     <td width="351" align="right"><font size="3">Substitute List:</font></td>
                     <td width="600">
-                        <select th:field="*{subList}">
+                        <select th:field="*{substituteList}">
                             <option value="Y">Yes</option>
                             <option value="N">No</option>
                         </select>
@@ -223,25 +223,25 @@
                 <tr>
                     <td width="351" align="right"><font size="3">Classification:</font></td>
                     <td width="600">
-                        <span th:text="${memberForm.classification}">Classification</span>
+                        <span th:text="${classification}">Classification</span>
                     </td>
                 </tr>
                 <tr>
                     <td width="351" align="right"><font size="3">Commitment:</font></td>
                     <td width="600">
-                        <span th:text="${memberForm.commitment}">Commitment</span>
+                        <span th:text="${commitment}">Commitment</span>
                     </td>
                 </tr>
                 <tr>
                     <td width="351" align="right"><font size="3">Instructor:</font></td>
                     <td width="600">
-                        <span th:text="${memberForm.instructor}">Instructor</span>
+                        <span th:text="${instructor}">Instructor</span>
                     </td>
                 </tr>
                 <tr>
                     <td width="351" align="right"><font size="3">Last Updated:</font></td>
                     <td width="600">
-                        <span th:text="${#temporals.format(memberForm.lastUpdated, 'yyyy-MM-dd HH:mm:ss')}">Last Updated</span>
+                        <span th:text="${lastUpdated}">Last Updated</span>
                     </td>
                 </tr>
 
