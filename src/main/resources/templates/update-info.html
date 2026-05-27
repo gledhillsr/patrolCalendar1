@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Personal Information for: ' + ${memberName}">Personal Information</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        .success-message {
+            color: green;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+    <script type="text/javascript">
+        function validate() {
+            var firstName = document.getElementById('firstName').value;
+            var lastName = document.getElementById('lastName').value;
+
+            if (firstName == null || firstName.trim() == '') {
+                alert('First name is required');
+                return false;
+            }
+
+            if (lastName == null || lastName.trim() == '') {
+                alert('Last name is required');
+                return false;
+            }
+
+            return true;
+        }
+    </script>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <h2 th:text="'Personal Information for: ' + ${memberName}">Personal Information</h2>
+
+    <p>
+        <b>host resort:</b> <span th:text="${resortFullName}">Resort Name</span>
+    </p>
+
+    <!-- Backdoor user message -->
+    <div th:if="${isBackdoorUser}">
+        Have a great day<br>
+    </div>
+
+    <!-- Main form content placeholder -->
+    <!-- Form content will be added in next task -->
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
