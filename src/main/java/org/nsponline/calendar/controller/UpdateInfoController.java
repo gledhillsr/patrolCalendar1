@@ -224,6 +224,47 @@ public class UpdateInfoController {
 
             return form;
         }
+
+        /**
+         * Apply form data to Roster object for database update.
+         * Handles null values by converting to empty strings.
+         * Password is only updated if non-blank (hashed with SaltUtils).
+         *
+         * @param roster Roster object to update
+         * @param sessionData SessionData for password hashing
+         * @param LOG Logger for error reporting
+         */
+        public void applyToRoster(Roster roster, SessionData sessionData, Logger LOG) {
+            if (roster == null || roster.memberData == null) {
+                return;
+            }
+
+            // Copy all form fields to roster.memberData array, handling nulls
+            roster.memberData[Roster.FIRST] = (firstName != null) ? firstName : "";
+            roster.memberData[Roster.LAST] = (lastName != null) ? lastName : "";
+            roster.memberData[Roster.SPOUSE] = (spouse != null) ? spouse : "";
+            roster.memberData[Roster.ADDRESS] = (address != null) ? address : "";
+            roster.memberData[Roster.CITY] = (city != null) ? city : "";
+            roster.memberData[Roster.STATE] = (state != null) ? state : "";
+            roster.memberData[Roster.ZIPCODE] = (zipCode != null) ? zipCode : "";
+            roster.memberData[Roster.HOMEPHONE] = (homePhone != null) ? homePhone : "";
+            roster.memberData[Roster.WORKPHONE] = (workPhone != null) ? workPhone : "";
+            roster.memberData[Roster.CELLPHONE] = (cellPhone != null) ? cellPhone : "";
+            roster.memberData[Roster.PAGER] = (pager != null) ? pager : "";
+            roster.memberData[Roster.EMAIL] = (email != null) ? email : "";
+            roster.memberData[Roster.EMERGENCY] = (emergencyCallUp != null) ? emergencyCallUp : "";
+            roster.memberData[Roster.SUB] = (substituteList != null) ? substituteList : "";
+
+            // Password: only update if non-blank
+            if (password != null && !password.trim().isEmpty()) {
+                try {
+                    String hashedPassword = new SaltUtils().hashPassword(sessionData, password);
+                    roster.memberData[Roster.NEW_PASSWORD] = hashedPassword;
+                } catch (java.security.NoSuchAlgorithmException e) {
+                    LOG.logException("Failed to hash password", e);
+                }
+            }
+        }
     }
 
     /**
@@ -381,17 +422,119 @@ public class UpdateInfoController {
     }
 
     @PostMapping("/UpdateInfo")
-    public String handleUpdate(@ModelAttribute("memberForm") @Valid MemberUpdateForm memberForm,
-                               BindingResult bindingResult,
-                               HttpServletRequest request,
-                               HttpServletResponse response,
-                               Model model) {
-        // TODO: Implement POST handler
-        // - Validate form submission
-        // - Check for validation errors
-        // - Update roster in database
-        // - Handle password change if provided
-        // - Return success/error response
-        return "update-info";
+    public String updateProfile(@ModelAttribute("memberForm") @Valid MemberUpdateForm memberForm,
+                                BindingResult bindingResult,
+                                HttpServletRequest request,
+                                HttpServletResponse response,
+                                Model model) throws IOException {
+        // 1. Read resort and ID parameters
+        String resort = request.getParameter("resort");
+        String patrollerId = request.getParameter("ID");
+
+        // 2. Use ServletAdapter for legacy code compatibility
+        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+        Logger LOG = new Logger(UpdateInfoController.class, javaxRequest, "POST", resort, Logger.INFO);
+
+        // 3. Validate resort
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
+
+        // 4. Initialize session and patrol data
+        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        try {
+            // 5. Validate credentials
+            ValidateCredentialsRedirectIfNeeded credentials =
+                new ValidateCredentialsRedirectIfNeeded(
+                    sessionData, javaxRequest, javaxResponse,
+                    "UpdateInfo", patrolData, LOG);
+
+            if (credentials.hasInvalidCredentials()) {
+                return null; // Redirect already sent
+            }
+
+            // 6. Get logged-in user info
+            patrollerId = sessionData.getLoggedInUserId();
+
+            // 7. Check for backdoor user (cannot update)
+            boolean isBackdoorUser = patrollerId.equalsIgnoreCase(sessionData.getBackDoorUser());
+
+            if (isBackdoorUser) {
+                // Redirect back to GET for backdoor user
+                response.sendRedirect("UpdateInfo?resort=" + resort + "&ID=" + patrollerId);
+                return null;
+            }
+
+            // 8. Check for validation errors
+            if (bindingResult.hasErrors()) {
+                // Load member data to re-populate page
+                Roster member = patrolData.getMemberByID(patrollerId);
+                if (member == null) {
+                    model.addAttribute("resort", resort);
+                    model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+                    model.addAttribute("patrollerId", patrollerId);
+                    model.addAttribute("errorMessage", "Member not found: " + patrollerId);
+                    model.addAttribute("isBackdoorUser", false);
+
+                    // Add resort metadata for header
+                    ResortData resortData = PatrolData.getResortInfo(resort);
+                    if (resortData != null) {
+                        model.addAttribute("resortUrl", resortData.getResortURL());
+                        model.addAttribute("resortImage", resortData.getResortImage());
+                        model.addAttribute("resortImgHeight", resortData.getImageHeight());
+                    }
+
+                    return "update-info";
+                }
+
+                // Re-populate all model attributes for error display
+                model.addAttribute("resort", resort);
+                model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+                model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("memberName", member.getFullName());
+                model.addAttribute("isBackdoorUser", false);
+
+                // Add read-only display attributes
+                model.addAttribute("idNumber", member.memberData[Roster.ID_NUM]);
+                model.addAttribute("classification", getClassificationLabel(member));
+                model.addAttribute("commitment", getCommitmentLabel(member.memberData[Roster.COMMITMENT]));
+                model.addAttribute("instructor", getInstructorLabel(member.memberData[Roster.INSTRUCTOR]));
+                model.addAttribute("lastUpdated", member.memberData[Roster.LAST_UPDATED]);
+
+                // Add hidden field values
+                model.addAttribute("hiddenClassification", member.memberData[Roster.CLASSIFICATION]);
+                model.addAttribute("hiddenCommitment", member.memberData[Roster.COMMITMENT]);
+                model.addAttribute("hiddenInstructor", member.memberData[Roster.INSTRUCTOR]);
+                model.addAttribute("hiddenDirector", member.memberData[Roster.DIRECTOR]);
+                model.addAttribute("hiddenTeamLead", member.memberData[Roster.TEAM_LEAD]);
+                model.addAttribute("hiddenMentoring", member.memberData[Roster.MENTORING]);
+                model.addAttribute("hiddenComments", member.memberData[Roster.COMMENTS]);
+
+                // Add resort metadata for header
+                ResortData resortData = PatrolData.getResortInfo(resort);
+                if (resortData != null) {
+                    model.addAttribute("resortUrl", resortData.getResortURL());
+                    model.addAttribute("resortImage", resortData.getResortImage());
+                    model.addAttribute("resortImgHeight", resortData.getImageHeight());
+                }
+
+                return "update-info"; // Re-display form with validation errors
+            }
+
+            // TODO: Task 5 - Implement database update
+            // - Load member roster
+            // - Apply form data using memberForm.applyToRoster(member, LOG)
+            // - Call member.updateMember(connection)
+            // - Redirect to success page
+
+            return "update-info";
+
+        } finally {
+            patrolData.close();
+        }
     }
 }
