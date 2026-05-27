@@ -48,7 +48,7 @@ git checkout master
 ```bash
 # Pull and run MySQL container
 docker run --name patrol-calendar-mysql \
-  -e MYSQL_ROOT_PASSWORD=AekdbKazs3990 \
+  -e MYSQL_ROOT_PASSWORD=<password>> \
   -e MYSQL_DATABASE=Sample \
   -p 3306:3306 \
   -d mysql:8.0
