@@ -195,6 +195,70 @@ public class UpdateInfoController {
         public void setPassword(String password) {
             this.password = password;
         }
+
+        /**
+         * Create MemberUpdateForm populated from Roster object.
+         * Uses Roster field constants to extract data from memberData array.
+         */
+        public static MemberUpdateForm populateFromRoster(Roster roster) {
+            if (roster == null || roster.memberData == null) {
+                return new MemberUpdateForm();
+            }
+
+            MemberUpdateForm form = new MemberUpdateForm();
+            form.setFirstName(roster.memberData[Roster.FIRST]);
+            form.setLastName(roster.memberData[Roster.LAST]);
+            form.setSpouse(roster.memberData[Roster.SPOUSE]);
+            form.setAddress(roster.memberData[Roster.ADDRESS]);
+            form.setCity(roster.memberData[Roster.CITY]);
+            form.setState(roster.memberData[Roster.STATE]);
+            form.setZipCode(roster.memberData[Roster.ZIPCODE]);
+            form.setHomePhone(roster.memberData[Roster.HOMEPHONE]);
+            form.setWorkPhone(roster.memberData[Roster.WORKPHONE]);
+            form.setCellPhone(roster.memberData[Roster.CELLPHONE]);
+            form.setPager(roster.memberData[Roster.PAGER]);
+            form.setEmail(roster.memberData[Roster.EMAIL]);
+            form.setEmergencyCallUp(roster.memberData[Roster.EMERGENCY]);
+            form.setSubstituteList(roster.memberData[Roster.SUB]);
+            form.setPassword(""); // Never populate password from database
+
+            return form;
+        }
+    }
+
+    /**
+     * Convert commitment code to display label.
+     * @param value "2"=Full Time, "1"=Part Time, else=Inactive
+     */
+    private String getCommitmentLabel(String value) {
+        if (value == null) {
+            return "Inactive";
+        }
+        return Roster.getCommitmentString(value);
+    }
+
+    /**
+     * Convert instructor bit flags to certification list.
+     * @param value Bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan
+     */
+    private String getInstructorLabel(String value) {
+        if (value == null) {
+            return "";
+        }
+        return Roster.getInstructorString(value);
+    }
+
+    /**
+     * Convert classification code to full name.
+     * Uses Roster's getFullClassification method.
+     * @param member Roster object with classification data
+     */
+    private String getClassificationLabel(Roster member) {
+        if (member == null) {
+            return "";
+        }
+        String fullClassification = member.getFullClassification();
+        return fullClassification != null ? fullClassification : "";
     }
 
     @GetMapping("/UpdateInfo")
@@ -254,7 +318,60 @@ public class UpdateInfoController {
                 return "update-info";
             }
 
-            // TODO: Load member data and populate form (next task)
+            // 8. Load member data
+            Roster member = patrolData.getMemberByID(patrollerId);
+            if (member == null) {
+                model.addAttribute("resort", resort);
+                model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+                model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("errorMessage", "Member not found: " + patrollerId);
+                model.addAttribute("isBackdoorUser", false);
+
+                // Add resort metadata for header
+                ResortData resortData = PatrolData.getResortInfo(resort);
+                if (resortData != null) {
+                    model.addAttribute("resortUrl", resortData.getResortURL());
+                    model.addAttribute("resortImage", resortData.getResortImage());
+                    model.addAttribute("resortImgHeight", resortData.getImageHeight());
+                }
+
+                return "update-info";
+            }
+
+            // 9. Populate form from member data
+            MemberUpdateForm memberForm = MemberUpdateForm.populateFromRoster(member);
+
+            // 10. Add model attributes for template
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", patrollerId);
+            model.addAttribute("memberName", member.getFullName());
+            model.addAttribute("isBackdoorUser", false);
+            model.addAttribute("memberForm", memberForm);
+
+            // 11. Add read-only display attributes (converted to labels)
+            model.addAttribute("idNumber", member.memberData[Roster.ID_NUM]);
+            model.addAttribute("classification", getClassificationLabel(member));
+            model.addAttribute("commitment", getCommitmentLabel(member.memberData[Roster.COMMITMENT]));
+            model.addAttribute("instructor", getInstructorLabel(member.memberData[Roster.INSTRUCTOR]));
+            model.addAttribute("lastUpdated", member.memberData[Roster.LAST_UPDATED]);
+
+            // 12. Add hidden field values to preserve read-only data
+            model.addAttribute("hiddenClassification", member.memberData[Roster.CLASSIFICATION]);
+            model.addAttribute("hiddenCommitment", member.memberData[Roster.COMMITMENT]);
+            model.addAttribute("hiddenInstructor", member.memberData[Roster.INSTRUCTOR]);
+            model.addAttribute("hiddenDirector", member.memberData[Roster.DIRECTOR]);
+            model.addAttribute("hiddenTeamLead", member.memberData[Roster.TEAM_LEAD]);
+            model.addAttribute("hiddenMentoring", member.memberData[Roster.MENTORING]);
+            model.addAttribute("hiddenComments", member.memberData[Roster.COMMENTS]);
+
+            // 13. Add resort metadata for header
+            ResortData resortData = PatrolData.getResortInfo(resort);
+            if (resortData != null) {
+                model.addAttribute("resortUrl", resortData.getResortURL());
+                model.addAttribute("resortImage", resortData.getResortImage());
+                model.addAttribute("resortImgHeight", resortData.getImageHeight());
+            }
 
             return "update-info";
 
