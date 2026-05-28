@@ -88,6 +88,7 @@ public class EmailService {
                    String resort, boolean hasTemplateVars, Logger logger) {
 
         String fullPatrolName = PatrolData.getResortFullName(resort, logger);
+        String sanitizedSubject = sanitizeEmailHeader(subject);
 
         for (EmailRecipient recipient : recipients) {
             try {
@@ -98,7 +99,7 @@ public class EmailService {
                 MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
                 helper.setFrom(fromEmail);
                 helper.setTo(recipient.getEmailAddress());
-                helper.setSubject(subject);
+                helper.setSubject(sanitizedSubject);
                 helper.setText(message, false);
 
                 mailSender.send(mimeMessage);
@@ -146,14 +147,22 @@ public class EmailService {
                               String fullPatrolName, String resort) {
         StringBuilder footer = new StringBuilder();
         footer.append("\n\n----------------------------------------------\n");
-        footer.append("This message sent by: ").append(fromMember.getFullName())
-              .append(" at ( ").append(fromMember.getEmailAddress()).append(" )\n");
+
+        if (fromMember != null) {
+            footer.append("This message sent by: ").append(fromMember.getFullName())
+                  .append(" at ( ").append(fromMember.getEmailAddress()).append(" )\n");
+        } else {
+            footer.append("This message sent by: unknown sender\n");
+        }
+
         footer.append("from ").append(fullPatrolName).append("'s online scheduling web site.\n\n");
 
         if (!hasValidReturnEmail) {
             footer.append("Please Don't respond to this email. SEND any responses\n");
-            footer.append("to: ").append(fromMember.getFullName())
-                  .append(", who had an invalid email address in the system.\n\n");
+            if (fromMember != null) {
+                footer.append("to: ").append(fromMember.getFullName())
+                      .append(", who had an invalid email address in the system.\n\n");
+            }
         } else {
             ResortData resortInfo = PatrolData.getResortInfo(resort);
             String directorsVerifiedEmail = (resortInfo != null &&
@@ -162,8 +171,10 @@ public class EmailService {
 
             if (directorsVerifiedEmail == null) {
                 footer.append("Please Don't respond to this email. SEND any responses\n");
-                footer.append("to: ").append(fromMember.getEmailAddress())
-                      .append(". I am working on setting this 'From' address to be specific to your patrol.\n\n");
+                if (fromMember != null) {
+                    footer.append("to: ").append(fromMember.getEmailAddress())
+                          .append(". I am working on setting this 'From' address to be specific to your patrol.\n\n");
+                }
             }
         }
 
@@ -183,5 +194,19 @@ public class EmailService {
             }
         }
         return new String(chars);
+    }
+
+    /**
+     * Sanitize email header to prevent header injection attacks.
+     * Removes carriage return and newline characters.
+     *
+     * @param header Email header value (e.g., subject)
+     * @return Sanitized header with CR/LF removed
+     */
+    private String sanitizeEmailHeader(String header) {
+        if (header == null) {
+            return "";
+        }
+        return header.replace("\r", " ").replace("\n", " ");
     }
 }
