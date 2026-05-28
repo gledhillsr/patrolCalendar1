@@ -82,7 +82,7 @@ public class EmailService {
         return new EmailSendResult(trackingId, recipients.size(), LocalDateTime.now());
     }
 
-    @Async
+    @Async("emailTaskExecutor")
     void sendBatch(List<EmailRecipient> recipients, String subject, String messageTemplate,
                    String fromEmail, Roster fromMember, boolean hasValidReturnEmail,
                    String resort, boolean hasTemplateVars, Logger logger) {
