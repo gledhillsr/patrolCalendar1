@@ -13,7 +13,7 @@ public class EmailSendResult {
     public EmailSendResult(String trackingId, int totalRecipients, LocalDateTime startTime) {
         this.trackingId = trackingId;
         this.totalRecipients = totalRecipients;
-        this.startTime = startTime != null ? startTime : null;
+        this.startTime = startTime;
     }
 
     public String getTrackingId() { return trackingId; }

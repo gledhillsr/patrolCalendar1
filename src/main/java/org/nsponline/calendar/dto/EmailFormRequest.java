@@ -45,7 +45,7 @@ public class EmailFormRequest {
     private final Integer MinDays;
     private final Boolean MIN_DAYS;
 
-    public EmailFormRequest(String resort, String ID, Boolean everyBody, Boolean subList,
+    public EmailFormRequest(String resort, String id, Boolean everyBody, Boolean subList,
                            Boolean BAS, Boolean INA, Boolean SR, Boolean SRA, Boolean ALM,
                            Boolean PRO, Boolean AUX, Boolean TRA, Boolean CAN, Boolean OTH,
                            Boolean fullTime, Boolean partTime, Boolean inactive,
@@ -57,7 +57,7 @@ public class EmailFormRequest {
                            Integer endDay, Integer endMonth, Integer endYear,
                            Integer minDays, Boolean MIN_DAYS) {
         this.resort = resort;
-        this.id = ID;
+        this.id = id;
         this.EveryBody = everyBody;
         this.SubList = subList;
         this.BAS = BAS;
@@ -97,7 +97,7 @@ public class EmailFormRequest {
 
     // Getters
     public String getResort() { return resort; }
-    public String getID() { return id; }
+    public String getId() { return id; }
     public Boolean getEveryBody() { return EveryBody; }
     public Boolean getSubList() { return SubList; }
     public Boolean getBAS() { return BAS; }
