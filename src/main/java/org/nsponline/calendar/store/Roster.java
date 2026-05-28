@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Vector;
 
 import javax.servlet.http.HttpServletRequest;
@@ -1054,7 +1055,7 @@ public class Roster {
   }
 
   public boolean okToDisplay(boolean EveryBody, boolean SubList, boolean bListAll,
-                             Vector vClassificationsToDisplay, int iCommitmentToDisplay,
+                             List<String> vClassificationsToDisplay, int iCommitmentToDisplay,
                              boolean listDirector, int instructorFlags, int MinDays) {
 
     boolean ok = false;

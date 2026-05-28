@@ -11,7 +11,6 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * Service for filtering patrol members based on various criteria.
@@ -30,11 +29,12 @@ public class PatrolMemberFilterService {
         List<EmailRecipient> recipients = new ArrayList<>();
 
         // Build classification filter list
-        Vector<String> classificationsToDisplay = buildClassificationFilter(request);
+        ArrayList<String> classificationsToDisplay = buildClassificationFilter(request);
         int commitmentToDisplay = buildCommitmentFilter(request);
         int instructorFlags = buildInstructorFlags(request);
 
         // Iterate roster and filter
+        // Note: ResultSet lifecycle is managed by PatrolData; it should be closed via patrolData.close()
         ResultSet rosterResults = patrolData.resetRoster();
         Roster member;
         while ((member = patrolData.nextMember("&nbsp;", rosterResults)) != null) {
@@ -55,8 +55,8 @@ public class PatrolMemberFilterService {
         return recipients;
     }
 
-    private Vector<String> buildClassificationFilter(EmailFormRequest request) {
-        Vector<String> classifications = new Vector<>();
+    private ArrayList<String> buildClassificationFilter(EmailFormRequest request) {
+        ArrayList<String> classifications = new ArrayList<>();
         if (Boolean.TRUE.equals(request.getBAS())) classifications.add("BAS");
         if (Boolean.TRUE.equals(request.getINA())) classifications.add("INA");
         if (Boolean.TRUE.equals(request.getSR())) classifications.add("SR");
