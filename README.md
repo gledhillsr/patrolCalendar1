@@ -48,17 +48,22 @@ git checkout master
 ```bash
 # Pull and run MySQL container
 docker run --name patrol-calendar-mysql \
-  -e MYSQL_ROOT_PASSWORD=<password>> \
-  -e MYSQL_DATABASE=Sample \
+  -e MYSQL_ROOT_PASSWORD=yourpassword \
+  -e MYSQL_DATABASE=Brighton \
   -p 3306:3306 \
   -d mysql:8.0
 
+# Start a mysql CLI inside of docker container
+docker exec -it patrol-calendar-mysql mysql -u root -p
+#then run commands like
+CREATE DATABASE Brighton;
+SHOW DATABASES;
+
 # Import existing SQL dump (if you have one)
-docker cp /path/to/backup.sql patrol-calendar-mysql:/tmp/import.sql
-docker exec -i patrol-calendar-mysql mysql -uroot -pyourpassword calendar < /path/to/backup.sql
+docker exec -i patrol-calendar-mysql mysql -uroot -p Brighton < /path/to/backup.sql
 
 # Or import directly without copying
-docker exec -i patrol-calendar-mysql mysql -uroot -pyourpassword calendar < /path/to/backup.sql
+docker exec -i patrol-calendar-mysql mysql -uroot -pyourpassword Brighton < /path/to/backup.sql
 ```
 
 #### Option B: Local MySQL Installation
