@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="-1">
+    <title th:text="'Email Composition - ' + ${resortFullName}">Email Composition</title>
+    <style type="text/css">
+        body {
+            font-family: Verdana, Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        h2 {
+            font-size: 14pt;
+            font-weight: bold;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        td {
+            padding: 4px;
+        }
+        .error-box {
+            background-color: #FFE0E0;
+            border: 2px solid #FF0000;
+            padding: 10px;
+            margin: 10px 0;
+            color: red;
+            font-weight: bold;
+        }
+        .error-list {
+            margin-left: 20px;
+        }
+        .form-section {
+            background-color: #EFEFEF;
+            border: 1px solid #999999;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .readonly-field {
+            background-color: #F5F5F5;
+            border: 1px solid #999999;
+            padding: 4px;
+        }
+        .recipient-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+        .recipient-table td {
+            border: 1px solid #999999;
+            padding: 10px;
+            vertical-align: top;
+        }
+        .recipient-column {
+            width: 50%;
+        }
+        select {
+            width: 95%;
+            font-family: Verdana, Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+        }
+        textarea {
+            width: 100%;
+            font-family: Verdana, Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+        }
+        .help-table {
+            background-color: #FFFFEE;
+            border: 1px solid #CCCCCC;
+            margin: 20px 0;
+            width: 100%;
+        }
+        .help-table td {
+            border: 1px solid #CCCCCC;
+            padding: 6px;
+        }
+        .help-header {
+            background-color: #FFFFCC;
+            font-weight: bold;
+        }
+        .button-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+        input[type="submit"], input[type="button"] {
+            padding: 5px 15px;
+            margin: 0 5px;
+            font-weight: bold;
+        }
+        input[type="submit"]:disabled {
+            background-color: #CCCCCC;
+            color: #666666;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <!-- Reuse header fragment -->
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${fromPatrollerId})}"></div>
+
+    <!-- Page title -->
+    <p><h2>Email Composition Form</h2></p>
+
+    <!-- Error Display Area -->
+    <div th:if="${#fields.hasErrors('*')}" class="error-box">
+        <p>Please correct the following errors:</p>
+        <ul class="error-list">
+            <li th:each="err : ${#fields.errors('*')}" th:text="${err}"></li>
+        </ul>
+    </div>
+
+    <!-- Main Form -->
+    <form method="post" th:action="@{/EmailForm}">
+        <input type="hidden" name="resort" th:value="${resort}"/>
+        <input type="hidden" name="fromPatrollerId" th:value="${fromPatrollerId}"/>
+        <input type="hidden" name="originalPatrollerCount" th:value="${originalPatrollerCount}"/>
+
+        <!-- Hidden fields to preserve filter parameters -->
+        <input type="hidden" name="ID" th:value="${formRequest?.ID}"/>
+        <input type="hidden" name="EveryBody" th:value="${formRequest?.EveryBody}"/>
+        <input type="hidden" name="SubList" th:value="${formRequest?.SubList}"/>
+        <input type="hidden" name="FullTime" th:value="${formRequest?.FullTime}"/>
+        <input type="hidden" name="PartTime" th:value="${formRequest?.PartTime}"/>
+        <input type="hidden" name="Inactive" th:value="${formRequest?.Inactive}"/>
+        <input type="hidden" name="ALL" th:value="${formRequest?.ALL}"/>
+        <input type="hidden" name="ListDirector" th:value="${formRequest?.ListDirector}"/>
+        <input type="hidden" name="OEC" th:value="${formRequest?.OEC}"/>
+        <input type="hidden" name="CPR" th:value="${formRequest?.CPR}"/>
+        <input type="hidden" name="Ski" th:value="${formRequest?.Ski}"/>
+        <input type="hidden" name="Toboggan" th:value="${formRequest?.Toboggan}"/>
+        <input type="hidden" name="DAY_CNT" th:value="${formRequest?.DAY_CNT}"/>
+        <input type="hidden" name="SWING_CNT" th:value="${formRequest?.SWING_CNT}"/>
+        <input type="hidden" name="NIGHT_CNT" th:value="${formRequest?.NIGHT_CNT}"/>
+        <input type="hidden" name="TRAINING_CNT" th:value="${formRequest?.TRAINING_CNT}"/>
+        <input type="hidden" name="OTHER_CNT" th:value="${formRequest?.OTHER_CNT}"/>
+        <input type="hidden" name="HOLIDAY_CNT" th:value="${formRequest?.HOLIDAY_CNT}"/>
+        <input type="hidden" name="StartDay" th:value="${formRequest?.StartDay}"/>
+        <input type="hidden" name="StartMonth" th:value="${formRequest?.StartMonth}"/>
+        <input type="hidden" name="StartYear" th:value="${formRequest?.StartYear}"/>
+        <input type="hidden" name="EndDay" th:value="${formRequest?.EndDay}"/>
+        <input type="hidden" name="EndMonth" th:value="${formRequest?.EndMonth}"/>
+        <input type="hidden" name="EndYear" th:value="${formRequest?.EndYear}"/>
+        <input type="hidden" name="MinDays" th:value="${formRequest?.MinDays}"/>
+        <input type="hidden" name="MIN_DAYS" th:value="${formRequest?.MIN_DAYS}"/>
+
+        <!-- Handle classification list as hidden fields -->
+        <input type="hidden" th:each="classification : ${formRequest?.classifications}"
+               name="classifications" th:value="${classification}"/>
+
+        <!-- From Field -->
+        <div class="form-section">
+            <table width="100%">
+                <tr>
+                    <td width="15%" align="right"><b>From:</b></td>
+                    <td width="85%">
+                        <input type="text" readonly="readonly" class="readonly-field"
+                               th:value="${fromMemberName} + ' &lt;' + ${fromMemberEmail} + '&gt;'"
+                               size="60"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Recipient Selection Table -->
+        <div class="form-section">
+            <table class="recipient-table">
+                <tr>
+                    <td class="recipient-column">
+                        <b>To:</b><br/>
+                        <font size="1">Use CTRL+Click to unselect specific members</font>
+                        <br/><br/>
+                        <select name="patrollerIds" multiple="multiple" size="6">
+                            <option th:each="recipient : ${validRecipients}"
+                                    th:value="${recipient.id}"
+                                    th:text="${recipient.lastName} + ', ' + ${recipient.firstName}"
+                                    selected="selected">
+                            </option>
+                        </select>
+                        <br/>
+                        <font size="1" th:text="${#lists.size(validRecipients)} + &quot; Email's to send&quot;"></font>
+                    </td>
+                    <td class="recipient-column">
+                        <b>Patrollers with No Valid Email Address</b>
+                        <br/>
+                        <select readonly="readonly" size="5">
+                            <option th:each="recipient : ${invalidRecipients}"
+                                    th:text="${recipient.lastName} + ', ' + ${recipient.firstName}">
+                            </option>
+                        </select>
+                        <br/>
+                        <font size="1" th:text="${#lists.size(invalidRecipients)} + &quot; Email's SKIPPED&quot;"></font>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Email Composition -->
+        <div class="form-section">
+            <table width="100%">
+                <tr>
+                    <td width="15%" align="right"><b>Subject:</b></td>
+                    <td width="85%">
+                        <input type="text" name="subject" size="60" required="required"
+                               th:value="${compositionForm?.subject}"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="right" valign="top"><b>Message:</b></td>
+                    <td>
+                        <textarea name="message" rows="10" required="required" th:text="${compositionForm?.message}"></textarea>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="button-section">
+            <th:block th:if="${resort != 'Sample'}">
+                <input type="submit" value="Send Mail"/>
+                <font size="1">(be patient, emails are being sent in background)</font>
+            </th:block>
+            <th:block th:if="${resort == 'Sample'}">
+                <input type="submit" value="Disabled in Demo" disabled="disabled"/>
+            </th:block>
+            <input type="button" value="Cancel" onclick="history.back()"/>
+        </div>
+    </form>
+
+    <!-- Template Variable Help Section -->
+    <p>&nbsp;</p>
+    <div class="form-section">
+        <b>Special replacement codes for email Message (must be lower case ONLY)</b>
+        <table class="help-table">
+            <tr class="help-header">
+                <td width="20%">Code</td>
+                <td width="80%">Description</td>
+            </tr>
+            <tr>
+                <td><tt>$first$</tt></td>
+                <td>Replace with patrollers First Name</td>
+            </tr>
+            <tr>
+                <td><tt>$last$</tt></td>
+                <td>Replace with patrollers Last Name</td>
+            </tr>
+            <tr>
+                <td><tt>$id$</tt></td>
+                <td>Replace with patrollers ID number</td>
+            </tr>
+            <tr>
+                <td><tt>$carryovercredits$</tt></td>
+                <td>Replace with number of 'Carry Over' credits on file</td>
+            </tr>
+            <tr>
+                <td><tt>$credit$</tt></td>
+                <td>Replace with number of credits available</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Reuse footer fragment -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
