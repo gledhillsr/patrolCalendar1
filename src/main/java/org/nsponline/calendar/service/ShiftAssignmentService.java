@@ -44,6 +44,7 @@ public class ShiftAssignmentService {
         long endMillis = (new GregorianCalendar(endYear, endMonth, endDay)).getTimeInMillis();
 
         // Read assignments and count shifts
+        // Note: ResultSet lifecycle is managed by PatrolData; it should be closed via patrolData.close()
         ResultSet assignmentResults = patrolData.resetAssignments();
         Assignments assignment;
         while ((assignment = patrolData.readNextAssignment(assignmentResults)) != null) {
