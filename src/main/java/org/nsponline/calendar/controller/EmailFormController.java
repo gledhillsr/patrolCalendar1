@@ -129,9 +129,7 @@ public class EmailFormController {
             List<EmailRecipient> recipients = filterService.filterMembers(emailRequest, patrolData);
 
             // Enrich with shift counts if date range specified
-            boolean hasDateRange = (StartDay != null || StartMonth != null || StartYear != null ||
-                                   EndDay != null || EndMonth != null || EndYear != null);
-            if (hasDateRange) {
+            if (emailRequest.getStartYear() != null) {
                 recipients = shiftAssignmentService.enrichWithShiftCounts(recipients, emailRequest, patrolData);
             }
 
@@ -154,41 +152,30 @@ public class EmailFormController {
 
             // Get from member info
             Roster fromMember = patrolData.getMemberByID(id);
-            String fromInfo = (fromMember != null) ?
-                fromMember.getFullName() + " <" + fromMember.getEmailAddress() + ">" :
-                "Unknown";
+            String fromName = (fromMember != null) ? fromMember.getFullName() : "Unknown";
+            String fromEmail = (fromMember != null) ? fromMember.getEmailAddress() : "";
 
             // Add all to model
             model.addAttribute("resort", resort);
             model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
             model.addAttribute("patrollerId", id);
-            model.addAttribute("fromInfo", fromInfo);
+            model.addAttribute("fromName", fromName);
+            model.addAttribute("fromEmail", fromEmail);
             model.addAttribute("validRecipients", validRecipients);
             model.addAttribute("invalidRecipients", invalidRecipients);
             model.addAttribute("validCount", validRecipients.size());
             model.addAttribute("invalidCount", invalidRecipients.size());
 
-            // Add resort metadata for header
-            ResortData resortData = PatrolData.getResortInfo(resort);
-            if (resortData != null) {
-                model.addAttribute("resortUrl", resortData.getResortURL());
-                model.addAttribute("resortImage", resortData.getResortImage());
-                model.addAttribute("resortImgHeight", resortData.getImageHeight());
-            }
-
             // Add filter parameters for hidden fields
-            model.addAttribute("emailFormRequest", emailRequest);
+            model.addAttribute("filterRequest", emailRequest);
 
             // Add empty form object for POST binding
-            if (!model.containsAttribute("emailCompositionForm")) {
+            if (!model.containsAttribute("compositionForm")) {
                 EmailCompositionForm form = new EmailCompositionForm();
                 form.setResort(resort);
                 form.setFromPatrollerId(id);
-                model.addAttribute("emailCompositionForm", form);
+                model.addAttribute("compositionForm", form);
             }
-
-            // Check if Sample resort (disable sending)
-            model.addAttribute("isSampleResort", "Sample".equalsIgnoreCase(resort));
 
             return "email-form";
 
@@ -199,7 +186,7 @@ public class EmailFormController {
 
     @PostMapping("/EmailForm")
     public String sendEmails(
-            @Valid @ModelAttribute EmailCompositionForm form,
+            @Valid @ModelAttribute("compositionForm") EmailCompositionForm form,
             BindingResult bindingResult,
             HttpServletRequest request,
             HttpServletResponse response,
@@ -237,16 +224,9 @@ public class EmailFormController {
             // Add result to model
             model.addAttribute("trackingId", result.getTrackingId());
             model.addAttribute("totalRecipients", result.getTotalRecipients());
+            model.addAttribute("patrollerId", form.getFromPatrollerId());
             model.addAttribute("resort", form.getResort());
             model.addAttribute("resortFullName", PatrolData.getResortFullName(form.getResort(), LOG));
-
-            // Add resort metadata for header
-            ResortData resortData = PatrolData.getResortInfo(form.getResort());
-            if (resortData != null) {
-                model.addAttribute("resortUrl", resortData.getResortURL());
-                model.addAttribute("resortImage", resortData.getResortImage());
-                model.addAttribute("resortImgHeight", resortData.getImageHeight());
-            }
 
             return "email-confirmation";
 
@@ -262,8 +242,8 @@ public class EmailFormController {
                                           HttpServletRequest request, HttpServletResponse response,
                                           Model model, Logger LOG) throws IOException {
         // Add validation errors to model
-        model.addAttribute("org.springframework.validation.BindingResult.emailCompositionForm", bindingResult);
-        model.addAttribute("emailCompositionForm", form);
+        model.addAttribute("org.springframework.validation.BindingResult.compositionForm", bindingResult);
+        model.addAttribute("compositionForm", form);
 
         // Initialize patrol data to rebuild recipient lists
         javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
@@ -303,29 +283,20 @@ public class EmailFormController {
 
             // Get from member info
             Roster fromMember = patrolData.getMemberByID(form.getFromPatrollerId());
-            String fromInfo = (fromMember != null) ?
-                fromMember.getFullName() + " <" + fromMember.getEmailAddress() + ">" :
-                "Unknown";
+            String fromName = (fromMember != null) ? fromMember.getFullName() : "Unknown";
+            String fromEmail = (fromMember != null) ? fromMember.getEmailAddress() : "";
 
             // Add to model
             model.addAttribute("resort", form.getResort());
             model.addAttribute("resortFullName", PatrolData.getResortFullName(form.getResort(), LOG));
             model.addAttribute("patrollerId", form.getFromPatrollerId());
-            model.addAttribute("fromInfo", fromInfo);
+            model.addAttribute("fromName", fromName);
+            model.addAttribute("fromEmail", fromEmail);
             model.addAttribute("validRecipients", validRecipients);
             model.addAttribute("invalidRecipients", invalidRecipients);
             model.addAttribute("validCount", validRecipients.size());
             model.addAttribute("invalidCount", invalidRecipients.size());
-            model.addAttribute("emailFormRequest", emailRequest);
-            model.addAttribute("isSampleResort", "Sample".equalsIgnoreCase(form.getResort()));
-
-            // Add resort metadata for header
-            ResortData resortData = PatrolData.getResortInfo(form.getResort());
-            if (resortData != null) {
-                model.addAttribute("resortUrl", resortData.getResortURL());
-                model.addAttribute("resortImage", resortData.getResortImage());
-                model.addAttribute("resortImgHeight", resortData.getImageHeight());
-            }
+            model.addAttribute("filterRequest", emailRequest);
 
             return "email-form";
 
