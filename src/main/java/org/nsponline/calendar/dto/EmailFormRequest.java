@@ -8,7 +8,7 @@ import java.util.List;
  */
 public class EmailFormRequest {
     private final String resort;
-    private final String ID;
+    private final String id;
     private final Boolean EveryBody;
     private final Boolean SubList;
     private final Boolean BAS;
@@ -57,7 +57,7 @@ public class EmailFormRequest {
                            Integer endDay, Integer endMonth, Integer endYear,
                            Integer minDays, Boolean MIN_DAYS) {
         this.resort = resort;
-        this.ID = ID;
+        this.id = ID;
         this.EveryBody = everyBody;
         this.SubList = subList;
         this.BAS = BAS;
@@ -97,7 +97,7 @@ public class EmailFormRequest {
 
     // Getters
     public String getResort() { return resort; }
-    public String getID() { return ID; }
+    public String getID() { return id; }
     public Boolean getEveryBody() { return EveryBody; }
     public Boolean getSubList() { return SubList; }
     public Boolean getBAS() { return BAS; }

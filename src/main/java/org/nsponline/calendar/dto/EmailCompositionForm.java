@@ -3,6 +3,7 @@ package org.nsponline.calendar.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -32,8 +33,12 @@ public class EmailCompositionForm {
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
 
-    public List<String> getPatrollerIds() { return patrollerIds; }
-    public void setPatrollerIds(List<String> patrollerIds) { this.patrollerIds = patrollerIds; }
+    public List<String> getPatrollerIds() {
+        return patrollerIds != null ? new ArrayList<>(patrollerIds) : null;
+    }
+    public void setPatrollerIds(List<String> patrollerIds) {
+        this.patrollerIds = patrollerIds != null ? new ArrayList<>(patrollerIds) : null;
+    }
 
     public String getResort() { return resort; }
     public void setResort(String resort) { this.resort = resort; }
