@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 @Controller
 public class UpdateInfoController {
@@ -437,18 +438,50 @@ public class UpdateInfoController {
         javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
         Logger LOG = new Logger(UpdateInfoController.class, javaxRequest, "POST", resort, Logger.INFO);
 
-        // 3. Validate resort
+        // 3. Check if this is a director action from Directors menu
+        String editInfo = request.getParameter("EditInfo");
+        String nameToEdit = request.getParameter("NameToEdit");
+        String setNewID = request.getParameter("setNewID");
+        String removeName = request.getParameter("removeName");
+
+        if (editInfo != null && nameToEdit != null) {
+            // Director clicked "Edit Patroller Info" - redirect to GET with selected patroller
+            // nameToEdit is in format "Last, First" - need to find the patroller ID
+            SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+            PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+            try {
+                // Find the patroller by name
+                String targetPatrollerId = findPatrollerIdByName(nameToEdit, patrolData);
+                if (targetPatrollerId != null) {
+                    response.sendRedirect("UpdateInfo?resort=" + resort + "&ID=" + patrollerId +
+                                        "&Purpose=Edit_Patroller&EditID=" + targetPatrollerId);
+                } else {
+                    response.sendRedirect("Directors?resort=" + resort + "&ID=" + patrollerId);
+                }
+            } finally {
+                patrolData.close();
+            }
+            return null;
+        }
+
+        if (setNewID != null || removeName != null) {
+            // Other director actions - redirect back to Directors for now
+            response.sendRedirect("Directors?resort=" + resort + "&ID=" + patrollerId);
+            return null;
+        }
+
+        // 4. Validate resort
         if (!PatrolData.isValidResort(resort)) {
             response.sendError(400, "Resort not found: " + resort);
             return null;
         }
 
-        // 4. Initialize session and patrol data
+        // 5. Initialize session and patrol data
         SessionData sessionData = new SessionData(javaxRequest, null, LOG);
         PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
         try {
-            // 5. Validate credentials
+            // 6. Validate credentials
             ValidateCredentialsRedirectIfNeeded credentials =
                 new ValidateCredentialsRedirectIfNeeded(
                     sessionData, javaxRequest, javaxResponse,
@@ -458,7 +491,7 @@ public class UpdateInfoController {
                 return null; // Redirect already sent
             }
 
-            // 6. Get logged-in user info
+            // 7. Get logged-in user info
             patrollerId = sessionData.getLoggedInUserId();
 
             // 7. Check for backdoor user (cannot update)
@@ -660,5 +693,25 @@ public class UpdateInfoController {
         } finally {
             patrolData.close();
         }
+    }
+
+    /**
+     * Find patroller ID by their name in "Last, First" format.
+     * Iterates through the roster to find a matching member.
+     */
+    private String findPatrollerIdByName(String nameToEdit, PatrolData patrolData) {
+        if (nameToEdit == null || nameToEdit.trim().isEmpty()) {
+            return null;
+        }
+
+        ResultSet rosterResults = patrolData.resetRoster();
+        Roster member;
+        while ((member = patrolData.nextMember("", rosterResults)) != null) {
+            String memberName = member.getLast() + ", " + member.getFirst();
+            if (memberName.equals(nameToEdit)) {
+                return member.getID();
+            }
+        }
+        return null;
     }
 }
