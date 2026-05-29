@@ -166,6 +166,14 @@ public class EmailFormController {
             model.addAttribute("validCount", validRecipients.size());
             model.addAttribute("invalidCount", invalidRecipients.size());
 
+            // Add resort metadata for header
+            ResortData resortData = PatrolData.getResortInfo(resort);
+            if (resortData != null) {
+                model.addAttribute("resortUrl", resortData.getResortURL());
+                model.addAttribute("resortImage", resortData.getResortImage());
+                model.addAttribute("resortImgHeight", resortData.getImageHeight());
+            }
+
             // Add filter parameters for hidden fields
             model.addAttribute("filterRequest", emailRequest);
 
