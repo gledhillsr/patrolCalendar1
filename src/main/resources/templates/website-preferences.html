@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Website Preferences for: ' + ${resortFullName}">Website Preferences</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        .success-message {
+            color: green;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        td {
+            padding: 5px;
+        }
+        h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <h2 th:text="'Website Preferences for: ' + ${resortFullName}">Website Preferences</h2>
+
+    <!-- Success message -->
+    <div th:if="${param.success}" class="success-message">
+        Your preferences have been updated successfully.
+    </div>
+
+    <!-- Non-director message -->
+    <div th:if="${!isDirector}">
+        <p>Sorry, you are -not- authorized for this menu</p>
+        <p><a th:href="@{/Directors(resort=${resort}, ID=${patrollerId})}">Back to Directors Menu</a></p>
+    </div>
+
+    <!-- Director preferences form -->
+    <div th:if="${isDirector}">
+        <!-- Error message -->
+        <div th:if="${errorMessage}" class="error-message">
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- Main form -->
+        <form th:action="@{/WebSitePreferences}"
+              th:object="${preferencesForm}"
+              method="post">
+
+            <!-- Validation errors -->
+            <div th:if="${#fields.hasAnyErrors()}" class="error-message">
+                <ul>
+                    <li th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</li>
+                </ul>
+            </div>
+
+            <!-- Hidden fields -->
+            <input type="hidden" th:field="*{resort}" />
+
+            <table border="0" width="700">
+                <!-- Email Settings Section -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Email Settings</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Email patrollers when changes are made to their assignments:</font>
+                    </td>
+                    <td width="300">
+                        <input type="checkbox" th:field="*{emailPatrollers}" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Email reminders to patrollers:</font>
+                    </td>
+                    <td width="300">
+                        <input type="checkbox" th:field="*{emailReminder}" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Number of days before shift to send reminder:</font>
+                    </td>
+                    <td width="300">
+                        <input type="number" th:field="*{reminderDays}" min="0" max="30" size="5" />
+                        <span th:if="${#fields.hasErrors('reminderDays')}" class="error-message" th:errors="*{reminderDays}">Reminder Days Error</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Allow all patrollers to send email to roster:</font>
+                    </td>
+                    <td width="300">
+                        <input type="checkbox" th:field="*{emailAll}" />
+                    </td>
+                </tr>
+
+                <!-- Calendar Permissions Section -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Calendar Permissions</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Only directors can make calendar changes:</font>
+                    </td>
+                    <td width="300">
+                        <input type="checkbox" th:field="*{onlyDirectors}" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Days before shift when patrollers lose remove access:</font>
+                    </td>
+                    <td width="300">
+                        <select th:field="*{removeAccess}">
+                            <option value="0">0 days (immediate)</option>
+                            <option value="1">1 day</option>
+                            <option value="2">2 days</option>
+                            <option value="7">7 days (1 week)</option>
+                            <option value="14">14 days (2 weeks)</option>
+                            <option value="127">127 days (never)</option>
+                        </select>
+                        <span th:if="${#fields.hasErrors('removeAccess')}" class="error-message" th:errors="*{removeAccess}">Remove Access Error</span>
+                    </td>
+                </tr>
+
+                <!-- Season Dates Section -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Season Dates</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Season start date:</font>
+                    </td>
+                    <td width="300">
+                        <select th:field="*{startMonth}">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <input type="number" th:field="*{startDay}" min="1" max="31" size="3" />
+                        <span th:if="${#fields.hasErrors('startDay')}" class="error-message" th:errors="*{startDay}">Start Day Error</span>
+                        <span th:if="${#fields.hasErrors('startMonth')}" class="error-message" th:errors="*{startMonth}">Start Month Error</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Season end date:</font>
+                    </td>
+                    <td width="300">
+                        <select th:field="*{endMonth}">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <input type="number" th:field="*{endDay}" min="1" max="31" size="3" />
+                        <span th:if="${#fields.hasErrors('endDay')}" class="error-message" th:errors="*{endDay}">End Day Error</span>
+                        <span th:if="${#fields.hasErrors('endMonth')}" class="error-message" th:errors="*{endMonth}">End Month Error</span>
+                    </td>
+                </tr>
+
+                <!-- Blackout Dates Section -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Blackout Dates</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Use blackout dates:</font>
+                    </td>
+                    <td width="300">
+                        <input type="checkbox" th:field="*{useBlackOut}" />
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Blackout start date:</font>
+                    </td>
+                    <td width="300">
+                        <select th:field="*{blackOutStartMonth}">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <input type="number" th:field="*{blackOutStartDay}" min="1" max="31" size="3" />
+                        <input type="number" th:field="*{blackOutStartYear}" min="2000" max="2100" size="5" />
+                        <span th:if="${#fields.hasErrors('blackOutStartDay')}" class="error-message" th:errors="*{blackOutStartDay}">Start Day Error</span>
+                        <span th:if="${#fields.hasErrors('blackOutStartMonth')}" class="error-message" th:errors="*{blackOutStartMonth}">Start Month Error</span>
+                        <span th:if="${#fields.hasErrors('blackOutStartYear')}" class="error-message" th:errors="*{blackOutStartYear}">Start Year Error</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Blackout end date:</font>
+                    </td>
+                    <td width="300">
+                        <select th:field="*{blackOutEndMonth}">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <input type="number" th:field="*{blackOutEndDay}" min="1" max="31" size="3" />
+                        <input type="number" th:field="*{blackOutEndYear}" min="2000" max="2100" size="5" />
+                        <span th:if="${#fields.hasErrors('blackOutEndDay')}" class="error-message" th:errors="*{blackOutEndDay}">End Day Error</span>
+                        <span th:if="${#fields.hasErrors('blackOutEndMonth')}" class="error-message" th:errors="*{blackOutEndMonth}">End Month Error</span>
+                        <span th:if="${#fields.hasErrors('blackOutEndYear')}" class="error-message" th:errors="*{blackOutEndYear}">End Year Error</span>
+                    </td>
+                </tr>
+
+                <!-- Submit button -->
+                <tr>
+                    <td colspan="2" align="center">
+                        <br>
+                        <input type="submit" value="Save Preferences" />
+                    </td>
+                </tr>
+            </table>
+        </form>
+
+        <p><a th:href="@{/Directors(resort=${resort}, ID=${patrollerId})}">Back to Directors Menu</a></p>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
