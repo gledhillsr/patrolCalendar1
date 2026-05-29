@@ -3,6 +3,9 @@ package org.nsponline.calendar.utils;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Look at QueryParameters 'ID', and 'resort'
@@ -84,24 +87,30 @@ public class ValidateCredentialsRedirectIfNeeded {
       for (Cookie cookie : request.getCookies()) {
         if (NSP_TOKEN_NAME.equals(cookie.getName())) {
           cookieValue = cookie.getValue();
-          String[] values = cookieValue.split(",");
-          if (PatrolData.isValidResort(values[0]) && patrolData.getMemberByID(values[1]) != null) {
-            cookieResort = values[0];
-            cookiePatrollerId = values[1];
+          try {
+            // Decode URL-encoded cookie value
+            String decodedValue = URLDecoder.decode(cookieValue, StandardCharsets.UTF_8.name());
+            String[] values = decodedValue.split(",");
+            if (values.length == 2 && PatrolData.isValidResort(values[0]) && patrolData.getMemberByID(values[1]) != null) {
+              cookieResort = values[0];
+              cookiePatrollerId = values[1];
+            }
+            LOG.debug("cookie FOUND, value=" + decodedValue);
+          } catch (Exception e) {
+            LOG.warn("Failed to decode cookie value: " + e.getMessage());
           }
-          LOG.debug("cookie FOUND, value=" + cookieValue);
         }
       }
 
       if (!hasInvalidCredentials) {
         //user had good credentials, so just update the cookie TTL
-        cookieValue = resort + "," + idLoggedIn;
-        Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, cookieValue);
-        uiColorCookie.setMaxAge(COOKIE_MAX_AGE_IN_SECONDS);
         try {
-          response.addCookie(uiColorCookie);
+          String rawValue = resort + "," + idLoggedIn;
+          cookieValue = URLEncoder.encode(rawValue, StandardCharsets.UTF_8.name());
+          Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, cookieValue);
           uiColorCookie.setMaxAge(COOKIE_MAX_AGE_IN_SECONDS);
-          LOG.debug("update/add cookie TTL) " + cookieValue);
+          response.addCookie(uiColorCookie);
+          LOG.debug("update/add cookie TTL) " + rawValue);
         }
         catch (Exception e) {
           LOG.error("failed to add cookie, message=" + e.getMessage());
@@ -112,11 +121,12 @@ public class ValidateCredentialsRedirectIfNeeded {
         sessionData.setLoggedInResort(cookieResort);
         sessionData.setLoggedInUserId(cookiePatrollerId);
         hasInvalidCredentials = false;
-        Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, cookieValue);
-        uiColorCookie.setMaxAge(COOKIE_MAX_AGE_IN_SECONDS);
         try {
-          response.addCookie(uiColorCookie);
+          String rawValue = cookieResort + "," + cookiePatrollerId;
+          String encodedValue = URLEncoder.encode(rawValue, StandardCharsets.UTF_8.name());
+          Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, encodedValue);
           uiColorCookie.setMaxAge(COOKIE_MAX_AGE_IN_SECONDS);
+          response.addCookie(uiColorCookie);
           LOG.warn("using cookie for login to resort=" + cookieResort + ", as user=" + cookiePatrollerId);
         }
         catch (Exception e) {
@@ -125,13 +135,15 @@ public class ValidateCredentialsRedirectIfNeeded {
       }
       else if (cookieValue != null) { //to make this true, did not find either resort or patrollerId within resort
         //not logged in, but bad cookie, so delete cookie
-        Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, cookieValue);
-        uiColorCookie.setMaxAge(0);
         try {
+          Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, "");
+          uiColorCookie.setMaxAge(0);
           response.addCookie(uiColorCookie);
+          String decodedValue = URLDecoder.decode(cookieValue, StandardCharsets.UTF_8.name());
+          String cookieResortFromValue = decodedValue.contains(",") ? decodedValue.split(",")[0] : decodedValue;
           LOG.warn(
             "deleting cookie because resort or patrollerId was invalid.  newResort=" + resort + ", cookieResort=" +
-              cookieValue.split(",")[0]);
+              cookieResortFromValue);
         }
         catch (Exception e) {
           LOG.error("failed to delete cookie, message=" + e.getMessage());
