@@ -180,7 +180,7 @@
                             </option>
                         </select>
                         <br/>
-                        <font size="1" th:text="${#lists.size(validRecipients)} + ' Email''s to send'"></font>
+                        <font size="1" th:text="|${#lists.size(validRecipients)} Email's to send|"></font>
                     </td>
                     <td class="recipient-column">
                         <b>Patrollers with No Valid Email Address</b>
@@ -191,7 +191,7 @@
                             </option>
                         </select>
                         <br/>
-                        <font size="1" th:text="${#lists.size(invalidRecipients)} + ' Email''s SKIPPED'"></font>
+                        <font size="1" th:text="|${#lists.size(invalidRecipients)} Email's SKIPPED|"></font>
                     </td>
                 </tr>
             </table>
