@@ -30,8 +30,8 @@
                             <a th:href="@{/Directors(resort=${resort}, ID=${pid})}" target="_self">Directors</a>
                         </p>
                     </td>
-                    <td>
-                        <span th:text="${logoutLink}"></span>
+                    <td align="right">
+                        <a th:if="${pid != null and pid != ''}" th:href="@{/MemberLogout(resort=${resort})}" target="_self">Logout</a>
                     </td>
                 </tr>
             </table>
