@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Shift Templates</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        .success-message {
+            color: green;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        input[type="text"] {
+            font-family: monospace;
+        }
+    </style>
+    <script type="text/javascript" th:inline="javascript">
+        /*<![CDATA[*/
+        var mustChangeName = true;
+        var currName = /*[[${selectedShift}]]*/ "";
+        var resort = /*[[${resort}]]*/ "";
+        var patrollerId = /*[[${patrollerId}]]*/ "";
+        var newShiftStyle = /*[[${newShiftStyle}]]*/ "";
+
+        function captureEnter(keycode) {
+            return (keycode != 13);
+        }
+
+        function confirmDelete() {
+            return confirm("Are you sure you want to delete the shift template named '" + currName + "'.");
+        }
+
+        function reloadPage(list) {
+            var idx = list.selectedIndex;
+            var msg = list.options[idx].text;
+            location = "/calendar-1/EditShiftTemplates?resort=" + resort + "&ID=" + patrollerId + "&selectedShift=" + encodeURIComponent(msg);
+        }
+
+        function testName(str) {
+            currName = str;
+            if (str != newShiftStyle && str != "" && str != " ") {
+                mustChangeName = false;
+            }
+            if (str == "" || str == " ") {
+                currName = "Blank";
+            }
+        }
+
+        function CheckEventName() {
+            testName(currName);
+            if (mustChangeName) {
+                alert("This 'shift' MUST have a valid name BEFORE anything else can be done. '" + currName + "' is invalid");
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        function goHome() {
+            location.href = "/calendar-1/Directors?resort=" + resort + "&ID=" + patrollerId;
+        }
+        /*]]>*/
+    </script>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <h2>Edit Shift Templates for the Calendar</h2>
+
+    <!-- Delete success message -->
+    <div th:if="${deleteSuccess}" class="success-message">
+        <h4>Template Was Deleted</h4>
+    </div>
+
+    <div align="center">
+        <table border="3" cellpadding="0" cellspacing="0" width="750">
+            <tr>
+                <td width="654" bgcolor="#C0C0C0">
+                    <form th:action="@{/EditShiftTemplates}" onsubmit="return CheckEventName()" method="post">
+                        <input type="hidden" name="resort" th:value="${resort}" />
+                        <input type="hidden" name="ID" th:value="${patrollerId}" />
+                        <input type="hidden" name="shiftCount" th:value="${#lists.size(selectedShifts)}" />
+
+                        <h2 align="center">&nbsp; Change/Edit Shift Format</h2>
+
+                        <div align="center">
+                            <table border="3" cellpadding="0" cellspacing="0" width="716">
+                                <tr>
+                                    <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        Use Predefined Shift format:
+                                        <select onchange="reloadPage(this)" size="1" name="selectedShift">
+                                            <option th:selected="${#strings.isEmpty(selectedShift)}"
+                                                    th:value="${newShiftStyle}"
+                                                    th:text="${newShiftStyle}"></option>
+                                            <option th:each="option : ${shiftOptions}"
+                                                    th:selected="${option.key == selectedShift}"
+                                                    th:value="${option.key}"
+                                                    th:text="${option.value}"></option>
+                                        </select>
+                                        <br>
+                                        &nbsp;&nbsp;
+                                        <div align="center">
+                                            <table border="3" cellpadding="0" cellspacing="0" width="683" style="font-size: 12pt">
+                                                <tr>
+                                                    <td colspan="5">
+                                                        Event Name/Day of Week:
+                                                        <input type="text"
+                                                               name="eventName"
+                                                               th:value="${selectedShift}"
+                                                               size="39"
+                                                               onblur="testName(this.value)"
+                                                               onkeydown="javascript:return captureEnter(event.keyCode)" />
+                                                    </td>
+                                                </tr>
+
+                                                <!-- Existing shifts -->
+                                                <tr th:each="shiftWithIndex : ${selectedShifts}">
+                                                    <td>
+                                                        <input type="submit"
+                                                               value="Delete"
+                                                               th:name="|delete_${shiftWithIndex.index}|" />
+                                                    </td>
+                                                    <td>
+                                                        Start:
+                                                        <input type="text"
+                                                               th:name="|startTime_${shiftWithIndex.index}|"
+                                                               th:value="${shiftWithIndex.shift.startString}"
+                                                               maxlength="11"
+                                                               size="7"
+                                                               onkeydown="javascript:return captureEnter(event.keyCode)" />
+                                                    </td>
+                                                    <td>
+                                                        End:
+                                                        <input type="text"
+                                                               th:name="|endTime_${shiftWithIndex.index}|"
+                                                               th:value="${shiftWithIndex.shift.endString}"
+                                                               maxlength="11"
+                                                               size="7"
+                                                               onkeydown="javascript:return captureEnter(event.keyCode)" />
+                                                    </td>
+                                                    <td>
+                                                        Patroller&nbsp;Count:&nbsp;
+                                                        <select th:name="|count_${shiftWithIndex.index}|">
+                                                            <option th:each="count : ${countOptions}"
+                                                                    th:selected="${count == shiftWithIndex.shift.count}"
+                                                                    th:value="${count}"
+                                                                    th:text="${count}"></option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        &nbsp;
+                                                        <select th:name="|shift_${shiftWithIndex.index}|">
+                                                            <option th:each="shiftType, iterStat : ${shiftTypes}"
+                                                                    th:selected="${iterStat.index == shiftWithIndex.shift.type}"
+                                                                    th:value="${shiftType}"
+                                                                    th:text="${shiftType}"></option>
+                                                        </select>
+                                                    </td>
+                                                </tr>
+
+                                                <!-- New button row -->
+                                                <tr>
+                                                    <td width="90">
+                                                        <input type="submit" value="New" name="addShift" />
+                                                    </td>
+                                                    <td width="170">&nbsp;</td>
+                                                    <td width="170">&nbsp;</td>
+                                                    <td width="200">&nbsp;</td>
+                                                    <td width="120">&nbsp;</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <p>NOTE: Pressing 'New' or 'Delete' will do a <b>Save Changes</b> first.</p>
+
+                        <p align="center">
+                            <input type="submit" value="Save Changes" name="SaveChangesBtn" />
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            <input type="button" value="Cancel" onclick="goHome()" />
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            <input type="submit" value="Delete Template" name="DeleteTemplateBtn" onclick="return confirmDelete()" />
+                        </p>
+                    </form>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <p>-- NOTE: The Shift names '<B>Sunday</B>', '<B>Monday</B>', etc. are <B>Special</B>. If defined here, they will
+        fill in that -empty- day-of-the-week on the calendar.<br>
+        --Also the shift name '<B>Closed</B>' is reserved, and will not highlight the day, but it will display
+        <font color="#FF0000" size="4">Closed</font>.<br>
+        --deleting all the entries for a template, will delete the template.<br>
+        --If you want more than 10 patrollers on a shift, ie 23, then create two shifts with 10 patrollers, and one with 3 patrollers (all with the same start and end time).
+    </p>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
