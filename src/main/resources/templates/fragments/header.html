@@ -13,7 +13,7 @@
     </div>
 
     <!-- Brighton-specific header -->
-    <div th:fragment="brighton-header(resort, resortFullName, patrollerId)" th:with="pid=${patrollerId != null ? patrollerId : ''}, userIdTag=${pid != null and pid != '' ? '&ID=' + pid : ''}">
+    <div th:fragment="brighton-header(resort, resortFullName, patrollerId)" th:with="pid=${patrollerId != null ? patrollerId : ''}">
         <div id="banner" name="banner" style="background: white">
             <table border="0" cellspacing="0" cellpadding="0" width="100%" height="125">
                 <tr>
@@ -45,13 +45,13 @@
                         <font size="2">
                             <div class="menubar2">
                                 <font color="white"><b>&nbsp;(Members Only):&nbsp;</b></font>
-                                <a class="button" target="_self" th:href="@{/MonthCalendar(resort=${resort}${userIdTag})}">Online Schedule</a>
-                                <a class="button" target="_self" th:href="@{/ListAssignments(resort=${resort}${userIdTag})}">My Assignments</a>
-                                <a class="button" target="_self" th:href="@{/SubList(resort=${resort}${userIdTag})}">Sub List</a>
-                                <a class="button" target="_self" th:href="@{/UpdateInfo(resort=${resort}${userIdTag})}">My Info</a>
-                                <a class="button" target="_self" th:href="@{/MemberList(resort=${resort}${userIdTag})}">Patrollers</a>
-                                <a class="button" target="_self" th:href="@{/Directors(resort=${resort}${userIdTag})}">Directors</a>
-                                <a class="button" target="_self" th:href="@{/RefresherTraining(resort=${resort}${userIdTag})}"><b>Refresher/Training</b></a>
+                                <a class="button" target="_self" th:href="@{/MonthCalendar(resort=${resort}, ID=${pid})}">Online Schedule</a>
+                                <a class="button" target="_self" th:href="@{/ListAssignments(resort=${resort}, ID=${pid})}">My Assignments</a>
+                                <a class="button" target="_self" th:href="@{/SubList(resort=${resort}, ID=${pid})}">Sub List</a>
+                                <a class="button" target="_self" th:href="@{/UpdateInfo(resort=${resort}, ID=${pid})}">My Info</a>
+                                <a class="button" target="_self" th:href="@{/MemberList(resort=${resort}, ID=${pid})}">Patrollers</a>
+                                <a class="button" target="_self" th:href="@{/Directors(resort=${resort}, ID=${pid})}">Directors</a>
+                                <a class="button" target="_self" th:href="@{/RefresherTraining(resort=${resort}, ID=${pid})}"><b>Refresher/Training</b></a>
                                 <span th:if="${pid != null and pid != ''}">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                     <a class="button" target="_self" th:href="@{/MemberLogout(resort=${resort})}">Logout</a>
                                 </span>
