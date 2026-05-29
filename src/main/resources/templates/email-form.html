@@ -105,19 +105,18 @@
     <!-- Page title -->
     <p><h2>Email Composition Form</h2></p>
 
-    <!-- Error Display Area -->
-    <div th:if="${#fields.hasErrors('*')}" class="error-box">
-        <p>Please correct the following errors:</p>
-        <ul class="error-list">
-            <li th:each="err : ${#fields.errors('*')}" th:text="${err}"></li>
-        </ul>
-    </div>
-
     <!-- Main Form -->
-    <form method="post" th:action="@{/EmailForm}">
-        <input type="hidden" name="resort" th:value="${resort}"/>
-        <input type="hidden" name="fromPatrollerId" th:value="${fromPatrollerId}"/>
-        <input type="hidden" name="originalPatrollerCount" th:value="${originalPatrollerCount}"/>
+    <form method="post" th:action="@{/EmailForm}" th:object="${compositionForm}">
+        <!-- Error Display Area -->
+        <div th:if="${#fields.hasErrors('*')}" class="error-box">
+            <p>Please correct the following errors:</p>
+            <ul class="error-list">
+                <li th:each="err : ${#fields.errors('*')}" th:text="${err}"></li>
+            </ul>
+        </div>
+        <input type="hidden" th:field="*{resort}"/>
+        <input type="hidden" th:field="*{fromPatrollerId}"/>
+        <input type="hidden" th:field="*{originalPatrollerCount}"/>
 
         <!-- Hidden fields to preserve filter parameters -->
         <input type="hidden" name="ID" th:value="${formRequest?.ID}"/>
@@ -173,7 +172,7 @@
                         <b>To:</b><br/>
                         <font size="1">Use CTRL+Click to unselect specific members</font>
                         <br/><br/>
-                        <select name="patrollerIds" multiple="multiple" size="6">
+                        <select th:field="*{patrollerIds}" multiple="multiple" size="6">
                             <option th:each="recipient : ${validRecipients}"
                                     th:value="${recipient.id}"
                                     th:text="${recipient.lastName} + ', ' + ${recipient.firstName}"
@@ -204,14 +203,13 @@
                 <tr>
                     <td width="15%" align="right"><b>Subject:</b></td>
                     <td width="85%">
-                        <input type="text" name="subject" size="60" required="required"
-                               th:value="${compositionForm?.subject}"/>
+                        <input type="text" th:field="*{subject}" size="60" required="required"/>
                     </td>
                 </tr>
                 <tr>
                     <td align="right" valign="top"><b>Message:</b></td>
                     <td>
-                        <textarea name="message" rows="10" required="required" th:text="${compositionForm?.message}"></textarea>
+                        <textarea th:field="*{message}" rows="10" required="required"></textarea>
                     </td>
                 </tr>
             </table>

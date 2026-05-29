@@ -174,6 +174,7 @@ public class EmailFormController {
                 EmailCompositionForm form = new EmailCompositionForm();
                 form.setResort(resort);
                 form.setFromPatrollerId(id);
+                form.setOriginalPatrollerCount(validRecipients.size());
                 model.addAttribute("compositionForm", form);
             }
 
