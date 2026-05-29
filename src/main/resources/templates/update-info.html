@@ -217,7 +217,9 @@
                 <tr>
                     <td width="351" align="right"><font size="3">ID:</font></td>
                     <td width="600">
-                        <span th:text="${patrollerId}">ID</span>
+                        <span th:if="${!isSetNewID}" th:text="${patrollerId}">ID</span>
+                        <input th:if="${isSetNewID}" type="text" th:field="*{idNumber}" size="10" maxlength="10" />
+                        <span th:if="${isSetNewID}" style="color: #666; font-size: 10pt;"> (Old ID: <span th:text="${oldMemberID}">Old ID</span>)</span>
                     </td>
                 </tr>
                 <tr>
@@ -255,6 +257,9 @@
                         <input type="hidden" name="hiddenTeamLead" th:value="${hiddenTeamLead}" />
                         <input type="hidden" name="hiddenMentoring" th:value="${hiddenMentoring}" />
                         <input type="hidden" name="hiddenComments" th:value="${hiddenComments}" />
+                        <!-- SetNewID specific hidden fields -->
+                        <input th:if="${isSetNewID}" type="hidden" name="Purpose" value="setNewID" />
+                        <input th:if="${isSetNewID}" type="hidden" name="removeOldID" th:value="${oldMemberID}" />
                     </td>
                 </tr>
 
@@ -262,7 +267,7 @@
                 <tr>
                     <td colspan="2" align="center">
                         <br>
-                        <input type="submit" value="Update Information" />
+                        <input type="submit" th:value="${isSetNewID ? 'Set New ID' : 'Update Information'}" />
                     </td>
                 </tr>
             </table>

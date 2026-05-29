@@ -50,6 +50,7 @@ public class UpdateInfoController {
         private String emergencyCallUp;
         private String substituteList;
         private String password;
+        private String idNumber; // For setNewID functionality
 
         // No-arg constructor
         public MemberUpdateForm() {
@@ -198,6 +199,14 @@ public class UpdateInfoController {
             this.password = password;
         }
 
+        public String getIdNumber() {
+            return idNumber;
+        }
+
+        public void setIdNumber(String idNumber) {
+            this.idNumber = idNumber;
+        }
+
         /**
          * Create MemberUpdateForm populated from Roster object.
          * Uses Roster field constants to extract data from memberData array.
@@ -223,6 +232,7 @@ public class UpdateInfoController {
             form.setEmergencyCallUp(roster.memberData[Roster.EMERGENCY]);
             form.setSubstituteList(roster.memberData[Roster.SUB]);
             form.setPassword(""); // Never populate password from database
+            form.setIdNumber(roster.memberData[Roster.ID_NUM]); // For setNewID functionality
 
             return form;
         }
@@ -256,6 +266,11 @@ public class UpdateInfoController {
             roster.memberData[Roster.EMAIL] = (email != null) ? email : "";
             roster.memberData[Roster.EMERGENCY] = (emergencyCallUp != null) ? emergencyCallUp : "";
             roster.memberData[Roster.SUB] = (substituteList != null) ? substituteList : "";
+
+            // ID Number: update for setNewID functionality
+            if (idNumber != null && !idNumber.trim().isEmpty()) {
+                roster.memberData[Roster.ID_NUM] = idNumber;
+            }
 
             // Password: only update if non-blank
             if (password != null && !password.trim().isEmpty()) {
@@ -343,10 +358,15 @@ public class UpdateInfoController {
             // Check if editing another patroller (director function)
             String editID = request.getParameter("EditID");
             String purpose = request.getParameter("Purpose");
+            boolean isSetNewID = "setNewID".equals(purpose);
+            String oldMemberID = null;
 
-            if (editID != null && "Edit_Patroller".equals(purpose)) {
-                // Director is editing another patroller
+            if (editID != null && ("Edit_Patroller".equals(purpose) || isSetNewID)) {
+                // Director is editing another patroller or changing ID
                 patrollerId = editID;
+                if (isSetNewID) {
+                    oldMemberID = editID; // Store for later use
+                }
             } else {
                 // User is editing their own profile
                 patrollerId = loggedInUserId;
@@ -404,6 +424,8 @@ public class UpdateInfoController {
             model.addAttribute("memberName", member.getFullName());
             model.addAttribute("isBackdoorUser", false);
             model.addAttribute("memberForm", memberForm);
+            model.addAttribute("isSetNewID", isSetNewID);
+            model.addAttribute("oldMemberID", oldMemberID);
 
             // 11. Add read-only display attributes (converted to labels)
             model.addAttribute("idNumber", member.memberData[Roster.ID_NUM]);
@@ -488,9 +510,22 @@ public class UpdateInfoController {
             return showDeleteConfirmation(resort, patrollerId, nameToEdit, request, response, model);
         }
 
-        if (setNewID != null) {
-            // Change ID Number - redirect back to Directors for now (not yet implemented)
-            response.sendRedirect("Directors?resort=" + resort + "&ID=" + patrollerId);
+        if (setNewID != null && nameToEdit != null) {
+            // Director clicked "Change ID Number" - redirect to UpdateInfo with selected patroller
+            SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+            PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+            try {
+                // Find the patroller by name
+                String targetPatrollerId = findPatrollerIdByName(nameToEdit, patrolData);
+                if (targetPatrollerId != null) {
+                    response.sendRedirect("UpdateInfo?resort=" + resort + "&ID=" + patrollerId +
+                                        "&Purpose=setNewID&EditID=" + targetPatrollerId);
+                } else {
+                    response.sendRedirect("Directors?resort=" + resort + "&ID=" + patrollerId);
+                }
+            } finally {
+                patrolData.close();
+            }
             return null;
         }
 
@@ -587,7 +622,14 @@ public class UpdateInfoController {
                 return "update-info"; // Re-display form with validation errors
             }
 
-            // 9. Load existing member record
+            // 9. Check for setNewID purpose (Change ID Number)
+            String postPurpose = request.getParameter("Purpose");
+            String removeOldID = request.getParameter("removeOldID");
+            if ("setNewID".equals(postPurpose) && removeOldID != null) {
+                return handleSetNewID(resort, loggedInUserId, removeOldID, memberForm, request, response, model, sessionData, patrolData, LOG);
+            }
+
+            // 10. Load existing member record
             Roster member = patrolData.getMemberByID(patrollerId);
             if (member == null) {
                 model.addAttribute("resort", resort);
@@ -906,6 +948,129 @@ public class UpdateInfoController {
             String sql = "UPDATE assignments SET P" + i + " = '0' WHERE P" + i + " = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, deletedId);
+            statement.executeUpdate();
+        }
+    }
+
+    /**
+     * Handle setting a new ID for a patroller.
+     */
+    private String handleSetNewID(
+            String resort,
+            String loggedInUserId,
+            String oldMemberID,
+            MemberUpdateForm memberForm,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Model model,
+            SessionData sessionData,
+            PatrolData patrolData,
+            Logger LOG) throws IOException {
+
+        String newMemberID = memberForm.getIdNumber();
+
+        // Check if new ID is already in use
+        Roster existingMember = patrolData.getMemberByID(newMemberID);
+        if (existingMember != null && !newMemberID.equals(oldMemberID)) {
+            // ID already in use - show error
+            Roster oldMember = patrolData.getMemberByID(oldMemberID);
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", loggedInUserId);
+            model.addAttribute("editingPatrollerId", oldMemberID);
+            model.addAttribute("memberName", oldMember != null ? oldMember.getFullName() : "Unknown");
+            model.addAttribute("isBackdoorUser", false);
+            model.addAttribute("memberForm", memberForm);
+            model.addAttribute("isSetNewID", true);
+            model.addAttribute("oldMemberID", oldMemberID);
+            model.addAttribute("errorMessage", "ERROR: ID '" + newMemberID + "' is already owned by " + existingMember.getFullName());
+
+            // Add read-only attributes
+            if (oldMember != null) {
+                model.addAttribute("idNumber", oldMember.memberData[Roster.ID_NUM]);
+                model.addAttribute("classification", getClassificationLabel(oldMember));
+                model.addAttribute("commitment", getCommitmentLabel(oldMember.memberData[Roster.COMMITMENT]));
+                model.addAttribute("instructor", getInstructorLabel(oldMember.memberData[Roster.INSTRUCTOR]));
+                model.addAttribute("lastUpdated", oldMember.memberData[Roster.LAST_UPDATED]);
+
+                model.addAttribute("hiddenClassification", oldMember.memberData[Roster.CLASSIFICATION]);
+                model.addAttribute("hiddenCommitment", oldMember.memberData[Roster.COMMITMENT]);
+                model.addAttribute("hiddenInstructor", oldMember.memberData[Roster.INSTRUCTOR]);
+                model.addAttribute("hiddenDirector", oldMember.memberData[Roster.DIRECTOR]);
+                model.addAttribute("hiddenTeamLead", oldMember.memberData[Roster.TEAM_LEAD]);
+                model.addAttribute("hiddenMentoring", oldMember.memberData[Roster.MENTORING]);
+                model.addAttribute("hiddenComments", oldMember.memberData[Roster.COMMENTS]);
+            }
+
+            // Add resort metadata
+            ResortData resortData = PatrolData.getResortInfo(resort);
+            if (resortData != null) {
+                model.addAttribute("resortUrl", resortData.getResortURL());
+                model.addAttribute("resortImage", resortData.getResortImage());
+                model.addAttribute("resortImgHeight", resortData.getImageHeight());
+            }
+
+            return "update-info";
+        }
+
+        try {
+            // Load old member data
+            Roster oldMember = patrolData.getMemberByID(oldMemberID);
+            if (oldMember == null) {
+                LOG.error("Old member not found: " + oldMemberID);
+                response.sendRedirect("Directors?resort=" + resort + "&ID=" + loggedInUserId);
+                return null;
+            }
+
+            // Apply form values to create new roster entry
+            memberForm.applyToRoster(oldMember, sessionData, LOG);
+
+            Connection connection = patrolData.getConnection(resort, sessionData, LOG);
+
+            if (newMemberID.equals(oldMemberID)) {
+                // ID unchanged - just update the record
+                String sql = oldMember.getUpdateSQLString(resort, sessionData);
+                PreparedStatement statement = connection.prepareStatement(sql);
+                statement.executeUpdate();
+                LOG.info("Updated member without ID change: " + oldMemberID);
+            } else {
+                // ID changed - update assignments, insert new, delete old
+                updateAssignmentsForIDChange(oldMemberID, newMemberID, connection);
+
+                String insertSql = oldMember.getInsertSQLString(resort, sessionData);
+                PreparedStatement insertStatement = connection.prepareStatement(insertSql);
+                insertStatement.executeUpdate();
+
+                String deleteSql = "DELETE FROM roster WHERE IDNumber = ?";
+                PreparedStatement deleteStatement = connection.prepareStatement(deleteSql);
+                deleteStatement.setString(1, oldMemberID);
+                deleteStatement.executeUpdate();
+
+                LOG.info("Changed member ID from " + oldMemberID + " to " + newMemberID);
+            }
+
+            // Redirect to Directors with success
+            response.sendRedirect("Directors?resort=" + resort + "&ID=" + loggedInUserId);
+            return null;
+
+        } catch (Exception e) {
+            LOG.logException("Failed to change member ID", e);
+            response.sendRedirect("Directors?resort=" + resort + "&ID=" + loggedInUserId + "&error=id_change_failed");
+            return null;
+        }
+    }
+
+    /**
+     * Update assignments table when changing a patroller's ID.
+     * Replace old ID with new ID in all assignment slots.
+     */
+    private void updateAssignmentsForIDChange(String oldId, String newId, Connection connection) throws Exception {
+        // Update all assignment patroller fields (P0 through P9)
+        for (int i = 0; i < 10; i++) {
+            String sql = "UPDATE assignments SET P" + i + " = ? WHERE P" + i + " = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, newId);
+            statement.setString(2, oldId);
             statement.executeUpdate();
         }
     }
