@@ -7,10 +7,10 @@
 </head>
 <body>
     <!-- Main header fragment - dispatches to Brighton or standard header -->
-    <div th:fragment="header(resort, resortFullName, patrollerId)">
-        <div th:if="${resort == 'Brighton'}" th:replace="~{fragments/header :: brighton-header(${resort}, ${resortFullName}, ${patrollerId})}"></div>
-        <div th:unless="${resort == 'Brighton'}" th:replace="~{fragments/header :: standard-header(${resort}, ${resortFullName}, ${patrollerId})}"></div>
-    </div>
+    <th:block th:fragment="header(resort, resortFullName, patrollerId)">
+        <div th:if="${resort == 'Brighton'}" th:insert="~{fragments/header :: brighton-header(${resort}, ${resortFullName}, ${patrollerId})}"></div>
+        <div th:unless="${resort == 'Brighton'}" th:insert="~{fragments/header :: standard-header(${resort}, ${resortFullName}, ${patrollerId})}"></div>
+    </th:block>
 
     <!-- Brighton-specific header -->
     <div th:fragment="brighton-header(resort, resortFullName, patrollerId)" th:with="pid=${patrollerId != null ? patrollerId : ''}">
