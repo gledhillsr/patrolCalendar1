@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Patroller Deleted</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+            font-size: 14pt;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <div class="success">
+        <h2>Deleted record for <span th:text="${memberName}">Member Name</span></h2>
+    </div>
+
+    <p><b>host resort:</b> <span th:text="${resortFullName}">Resort Name</span></p>
+
+    <p>
+        The patroller record has been successfully deleted from the database.<br>
+        All assignments for this patroller have been cleared.
+    </p>
+
+    <p>
+        <input type="button" value="Return to Director's Page"
+               th:data-url="|Directors?resort=${resort}&ID=${patrollerId}|"
+               onclick="window.location=this.dataset.url" />
+    </p>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

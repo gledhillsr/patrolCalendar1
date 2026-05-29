@@ -451,7 +451,13 @@ public class UpdateInfoController {
         javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
         Logger LOG = new Logger(UpdateInfoController.class, javaxRequest, "POST", resort, Logger.INFO);
 
-        // 3. Check if this is a director action from Directors menu
+        // 3. Check for FinalDelete purpose (from delete confirmation page)
+        String purpose = request.getParameter("Purpose");
+        if ("FinalDelete".equals(purpose)) {
+            return handleFinalDelete(resort, patrollerId, request, response, model);
+        }
+
+        // 4. Check if this is a director action from Directors menu
         String editInfo = request.getParameter("EditInfo");
         String nameToEdit = request.getParameter("NameToEdit");
         String setNewID = request.getParameter("setNewID");
@@ -477,8 +483,13 @@ public class UpdateInfoController {
             return null;
         }
 
-        if (setNewID != null || removeName != null) {
-            // Other director actions - redirect back to Directors for now
+        if (removeName != null && nameToEdit != null) {
+            // Director clicked "Delete Patroller" - show confirmation page
+            return showDeleteConfirmation(resort, patrollerId, nameToEdit, request, response, model);
+        }
+
+        if (setNewID != null) {
+            // Change ID Number - redirect back to Directors for now (not yet implemented)
             response.sendRedirect("Directors?resort=" + resort + "&ID=" + patrollerId);
             return null;
         }
@@ -730,5 +741,172 @@ public class UpdateInfoController {
             }
         }
         return null;
+    }
+
+    /**
+     * Show delete confirmation page.
+     */
+    private String showDeleteConfirmation(
+            String resort,
+            String patrollerId,
+            String nameToEdit,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Model model) throws IOException {
+
+        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+        Logger LOG = new Logger(UpdateInfoController.class, javaxRequest, "POST", resort, Logger.INFO);
+
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
+
+        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        ValidateCredentialsRedirectIfNeeded credentials =
+            new ValidateCredentialsRedirectIfNeeded(
+                sessionData, javaxRequest, javaxResponse,
+                "UpdateInfo", patrolData, LOG);
+
+        if (credentials.hasInvalidCredentials()) {
+            patrolData.close();
+            return null;
+        }
+
+        try {
+            // Find the member to delete
+            Roster member = patrolData.getMemberByLastNameFirstName(nameToEdit);
+            if (member == null) {
+                LOG.error("Member not found: " + nameToEdit);
+                response.sendRedirect("Directors?resort=" + resort + "&ID=" + patrollerId);
+                return null;
+            }
+
+            // Add model attributes for confirmation page
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", patrollerId);
+            model.addAttribute("nameToEdit", nameToEdit);
+            model.addAttribute("memberName", member.getFullName());
+            model.addAttribute("memberData", member);
+
+            // Add resort metadata for header
+            ResortData resortData = PatrolData.getResortInfo(resort);
+            if (resortData != null) {
+                model.addAttribute("resortUrl", resortData.getResortURL());
+                model.addAttribute("resortImage", resortData.getResortImage());
+                model.addAttribute("resortImgHeight", resortData.getImageHeight());
+            }
+
+            return "delete-patroller-confirm";
+
+        } finally {
+            patrolData.close();
+        }
+    }
+
+    /**
+     * Handle final deletion of patroller record.
+     */
+    private String handleFinalDelete(
+            String resort,
+            String patrollerId,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Model model) throws IOException {
+
+        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+        Logger LOG = new Logger(UpdateInfoController.class, javaxRequest, "POST", resort, Logger.INFO);
+
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
+
+        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        ValidateCredentialsRedirectIfNeeded credentials =
+            new ValidateCredentialsRedirectIfNeeded(
+                sessionData, javaxRequest, javaxResponse,
+                "UpdateInfo", patrolData, LOG);
+
+        if (credentials.hasInvalidCredentials()) {
+            patrolData.close();
+            return null;
+        }
+
+        try {
+            String nameToEdit = request.getParameter("NameToEdit");
+            if (nameToEdit == null) {
+                LOG.error("NameToEdit parameter missing for FinalDelete");
+                response.sendRedirect("Directors?resort=" + resort + "&ID=" + patrollerId);
+                return null;
+            }
+
+            // Find the member to delete
+            Roster member = patrolData.getMemberByLastNameFirstName(nameToEdit);
+            if (member == null) {
+                LOG.error("Member not found for deletion: " + nameToEdit);
+                response.sendRedirect("Directors?resort=" + resort + "&ID=" + patrollerId);
+                return null;
+            }
+
+            String memberIdToDelete = member.getID();
+            String memberName = member.getFullName();
+
+            // Delete from database
+            Connection connection = patrolData.getConnection(resort, sessionData, LOG);
+            String sql = member.getDeleteSQLString(resort);
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.executeUpdate();
+
+            // Replace member ID with "0" in assignments table
+            updateAssignmentsAfterDelete(memberIdToDelete, connection);
+
+            LOG.info("Successfully deleted member: " + memberName + " (ID: " + memberIdToDelete + ")");
+
+            // Show success page
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", patrollerId);
+            model.addAttribute("memberName", memberName);
+            model.addAttribute("deleteSuccess", true);
+
+            // Add resort metadata for header
+            ResortData resortData = PatrolData.getResortInfo(resort);
+            if (resortData != null) {
+                model.addAttribute("resortUrl", resortData.getResortURL());
+                model.addAttribute("resortImage", resortData.getResortImage());
+                model.addAttribute("resortImgHeight", resortData.getImageHeight());
+            }
+
+            return "delete-patroller-success";
+
+        } catch (Exception e) {
+            LOG.logException("Failed to delete member", e);
+            response.sendRedirect("Directors?resort=" + resort + "&ID=" + patrollerId + "&error=delete_failed");
+            return null;
+        } finally {
+            patrolData.close();
+        }
+    }
+
+    /**
+     * Update assignments table after deleting a patroller.
+     * Replace the deleted member's ID with "0" in all assignments.
+     */
+    private void updateAssignmentsAfterDelete(String deletedId, Connection connection) throws Exception {
+        // Update all assignment patroller fields (P0 through P9)
+        for (int i = 0; i < 10; i++) {
+            String sql = "UPDATE assignments SET P" + i + " = '0' WHERE P" + i + " = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, deletedId);
+            statement.executeUpdate();
+        }
     }
 }

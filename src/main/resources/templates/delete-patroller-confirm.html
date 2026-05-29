@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Patroller Confirmation</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        .warning {
+            color: red;
+            font-weight: bold;
+            font-size: 14pt;
+            margin: 20px 0;
+        }
+        .member-info {
+            margin: 20px;
+            padding: 15px;
+            border: 2px solid #ccc;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <div class="warning">
+        <h2>CAUTION!!! DELETE record for <span th:text="${memberName}">Member Name</span>:</h2>
+    </div>
+
+    <p><b>host resort:</b> <span th:text="${resortFullName}">Resort Name</span></p>
+
+    <div class="member-info">
+        <h3>Patroller Information:</h3>
+        <table border="0" cellpadding="5">
+            <tr>
+                <td><b>Name:</b></td>
+                <td th:text="${memberName}">Member Name</td>
+            </tr>
+            <tr>
+                <td><b>ID:</b></td>
+                <td th:text="${memberData.ID}">ID</td>
+            </tr>
+            <tr>
+                <td><b>Email:</b></td>
+                <td th:text="${memberData.emailAddress}">Email</td>
+            </tr>
+            <tr>
+                <td><b>Phone:</b></td>
+                <td th:text="${memberData.homePhone}">Phone</td>
+            </tr>
+        </table>
+    </div>
+
+    <p class="warning">
+        Are you sure you want to permanently delete this patroller's record?<br>
+        This action cannot be undone!
+    </p>
+
+    <form th:action="@{/UpdateInfo}" method="post">
+        <input type="hidden" name="resort" th:value="${resort}" />
+        <input type="hidden" name="ID" th:value="${patrollerId}" />
+        <input type="hidden" name="Purpose" value="FinalDelete" />
+        <input type="hidden" name="NameToEdit" th:value="${nameToEdit}" />
+
+        <p>
+            <input type="submit" value="Delete Record" style="background-color: #ff6666; font-weight: bold; padding: 10px 20px;" />
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <input type="button" value="Cancel" onclick="history.back()" style="padding: 10px 20px;" />
+        </p>
+    </form>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
