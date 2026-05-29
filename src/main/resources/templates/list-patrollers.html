@@ -53,13 +53,15 @@
         <p><font size="3"><bold>
             <input type="button"
                    value="e-mail THESE patrollers"
-                   th:onclick="'window.location=\'' + ${emailFormUrl} + '\''"/>
+                   th:attr="data-url=${emailFormUrl}"
+                   onclick="window.location=this.getAttribute('data-url')"/>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
             <input th:if="${isDirector and userId == '192443'}"
                    type="button"
                    value="Steve, Download table (under construction)"
-                   th:onclick="'window.location=\'DownloadRoster?resort=' + ${resort} + '&ID=' + ${userId} + '&format=Excel\''"/>
+                   th:attr="data-url=|DownloadRoster?resort=${resort}&ID=${userId}&format=Excel|"
+                   onclick="window.location=this.getAttribute('data-url')"/>
         </bold></font></p>
     </div>
 
