@@ -157,7 +157,7 @@
                     <td width="15%" align="right"><b>From:</b></td>
                     <td width="85%">
                         <input type="text" readonly="readonly" class="readonly-field"
-                               th:value="${fromMemberName} + ' &lt;' + ${fromMemberEmail} + '&gt;'"
+                               th:value="|${fromName} <${fromEmail}>|"
                                size="60"/>
                     </td>
                 </tr>
