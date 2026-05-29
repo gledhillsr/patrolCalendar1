@@ -60,8 +60,8 @@ public class MemberLogin extends ResourceBase {
     out.println("  <tr>");
     if (resort.equalsIgnoreCase("Sample")) {
       out.println("    <td width='75%'>To try <b>DEMO</b> mode, login as a Director, or a Normal Patroller<br>");
-      out.println("&nbsp;&nbsp;&nbsp;&nbsp;Director  id='<b>123456</b>' password='<b>password</b>'<br>");
-      out.println("&nbsp;&nbsp;&nbsp;&nbsp;Patroller id='<b>111111</b>' password='<b>password</b>'<br><br>");
+      out.println("&nbsp;&nbsp;&nbsp;&nbsp;Director  id='<b>123456</b>' password='<b>patrolCalendar</b>'<br>");
+      out.println("&nbsp;&nbsp;&nbsp;&nbsp;Patroller id='<b>111111</b>' password='<b>patrolCalendar</b>'<br><br>");
       out.println("Everything is enabled, but no email notifications will be sent.");
     }
     //      else {
