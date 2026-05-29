@@ -338,10 +338,22 @@ public class UpdateInfoController {
             }
 
             // 6. Get logged-in user info
-            patrollerId = sessionData.getLoggedInUserId();
+            String loggedInUserId = sessionData.getLoggedInUserId();
+
+            // Check if editing another patroller (director function)
+            String editID = request.getParameter("EditID");
+            String purpose = request.getParameter("Purpose");
+
+            if (editID != null && "Edit_Patroller".equals(purpose)) {
+                // Director is editing another patroller
+                patrollerId = editID;
+            } else {
+                // User is editing their own profile
+                patrollerId = loggedInUserId;
+            }
 
             // 7. Check for backdoor user
-            boolean isBackdoorUser = patrollerId.equalsIgnoreCase(sessionData.getBackDoorUser());
+            boolean isBackdoorUser = loggedInUserId.equalsIgnoreCase(sessionData.getBackDoorUser());
 
             if (isBackdoorUser) {
                 // Backdoor user - show friendly message
@@ -387,7 +399,8 @@ public class UpdateInfoController {
             // 10. Add model attributes for template
             model.addAttribute("resort", resort);
             model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
-            model.addAttribute("patrollerId", patrollerId);
+            model.addAttribute("patrollerId", loggedInUserId); // For header navigation
+            model.addAttribute("editingPatrollerId", patrollerId); // The ID being edited
             model.addAttribute("memberName", member.getFullName());
             model.addAttribute("isBackdoorUser", false);
             model.addAttribute("memberForm", memberForm);
@@ -492,10 +505,14 @@ public class UpdateInfoController {
             }
 
             // 7. Get logged-in user info
-            patrollerId = sessionData.getLoggedInUserId();
+            String loggedInUserId = sessionData.getLoggedInUserId();
 
-            // 7. Check for backdoor user (cannot update)
-            boolean isBackdoorUser = patrollerId.equalsIgnoreCase(sessionData.getBackDoorUser());
+            // The ID parameter from the form indicates which member to update
+            // This could be the logged-in user updating themselves, or a director editing another member
+            // patrollerId already has the value from request.getParameter("ID") on line 433
+
+            // 8. Check for backdoor user (cannot update)
+            boolean isBackdoorUser = loggedInUserId.equalsIgnoreCase(sessionData.getBackDoorUser());
 
             if (isBackdoorUser) {
                 // Redirect back to GET for backdoor user

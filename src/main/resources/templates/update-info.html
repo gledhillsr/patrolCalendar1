@@ -68,7 +68,7 @@
         </div>
 
         <!-- Main form -->
-        <form th:action="@{/UpdateInfo(resort=${resort}, ID=${patrollerId})}"
+        <form th:action="@{/UpdateInfo(resort=${resort}, ID=${editingPatrollerId ?: patrollerId})}"
               th:object="${memberForm}"
               method="post"
               onsubmit="return validate()">
