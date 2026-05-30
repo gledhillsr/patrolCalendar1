@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${resortFullName} + ' - Day Shifts for ' + ${monthName} + ' ' + ${date} + ', ' + ${year}">Day Shifts</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <style type="text/css">
+        body {
+            font-family: Verdana, Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        h1 {
+            color: #FF0000;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        td {
+            padding: 4px;
+        }
+        .shift-table {
+            border: 3px solid #000000;
+            border-spacing: 0;
+            font-size: 12pt;
+        }
+        .shift-table td {
+            background-color: #C0C0C0;
+        }
+    </style>
+    <script type="text/javascript" th:if="${isDirector}">
+        var mustChangeName = true;
+        var currName = /*[[${selectedShift}]]*/ '';
+
+        function reloadPage(list) {
+            var idx = list.selectedIndex;
+            var msg = list.options[idx].text;
+            location = /*[[@{/DayShifts(resort=${resort}, dayOfWeek=${dayOfWeek}, date=${date}, month=${month}, year=${year}, ID=${patrollerId}, dropdownShift=)}]]*/ '' + msg;
+        }
+
+        function captureEnter(keycode) {
+            return (keycode != 13);
+        }
+
+        function confirmShiftDelete(count) {
+            if (count == 0) return true;
+            return confirm('This shift has patrollers assigned to it. \nAre you sure you want to DELETE it?');
+        }
+
+        function insertName(form, where) {
+            var idx = form.NameList.selectedIndex;
+            if (idx == -1)
+                alert('Select a Name to Insert');
+            else
+                where.value = form.NameList.options[idx].text;
+        }
+
+        function deleteName(form, where) {
+            where.value = '';
+        }
+
+        function testName(str) {
+            currName = str;
+            if (str != '[[${T(org.nsponline.calendar.utils.PatrolData).NEW_SHIFT_STYLE}]]' && str != '' && str != ' ')
+                mustChangeName = false;
+            if (str == '' || str == ' ')
+                currName = 'Blank';
+        }
+
+        function CheckEventName() {
+            return true;
+        }
+    </script>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <!-- Header -->
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <!-- Date header -->
+    <h1 th:text="${dayName} + ' ' + ${monthName} + ' ' + ${date} + ', ' + ${year}">Date</h1>
+
+    <!-- Non-Director View - Shift Details Only -->
+    <div th:if="${!isDirector}">
+        <form th:action="@{/MonthCalendar(month=${month}, year=${year}, resort=${resort}, ID=${patrollerId})}" method="post">
+            <div align="center">
+                <center>
+                    <table border="3" cellpadding="0" cellspacing="0" width="438">
+                        <tr>
+                            <td width="424" colspan="3">
+                                <h3 align="center">Shift Details</h3>
+                            </td>
+                        </tr>
+                        <th:block th:if="${#lists.isEmpty(assignments)}">
+                            <tr>
+                                <td width="340" bgcolor="#C0C0C0">No Shift Assignments have been made this date</td>
+                            </tr>
+                        </th:block>
+                        <th:block th:each="assignment : ${assignments}">
+                            <th:block th:each="j : ${#numbers.sequence(0, assignment.count - 1)}">
+                                <tr th:with="id=${assignment.getPosID(j)},
+                                             missed=${id.charAt(0) == '-'},
+                                             cleanId=${missed ? id.substring(1) : id},
+                                             name=${numToName.get(cleanId)},
+                                             time=${assignment.getStartingTimeString() + ' - ' + assignment.getEndingTimeString()}">
+                                    <td width="140" bgcolor="#C0C0C0" th:text="${time}">Time</td>
+                                    <td width="270" bgcolor="#C0C0C0" th:text="${name != null ? name : '&nbsp;'}">Name</td>
+                                    <td width="80" bgcolor="#C0C0C0" th:text="${missed ? 'Missed' : '&nbsp;'}">Status</td>
+                                </tr>
+                            </th:block>
+                        </th:block>
+                    </table>
+                </center>
+            </div>
+            <p align="center"><input type="submit" value="Return to Calendar" name="B2"></p>
+        </form>
+    </div>
+
+    <!-- Director View - Edit Shifts -->
+    <div th:if="${isDirector}">
+        <!-- Group Assignment Option -->
+        <div th:if="${!doAssignments and (!#lists.isEmpty(assignments) or true)}">
+            <form th:action="@{/DayShifts}" method="post">
+                <input type="hidden" name="ID" th:value="${patrollerId}">
+                <input type="hidden" name="dayOfWeek" th:value="${dayOfWeek}">
+                <input type="hidden" name="date" th:value="${date}">
+                <input type="hidden" name="month" th:value="${month}">
+                <input type="hidden" name="year" th:value="${year}">
+                <input type="hidden" name="resort" th:value="${resort}">
+                <input type="submit" name="doAssignments" value="Group Assignment of Patrollers to Shifts">
+                &nbsp;&nbsp;&nbsp;(Fast if assigning a large number of patrollers at one time)
+            </form>
+        </div>
+
+        <!-- Edit Shift Form -->
+        <div th:if="${!doAssignments}">
+            <hr>
+            <div align="center">
+                <table border="3" cellpadding="0" cellspacing="0" width="375" height="281">
+                    <tr>
+                        <td width="554" bgcolor="#C0C0C0" height="279">
+                            <form th:action="@{/DayShifts}" onsubmit="return CheckEventName()" method="post">
+                                <input type="hidden" name="ID" th:value="${patrollerId}">
+                                <input type="hidden" name="dayOfWeek" th:value="${dayOfWeek}">
+                                <input type="hidden" name="date" th:value="${date}">
+                                <input type="hidden" name="month" th:value="${month}">
+                                <input type="hidden" name="year" th:value="${year}">
+                                <input type="hidden" name="resort" th:value="${resort}">
+                                <input type="hidden" name="shiftCount" th:value="${#lists.size(assignments)}">
+
+                                <h2 align="center">Change Today's Shift</h2>
+                                <h4>Please report any bugs to steve@gledhills.com</h4>
+
+                                <div align="center">
+                                    <table border="3" cellpadding="0" cellspacing="0" width="700" height="192">
+                                        <center>
+                                            <tr>
+                                                <td height="150" width="650">
+                                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                                    Use Predefined Shift format:
+                                                    <select onchange="reloadPage(this)" size="1" name="selectedShift">
+                                                        <option value="">--New Shift Style--</option>
+                                                        <th:block th:each="template : ${shiftTemplates}">
+                                                            <option th:value="${template.parsedEventName()}"
+                                                                    th:text="${template.parsedEventName()}"
+                                                                    th:selected="${template.parsedEventName() == selectedShift}">
+                                                                Template
+                                                            </option>
+                                                        </th:block>
+                                                    </select>
+                                                    <br>
+                                                    &nbsp;&nbsp;
+                                                    <div align="center">
+                                                        <table border="3" cellpadding="0" cellspacing="0" width="636" style="font-size: 12pt">
+                                                            <tr>
+                                                                <td width="483" colspan="5">
+                                                                    Event Name/Comment:
+                                                                    <input type="text" name="newName"
+                                                                           onkeydown="javascript:return captureEnter(event.keyCode)"
+                                                                           th:value="${originalName}" size="39">
+                                                                </td>
+                                                            </tr>
+
+                                                            <!-- Display existing assignments or template shifts -->
+                                                            <th:block th:if="${!#lists.isEmpty(assignments)}">
+                                                                <th:block th:each="assignment, iterStat : ${assignments}">
+                                                                    <tr>
+                                                                        <td width="90">
+                                                                            <input type="submit"
+                                                                                   th:name="'delete_' + ${iterStat.index}"
+                                                                                   value="Del"
+                                                                                   th:onclick="'return confirmShiftDelete(' + ${assignment.count} + ')'">
+                                                                        </td>
+                                                                        <td width="113">
+                                                                            <input type="text"
+                                                                                   th:name="'startTime_' + ${iterStat.index}"
+                                                                                   th:value="${assignment.getStartingTimeString()}"
+                                                                                   size="8">
+                                                                        </td>
+                                                                        <td width="111">
+                                                                            <input type="text"
+                                                                                   th:name="'endTime_' + ${iterStat.index}"
+                                                                                   th:value="${assignment.getEndingTimeString()}"
+                                                                                   size="8">
+                                                                        </td>
+                                                                        <td width="166">
+                                                                            <select th:name="'shift_' + ${iterStat.index}">
+                                                                                <option value="Day" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).DAY_TYPE}">Day</option>
+                                                                                <option value="Night" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).NIGHT_TYPE}">Night</option>
+                                                                                <option value="Graveyard" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).GRAVEYARD_TYPE}">Graveyard</option>
+                                                                            </select>
+                                                                        </td>
+                                                                        <td width="130">
+                                                                            <input type="text"
+                                                                                   th:name="'count_' + ${iterStat.index}"
+                                                                                   th:value="${assignment.count}"
+                                                                                   size="3">
+                                                                        </td>
+                                                                    </tr>
+                                                                </th:block>
+                                                            </th:block>
+
+                                                            <!-- New shift button -->
+                                                            <tr>
+                                                                <td width="90">
+                                                                    <input type="submit" value="New" name="newShift"
+                                                                           th:disabled="${maxShiftsReached}">
+                                                                </td>
+                                                                <td width="113">&nbsp;</td>
+                                                                <td width="111">&nbsp;</td>
+                                                                <td width="166">&nbsp;</td>
+                                                                <td width="130">&nbsp;</td>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+
+                                                    <p align="center">
+                                                        <input type="submit" value="Save Shift Changes" name="saveShiftBtn">&nbsp;&nbsp;
+                                                        <input type="button" value="Cancel" name="B6"
+                                                               th:onclick="'window.location=\'/calendar-1/MonthCalendar?month=' + ${month} + '&year=' + ${year} + '&resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                                        &nbsp;&nbsp;
+                                                        <input type="submit" value="Delete All (restore template)" name="deleteAllShiftsBtn">
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </center>
+                                    </table>
+                                </div>
+                                <font size="3">NOTE: pressing <b>Add</b> or <b>Delete</b> does a <b>Save Shift Changes</b> (<b>Cancel</b> won't undo change)</font>
+                            </form>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Group Assignment View -->
+        <div th:if="${doAssignments}">
+            <hr>
+            <form th:action="@{/DayShifts}" method="post">
+                <input type="hidden" name="saveAssignmentBtn" value="yes">
+                <input type="hidden" name="ID" th:value="${patrollerId}">
+                <input type="hidden" name="dayOfWeek" th:value="${dayOfWeek}">
+                <input type="hidden" name="date" th:value="${date}">
+                <input type="hidden" name="month" th:value="${month}">
+                <input type="hidden" name="year" th:value="${year}">
+                <input type="hidden" name="resort" th:value="${resort}">
+
+                <table border="1" width="100%">
+                    <tr>
+                        <td width="100%" bgcolor="#C0C0C0">
+                            <h2 align="center">Change Today's Assignments</h2>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td width="100%" bgcolor="#C0C0C0">
+                            <table border="1" width="100%">
+                                <tr>
+                                    <td width="20%">
+                                        <select th:size="${8 + (#lists.size(assignments) * 3) / 2}" name="NameList">
+                                            <option th:each="name : ${sortedRoster}" th:text="${name}">Name</option>
+                                        </select>
+                                    </td>
+                                    <td width="80%">
+                                        <table border="1" width="100%" cellspacing="1" bordercolorlight="#FFFFFF">
+                                            <th:block th:each="assignment, iStat : ${assignments}">
+                                                <th:block th:each="j : ${#numbers.sequence(0, assignment.count - 1)}">
+                                                    <tr th:with="id=${assignment.getPosID(j)},
+                                                                 cleanId=${id.charAt(0) == '-' ? id.substring(1) : id},
+                                                                 name=${numToName.get(cleanId)},
+                                                                 time=${assignment.getStartingTimeString() + ' - ' + assignment.getEndingTimeString()},
+                                                                 fieldName=${'name' + T(org.nsponline.calendar.utils.PatrolData).IndexToString(iStat.index) + '_' + T(org.nsponline.calendar.utils.PatrolData).IndexToString(j)}">
+                                                        <td width="20%" bgcolor="#C0C0C0">
+                                                            <input type="button" value="Insert --&gt;"
+                                                                   th:onclick="'insertName(this.form,' + ${fieldName} + ')'"
+                                                                   name="B14">
+                                                        </td>
+                                                        <td width="35%" bgcolor="#C0C0C0" th:text="${time}">Time</td>
+                                                        <td width="30%" bgcolor="#C0C0C0">
+                                                            <input readonly type="text" th:name="${fieldName}"
+                                                                   size="18" th:value="${name != null ? name : ''}">
+                                                        </td>
+                                                        <td width="15%" bgcolor="#C0C0C0">
+                                                            <input type="button" value="Clear"
+                                                                   th:onclick="'deleteName(this.form,' + ${fieldName} + ')'"
+                                                                   name="B18">
+                                                        </td>
+                                                    </tr>
+                                                </th:block>
+                                            </th:block>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td width="100%" bgcolor="#C0C0C0">
+                            &nbsp;&nbsp;&nbsp;
+                            <input type="submit" value="Save Assignment Changes" name="B13">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            <input type="button" value="Cancel, return to Calendar" onclick="history.back()">
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+
+    <p><br></p>
+    <p th:text="'As of: ' + ${#dates.createNow()}">Timestamp</p>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

@@ -62,6 +62,7 @@ Application starts on `http://localhost:8080/calendar-1/`
 - `/EmailForm` - Email composition and sending with async delivery (Spring Boot + Thymeleaf)
 - `/WebSitePreferences` - Director preferences configuration (Spring Boot + Thymeleaf)
 - `/EditShiftTemplates` - Shift template editor for directors (Spring Boot + Thymeleaf)
+- `/DayShifts` - Single day shift editor with group assignment mode (Spring Boot + Thymeleaf)
 
 ### Security Improvements
 
