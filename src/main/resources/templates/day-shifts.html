@@ -238,7 +238,8 @@
                                                     <p align="center">
                                                         <input type="submit" value="Save Shift Changes" name="saveShiftBtn">&nbsp;&nbsp;
                                                         <input type="button" value="Cancel" name="B6"
-                                                               th:onclick="'window.location=\'/calendar-1/MonthCalendar?month=' + ${month} + '&year=' + ${year} + '&resort=' + ${resort} + '&ID=' + ${patrollerId} + '\''">
+                                                               th:data-url="@{/MonthCalendar(month=${month}, year=${year}, resort=${resort}, ID=${patrollerId})}"
+                                                               onclick="window.location=this.dataset.url">
                                                         &nbsp;&nbsp;
                                                         <input type="submit" value="Delete All (restore template)" name="deleteAllShiftsBtn">
                                                     </p>
@@ -293,7 +294,8 @@
                                                                  fieldName=${'name' + T(org.nsponline.calendar.utils.PatrolData).IndexToString(iStat.index) + '_' + T(org.nsponline.calendar.utils.PatrolData).IndexToString(j)}">
                                                         <td width="20%" bgcolor="#C0C0C0">
                                                             <input type="button" value="Insert --&gt;"
-                                                                   th:onclick="'insertName(this.form,' + ${fieldName} + ')'"
+                                                                   th:data-fieldname="${fieldName}"
+                                                                   onclick="insertName(this.form, document.getElementsByName(this.dataset.fieldname)[0])"
                                                                    name="B14">
                                                         </td>
                                                         <td width="35%" bgcolor="#C0C0C0" th:text="${time}">Time</td>
@@ -303,7 +305,8 @@
                                                         </td>
                                                         <td width="15%" bgcolor="#C0C0C0">
                                                             <input type="button" value="Clear"
-                                                                   th:onclick="'deleteName(this.form,' + ${fieldName} + ')'"
+                                                                   th:data-fieldname="${fieldName}"
+                                                                   onclick="deleteName(this.form, document.getElementsByName(this.dataset.fieldname)[0])"
                                                                    name="B18">
                                                         </td>
                                                     </tr>
