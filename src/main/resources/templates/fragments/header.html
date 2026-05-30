@@ -1,10 +1,5 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <style type="text/css" th:if="${resort == 'Brighton'}">
-        @import "/css/BrightonMenubar.css";
-    </style>
-</head>
 <body>
     <!-- Main header fragment - dispatches to Brighton or standard header -->
     <th:block th:fragment="header(resort, resortFullName, patrollerId)">

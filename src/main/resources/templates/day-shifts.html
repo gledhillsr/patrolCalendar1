@@ -5,6 +5,9 @@
     <title th:text="${resortFullName} + ' - Day Shifts for ' + ${monthName} + ' ' + ${date} + ', ' + ${year}">Day Shifts</title>
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
+    <style type="text/css" th:if="${resort == 'Brighton'}">
+        @import "/css/BrightonMenubar.css";
+    </style>
     <style type="text/css">
         body {
             font-family: Verdana, Arial, Helvetica, sans-serif;
