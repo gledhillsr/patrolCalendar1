@@ -9,42 +9,12 @@
             color: #000000;
             background-color: #ffffff;
         }
-        table.substitute-list {
-            font-size: 10pt;
-            font-family: Verdana, Arial, Helvetica;
-            border-width: 1px;
-            border-color: #003366;
-            border-style: solid;
-            border-collapse: collapse;
-            width: 99%;
-        }
-        table.substitute-list th {
-            font-size: 10pt;
-            font-family: Verdana, Arial, Helvetica;
-            font-weight: normal;
-            color: #000000;
-            background-color: #C0C0C0;
-            border-width: 1px;
-            border-color: #003366;
-            border-style: solid;
-            padding: 2px;
-        }
-        table.substitute-list td {
-            font-size: 10pt;
-            font-family: Verdana, Arial, Helvetica;
-            color: #000000;
-            background-color: #ffffff;
-            border-width: 1px;
-            border-color: #C0C0C0;
-            border-style: solid;
-            padding: 2px;
-        }
     </style>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
-    <h2 th:text="'Substitute List for ' + ${resortFullName}">Substitute List</h2>
+    <p><center><h2 th:text="'Substitute List for ' + ${resortFullName}">Substitute List</h2></center></p>
 
     <!-- Email button -->
     <p th:if="${!substitutes.isEmpty()}">
@@ -57,13 +27,13 @@
     </p>
 
     <!-- Substitute table -->
-    <table class="substitute-list">
+    <table style="font-size: 10pt; font-family: Verdana, Arial, Helvetica;" border="1" width="99%" bordercolordark="#003366" bordercolorlight="#C0C0C0">
         <tr>
-            <th width="148">Name</th>
-            <th width="90">Home</th>
-            <th width="83">Work</th>
-            <th width="70">Cell</th>
-            <th width="136">Email</th>
+            <td width="148" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Name</font></font></td>
+            <td width="90" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Home</font></font></td>
+            <td width="83" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Work</font></font></td>
+            <td width="70" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Cell</font></font></td>
+            <td width="136" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Email</font></font></td>
         </tr>
 
         <!-- Empty state message -->
