@@ -188,6 +188,12 @@ public class DayShiftsController {
             selectedShift = StaticUtils.szDays[dayOfWeek];
         }
 
+        // If no assignments exist for this date, populate from shift template
+        if (assignments.isEmpty() && dropdownShift == null) {
+            populateAssignmentsFromTemplate(assignments, shiftTemplates, selectedShift,
+                    date, month, year, LOG);
+        }
+
         String originalName = assignments.isEmpty() ? "" : assignments.get(0).getEventName();
 
         model.addAttribute("resort", resort);
@@ -221,13 +227,26 @@ public class DayShiftsController {
 
         ArrayList<Assignments> monthOfAssignments = patrolData.readSortedAssignments(year, month + 1);
 
+        int matchCount = 0;
         for (Assignments data : monthOfAssignments) {
             int y = data.getYear();
             int m = data.getMonth() - 1;
             int d = data.getDay();
+
             if (year == y && month == m && date == d) {
                 assignmentsFromDisk.add(data);
+                matchCount++;
             }
+        }
+
+        if (matchCount == 0) {
+            System.out.println("DayShifts DEBUG: No assignments found for " + year + "-" + (month+1) + "-" + date);
+            System.out.println("DayShifts DEBUG: Total assignments in month: " + monthOfAssignments.size());
+            for (Assignments data : monthOfAssignments) {
+                System.out.println("DayShifts DEBUG: Assignment date: " + data.getYear() + "-" + data.getMonth() + "-" + data.getDay());
+            }
+        } else {
+            System.out.println("DayShifts DEBUG: Found " + matchCount + " assignments for " + year + "-" + (month+1) + "-" + date);
         }
     }
 
@@ -426,6 +445,24 @@ public class DayShiftsController {
         if (resortData != null) {
             model.addAttribute("resortUrl", resortData.getResortURL());
             model.addAttribute("resortImage", resortData.getResortImage());
+        }
+    }
+
+    private void populateAssignmentsFromTemplate(ArrayList<Assignments> assignments,
+            ArrayList<ShiftDefinitions> shiftTemplates, String selectedShift,
+            int date, int month, int year, Logger LOG) {
+
+        // Find all shift definitions that match the selected shift name
+        int position = 1;
+        for (ShiftDefinitions template : shiftTemplates) {
+            String parsedName = template.parsedEventName();
+            if (parsedName.equals(selectedShift)) {
+                String szAssignmentDate = getTodaysAssignmentString(date, month, year, position);
+                Assignments assignment = new Assignments(szAssignmentDate, template, LOG);
+                assignment.setEventName(" ");
+                assignments.add(assignment);
+                position++;
+            }
         }
     }
 }

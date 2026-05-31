@@ -209,9 +209,12 @@
                                                                         </td>
                                                                         <td width="166">
                                                                             <select th:name="'shift_' + ${iterStat.index}">
-                                                                                <option value="Day" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).DAY_TYPE}">Day</option>
-                                                                                <option value="Night" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).NIGHT_TYPE}">Night</option>
-                                                                                <option value="Graveyard" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).GRAVEYARD_TYPE}">Graveyard</option>
+                                                                                <option value="Day Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).DAY_TYPE}">Day</option>
+                                                                                <option value="Swing Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).SWING_TYPE}">Swing</option>
+                                                                                <option value="Night Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).NIGHT_TYPE}">Night</option>
+                                                                                <option value="Training Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).TRAINING_TYPE}">Training</option>
+                                                                                <option value="Other Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).OTHER_TYPE}">Other</option>
+                                                                                <option value="Holiday Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).HOLIDAY_TYPE}">Holiday</option>
                                                                             </select>
                                                                         </td>
                                                                         <td width="130">
