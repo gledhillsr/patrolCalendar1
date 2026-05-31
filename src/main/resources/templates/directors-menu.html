@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="'Database Maintenance - ' + ${resortFullName}">Database Maintenance</title>
-    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+    </style>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
-    <div class="content">
+    <div id="main" name="main">
         <h1 th:text="'Database Maintenance for ' + ${resortFullName}">Database Maintenance</h1>
 
         <!-- Non-Director View -->
@@ -151,8 +157,7 @@
                 </table>
             </form>
         </div>
-    </div>
+    </div> <!-- end main -->
 
-    <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

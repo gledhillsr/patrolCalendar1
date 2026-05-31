@@ -55,7 +55,11 @@ public class MonthCalendarController {
     Logger LOG = new Logger(MonthCalendarController.class, javaxRequest, "GET", resort, Logger.INFO);
 
     try {
-      // 3. Capture HTML output from legacy servlet
+      // 3. Get session data for header
+      SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+      String patrollerId = sessionData.getLoggedInUserId();
+
+      // 4. Capture calendar body HTML from legacy servlet
       StringWriter stringWriter = new StringWriter();
       PrintWriter printWriter = new PrintWriter(stringWriter);
 
@@ -63,16 +67,26 @@ public class MonthCalendarController {
       javax.servlet.http.HttpServletResponse capturingResponse =
         new CapturingHttpServletResponse(javaxResponse, printWriter);
 
-      // 4. Instantiate and run legacy servlet
+      // 5. Instantiate and run legacy servlet (body only)
       MonthCalendar servlet = new MonthCalendar(javaxRequest, capturingResponse, LOG);
-      servlet.runner("MonthCalendar");
+      servlet.renderBodyOnly();
 
       printWriter.flush();
-      String calendarHtml = stringWriter.toString();
+      String calendarBodyHtml = stringWriter.toString();
 
-      // 5. Prepare model for template
+      // 6. Prepare model for template
       model.addAttribute("resort", resort);
-      model.addAttribute("calendarHtml", calendarHtml);
+      model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+      model.addAttribute("patrollerId", patrollerId);
+      model.addAttribute("calendarBodyHtml", calendarBodyHtml);
+
+      // Add resort metadata for header
+      ResortData resortData = PatrolData.getResortInfo(resort);
+      if (resortData != null) {
+        model.addAttribute("resortUrl", resortData.getResortURL());
+        model.addAttribute("resortImage", resortData.getResortImage());
+        model.addAttribute("resortImgHeight", resortData.getImageHeight());
+      }
 
       return "month-calendar";
 

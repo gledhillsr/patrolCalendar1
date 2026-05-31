@@ -3,11 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monthly Shift Schedule</title>
+    <title th:text="${resortFullName} + ' Ski Patrol - Monthly Schedule'">Monthly Shift Schedule</title>
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+    </style>
 </head>
-<body>
-    <!-- Render the captured HTML from legacy servlet -->
-    <!-- The OuterMonthCalendar servlet generates complete HTML including header/footer -->
-    <div th:utext="${calendarHtml}"></div>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <!-- Use the consistent Thymeleaf header fragment -->
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <!-- Render the calendar body HTML from legacy servlet -->
+    <div th:utext="${calendarBodyHtml}"></div>
 </body>
 </html>

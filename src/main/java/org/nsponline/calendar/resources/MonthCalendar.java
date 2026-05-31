@@ -59,6 +59,22 @@ public class MonthCalendar extends ResourceBase {
       return;
     }
 
+    initializeFields();
+    renderFullPage();
+  }
+
+  /**
+   * Renders only the calendar body (without header/footer) for Thymeleaf integration
+   */
+  public void renderBodyOnly() throws IOException {
+    if (!initBaseAndAskForValidCredentials(response, "MonthCalendar")) {
+      return;
+    }
+    initializeFields();
+    renderCalendarBody();
+  }
+
+  private void initializeFields() {
     String szMonth;
     String szYear;
     textFontSize = 10;
@@ -121,7 +137,9 @@ public class MonthCalendar extends ResourceBase {
       out.println("ERROR.  Invalid resort=" + resort);
       return;
     }
+  }
 
+  private void renderFullPage() {
     printCommonHeader();
 
     monthData = new Assignments[32][ShiftDefinitions.MAX + 5]; //all shifts for all days in 1 month
@@ -132,6 +150,16 @@ public class MonthCalendar extends ResourceBase {
     printCalendarDays(out, resort);
     printEndOfPage(out, resort);
     printCommonFooter();
+  }
+
+  private void renderCalendarBody() {
+    monthData = new Assignments[32][ShiftDefinitions.MAX + 5]; //all shifts for all days in 1 month
+    getPrevNextDateInfo(); //reset calendar to 1st of month
+    readData(sessionData);
+
+    printTopOfPage(out, resort);
+    printCalendarDays(out, resort);
+    printEndOfPage(out, resort);
   }
 
   private boolean isDateInvalidOrMissing(String szMonth, String szYear) {

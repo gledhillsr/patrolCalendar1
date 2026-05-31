@@ -445,6 +445,7 @@ public class DayShiftsController {
         if (resortData != null) {
             model.addAttribute("resortUrl", resortData.getResortURL());
             model.addAttribute("resortImage", resortData.getResortImage());
+            model.addAttribute("resortImgHeight", resortData.getImageHeight());
         }
     }
 
