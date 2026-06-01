@@ -217,9 +217,10 @@
                 <tr>
                     <td width="351" align="right"><font size="3">ID:</font></td>
                     <td width="600">
-                        <span th:if="${!isSetNewID}" th:text="${patrollerId}">ID</span>
-                        <input th:if="${isSetNewID}" type="text" th:field="*{idNumber}" size="10" maxlength="10" />
+                        <span th:if="${!isSetNewID and !isAddPatroller}" th:text="${idNumber}">ID</span>
+                        <input th:if="${isSetNewID or isAddPatroller}" type="text" th:field="*{idNumber}" size="10" maxlength="10" required="required" />
                         <span th:if="${isSetNewID}" style="color: #666; font-size: 10pt;"> (Old ID: <span th:text="${oldMemberID}">Old ID</span>)</span>
+                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 10pt;"> (Enter new ID number)</span>
                     </td>
                 </tr>
                 <tr>
@@ -260,6 +261,7 @@
                         <!-- SetNewID specific hidden fields -->
                         <input th:if="${isSetNewID}" type="hidden" name="Purpose" value="setNewID" />
                         <input th:if="${isSetNewID}" type="hidden" name="removeOldID" th:value="${oldMemberID}" />
+                        <input th:if="${isAddPatroller}" type="hidden" name="Purpose" value="Add_Patroller" />
                     </td>
                 </tr>
 

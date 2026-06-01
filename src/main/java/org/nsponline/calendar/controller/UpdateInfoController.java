@@ -359,9 +359,13 @@ public class UpdateInfoController {
             String editID = request.getParameter("EditID");
             String purpose = request.getParameter("Purpose");
             boolean isSetNewID = "setNewID".equals(purpose);
+            boolean isAddPatroller = "Add_Patroller".equals(purpose);
             String oldMemberID = null;
 
-            if (editID != null && ("Edit_Patroller".equals(purpose) || isSetNewID)) {
+            if (isAddPatroller) {
+                // Director is adding a new patroller - show empty form
+                return showAddPatrollerForm(resort, loggedInUserId, patrolData, model, LOG);
+            } else if (editID != null && ("Edit_Patroller".equals(purpose) || isSetNewID)) {
                 // Director is editing another patroller or changing ID
                 patrollerId = editID;
                 if (isSetNewID) {
@@ -381,6 +385,7 @@ public class UpdateInfoController {
                 model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
                 model.addAttribute("patrollerId", patrollerId);
                 model.addAttribute("isBackdoorUser", true);
+                model.addAttribute("isAddPatroller", false);
 
                 // Add resort metadata for header
                 ResortData resortData = PatrolData.getResortInfo(resort);
@@ -401,6 +406,8 @@ public class UpdateInfoController {
                 model.addAttribute("patrollerId", patrollerId);
                 model.addAttribute("errorMessage", "Member not found: " + patrollerId);
                 model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
+                model.addAttribute("isAddPatroller", false);
 
                 // Add resort metadata for header
                 ResortData resortData = PatrolData.getResortInfo(resort);
@@ -423,8 +430,10 @@ public class UpdateInfoController {
             model.addAttribute("editingPatrollerId", patrollerId); // The ID being edited
             model.addAttribute("memberName", member.getFullName());
             model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
             model.addAttribute("memberForm", memberForm);
             model.addAttribute("isSetNewID", isSetNewID);
+            model.addAttribute("isAddPatroller", false);
             model.addAttribute("oldMemberID", oldMemberID);
 
             // 11. Add read-only display attributes (converted to labels)
@@ -576,6 +585,7 @@ public class UpdateInfoController {
                     model.addAttribute("patrollerId", patrollerId);
                     model.addAttribute("errorMessage", "Member not found: " + patrollerId);
                     model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
 
                     // Add resort metadata for header
                     ResortData resortData = PatrolData.getResortInfo(resort);
@@ -594,6 +604,7 @@ public class UpdateInfoController {
                 model.addAttribute("patrollerId", patrollerId);
                 model.addAttribute("memberName", member.getFullName());
                 model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
 
                 // Add read-only display attributes
                 model.addAttribute("idNumber", member.memberData[Roster.ID_NUM]);
@@ -629,6 +640,11 @@ public class UpdateInfoController {
                 return handleSetNewID(resort, loggedInUserId, removeOldID, memberForm, request, response, model, sessionData, patrolData, LOG);
             }
 
+            // 9b. Check for Add_Patroller purpose (Adding new member)
+            if ("Add_Patroller".equals(postPurpose)) {
+                return handleAddPatroller(resort, loggedInUserId, memberForm, request, response, model, sessionData, patrolData, LOG);
+            }
+
             // 10. Load existing member record
             Roster member = patrolData.getMemberByID(patrollerId);
             if (member == null) {
@@ -637,6 +653,7 @@ public class UpdateInfoController {
                 model.addAttribute("patrollerId", patrollerId);
                 model.addAttribute("errorMessage", "Member not found: " + patrollerId);
                 model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
                 model.addAttribute("memberForm", memberForm);
 
                 // Add resort metadata for header
@@ -670,6 +687,7 @@ public class UpdateInfoController {
                 model.addAttribute("patrollerId", patrollerId);
                 model.addAttribute("memberName", member.getFullName());
                 model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
                 model.addAttribute("memberForm", memberForm);
                 model.addAttribute("errorMessage", "Database error: Failed to update profile. Please try again.");
 
@@ -709,6 +727,7 @@ public class UpdateInfoController {
                 model.addAttribute("patrollerId", patrollerId);
                 model.addAttribute("errorMessage", "Failed to reload updated member data");
                 model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
                 model.addAttribute("memberForm", memberForm);
 
                 // Add resort metadata for header
@@ -731,6 +750,7 @@ public class UpdateInfoController {
             model.addAttribute("patrollerId", patrollerId);
             model.addAttribute("memberName", member.getFullName());
             model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
             model.addAttribute("memberForm", updatedForm);
             model.addAttribute("updateSuccess", true);
 
@@ -783,6 +803,56 @@ public class UpdateInfoController {
             }
         }
         return null;
+    }
+
+    /**
+     * Show empty form for adding a new patroller.
+     */
+    private String showAddPatrollerForm(
+            String resort,
+            String loggedInUserId,
+            PatrolData patrolData,
+            Model model,
+            Logger LOG) {
+
+        // Create empty form
+        MemberUpdateForm memberForm = new MemberUpdateForm();
+
+        // Add model attributes
+        model.addAttribute("resort", resort);
+        model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+        model.addAttribute("patrollerId", loggedInUserId); // For header navigation
+        model.addAttribute("editingPatrollerId", ""); // No ID yet for new patroller
+        model.addAttribute("memberName", "New Patroller");
+        model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
+        model.addAttribute("memberForm", memberForm);
+        model.addAttribute("isSetNewID", false);
+        model.addAttribute("isAddPatroller", true);
+
+        // Add empty display attributes
+        model.addAttribute("idNumber", "");
+        model.addAttribute("classification", "");
+        model.addAttribute("commitment", "");
+        model.addAttribute("instructor", "");
+        model.addAttribute("lastUpdated", "");
+
+        // Add empty hidden field values
+        model.addAttribute("hiddenClassification", "");
+        model.addAttribute("hiddenCommitment", "");
+        model.addAttribute("hiddenInstructor", "");
+        model.addAttribute("hiddenTeamLead", "");
+        model.addAttribute("hiddenDirector", "");
+
+        // Add resort metadata for header
+        ResortData resortData = PatrolData.getResortInfo(resort);
+        if (resortData != null) {
+            model.addAttribute("resortUrl", resortData.getResortURL());
+            model.addAttribute("resortImage", resortData.getResortImage());
+            model.addAttribute("resortImgHeight", resortData.getImageHeight());
+        }
+
+        return "update-info";
     }
 
     /**
@@ -980,6 +1050,7 @@ public class UpdateInfoController {
             model.addAttribute("editingPatrollerId", oldMemberID);
             model.addAttribute("memberName", oldMember != null ? oldMember.getFullName() : "Unknown");
             model.addAttribute("isBackdoorUser", false);
+                model.addAttribute("isAddPatroller", false);
             model.addAttribute("memberForm", memberForm);
             model.addAttribute("isSetNewID", true);
             model.addAttribute("oldMemberID", oldMemberID);
@@ -1073,5 +1144,82 @@ public class UpdateInfoController {
             statement.setString(2, oldId);
             statement.executeUpdate();
         }
+    }
+
+    /**
+     * Handle adding a new patroller.
+     */
+    private String handleAddPatroller(
+            String resort,
+            String loggedInUserId,
+            MemberUpdateForm memberForm,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Model model,
+            SessionData sessionData,
+            PatrolData patrolData,
+            Logger LOG) throws IOException {
+
+        // Get the new ID number from the form
+        String newIdNumber = memberForm.getIdNumber();
+        if (newIdNumber == null || newIdNumber.trim().isEmpty()) {
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", loggedInUserId);
+            model.addAttribute("errorMessage", "ID Number is required for new patroller");
+            model.addAttribute("memberForm", memberForm);
+            model.addAttribute("isAddPatroller", true);
+            return "update-info";
+        }
+
+        // Check if ID already exists
+        Roster existingMember = patrolData.getMemberByID(newIdNumber);
+        if (existingMember != null) {
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", loggedInUserId);
+            model.addAttribute("errorMessage", "ID Number " + newIdNumber + " already exists");
+            model.addAttribute("memberForm", memberForm);
+            model.addAttribute("isAddPatroller", true);
+            return "update-info";
+        }
+
+        // Create new roster entry
+        Roster newMember = new Roster(LOG);
+        newMember.memberData[Roster.ID_NUM] = newIdNumber;
+
+        // Apply form values to new member
+        memberForm.applyToRoster(newMember, sessionData, LOG);
+
+        // Set default values for new patroller
+        newMember.memberData[Roster.CLASSIFICATION] = "0"; // Auxiliary
+        newMember.memberData[Roster.COMMITMENT] = "0"; // No commitment
+        newMember.memberData[Roster.INSTRUCTOR] = "false";
+        newMember.memberData[Roster.TEAM_LEAD] = "false";
+        newMember.memberData[Roster.DIRECTOR] = "false";
+        newMember.memberData[Roster.LAST_UPDATED] = new java.util.Date().toString();
+
+        // Write new member to database
+        try {
+            Connection connection = patrolData.getConnection(resort, sessionData, LOG);
+            String sql = newMember.getInsertSQLString(resort, sessionData);
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.executeUpdate();
+            connection.close();
+            LOG.info("Successfully added new member: " + newIdNumber);
+        } catch (Exception e) {
+            LOG.logException("Failed to add new member: " + newIdNumber, e);
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", loggedInUserId);
+            model.addAttribute("errorMessage", "Database error: Failed to add new patroller. Please try again.");
+            model.addAttribute("memberForm", memberForm);
+            model.addAttribute("isAddPatroller", true);
+            return "update-info";
+        }
+
+        // Redirect to Directors page
+        response.sendRedirect("Directors?resort=" + resort + "&ID=" + loggedInUserId);
+        return null;
     }
 }
