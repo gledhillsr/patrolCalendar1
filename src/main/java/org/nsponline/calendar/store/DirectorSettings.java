@@ -1,6 +1,6 @@
 package org.nsponline.calendar.store;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.node.ObjectNode;
 import org.nsponline.calendar.utils.Logger;
 import org.nsponline.calendar.utils.StaticUtils;
 

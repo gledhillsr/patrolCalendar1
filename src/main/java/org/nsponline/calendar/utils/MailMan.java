@@ -1,9 +1,8 @@
 package org.nsponline.calendar.utils;
 
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder;
-import com.amazonaws.services.simpleemail.model.*;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.ses.SesClient;
+import software.amazon.awssdk.services.ses.model.*;
 
 import java.util.Collections;
 
@@ -20,7 +19,7 @@ public class MailMan {
   @SuppressWarnings("WeakerAccess")
   static final String CONFIGSET = "nspMail";
 
-  private AmazonSimpleEmailService sesClient = null;
+  private SesClient sesClient = null;
   private String fromAddress;
   private String replyToAddress = null;
   private final Logger LOG;
@@ -57,7 +56,7 @@ public class MailMan {
       this.fromAddress = "steve@gledhills.com";
     }
 
-    sesClient = AmazonSimpleEmailServiceClientBuilder.standard().withRegion(Regions.US_EAST_1).build();
+    sesClient = SesClient.builder().region(Region.US_EAST_1).build();
     //    logger();
   }
 
@@ -72,29 +71,39 @@ public class MailMan {
 
   private void sendAmazonEmail(String from, String replyToAddress, String toAddress, String subject, String textBody) {
     try {
-      Destination destination = new Destination().withToAddresses(toAddress);
-      final Message message = new Message()
-        .withBody(new Body()
-                    //                    .withHtml(new Content()
-                    //                                .withCharset("UTF-8").withData(htmlBody))
-                    .withText(new Content()
-                                .withData(textBody)))
-        .withSubject(new Content()
-                       .withData(subject));
-      SendEmailRequest request = new SendEmailRequest()
-        .withDestination(destination)
-        .withMessage(message)
-        .withSource(from)
-        // Comment or remove the next line if you are not using a
-        // configuration set
-        .withConfigurationSetName(CONFIGSET);
+      Destination destination = Destination.builder()
+        .toAddresses(toAddress)
+        .build();
+
+      Content subjectContent = Content.builder()
+        .data(subject)
+        .build();
+
+      Content textContent = Content.builder()
+        .data(textBody)
+        .build();
+
+      Body body = Body.builder()
+        .text(textContent)
+        .build();
+
+      Message message = Message.builder()
+        .subject(subjectContent)
+        .body(body)
+        .build();
+
+      SendEmailRequest.Builder requestBuilder = SendEmailRequest.builder()
+        .destination(destination)
+        .message(message)
+        .source(from)
+        .configurationSetName(CONFIGSET);
 
       if (replyToAddress != null) {
-        request.setReplyToAddresses(Collections.singletonList(replyToAddress));
+        requestBuilder.replyToAddresses(Collections.singletonList(replyToAddress));
       }
 
       Long startMillis = System.nanoTime() / 1000000L;
-      SendEmailResult result = sesClient.sendEmail(request);
+      SendEmailResponse result = sesClient.sendEmail(requestBuilder.build());
       Long endMillis = System.nanoTime() / 1000000L;
       LOG.info("Email sent from=" + from + ", to: " + destination + ", mailTime=" + (endMillis - startMillis) +
                  " milliSeconds.  result=" + result.toString());

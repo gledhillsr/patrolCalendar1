@@ -11,8 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.nsponline.calendar.store.*;
 import org.nsponline.calendar.utils.*;
-
-import static com.amazonaws.util.StringUtils.isNullOrEmpty;
+import org.apache.commons.lang3.StringUtils;
 
 public class InnerChangeShiftAssignments extends ResourceBase {
   final private HttpServletResponse response;
@@ -122,7 +121,7 @@ public class InnerChangeShiftAssignments extends ResourceBase {
     else {
       shiftInfo.newName1 = shiftInfo.newIdNumber;  //could not find name, so use number as name
     }
-    return isNullOrEmpty(name);
+    return StringUtils.isBlank(name);
   }
 
   private void addNames(PrintWriter out, String name, ShiftInfo shiftInfo) {
