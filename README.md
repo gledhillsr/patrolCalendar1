@@ -47,6 +47,7 @@ git checkout master
 
 ```bash
 # Pull and run MySQL container
+# DON"T simple copy/paste this, insert the password in 
 docker run --name patrol-calendar-mysql \
   -e MYSQL_ROOT_PASSWORD=yourpassword \
   -e MYSQL_DATABASE=Brighton \
@@ -55,15 +56,14 @@ docker run --name patrol-calendar-mysql \
 
 # Start a mysql CLI inside of docker container
 docker exec -it patrol-calendar-mysql mysql -u root -p
-#then run commands like
+#then run commands like (unit tests call Sample)
 CREATE DATABASE Brighton;
+CREATE DATABASE Sample;
 SHOW DATABASES;
 
-# Import existing SQL dump (if you have one)
-docker exec -i patrol-calendar-mysql mysql -uroot -p Brighton < /path/to/backup.sql
-
-# Or import directly without copying
-docker exec -i patrol-calendar-mysql mysql -uroot -pyourpassword Brighton < /path/to/backup.sql
+# Import directly without copying *** put in real password from properties file
+docker exec -i patrol-calendar-mysql mysql -uroot -pyourpassword Brighton < ~/Downloads/Brighton.sql
+docker exec -i patrol-calendar-mysql mysql -uroot -pyourpassword Sample < ~/Downloads/Sample.sql
 ```
 
 #### Option B: Local MySQL Installation
@@ -71,8 +71,8 @@ docker exec -i patrol-calendar-mysql mysql -uroot -pyourpassword Brighton < /pat
 Ensure MySQL 8.0 is installed and running, then create the database:
 
 ```bash
-mysql -uroot -p
-CREATE DATABASE calendar;
+#mysql -uroot -p
+#CREATE DATABASE calendar;
 ```
 
 #### Configuration
@@ -113,7 +113,7 @@ mvn spring-boot:run
 java -jar target/calendar-1.jar
 ```
 
-Access the application at `http://localhost:8080/calendar-1/`
+Access the application at `http://localhost:8080/calendar-1/MonthCalendar?resort=Sample`
 
 ### Production Deployment
 
@@ -298,6 +298,11 @@ For integration tests:
 1. Run Maven with the `integration.test` property
 2. Attach debugger to port 7070
 3. Set breakpoints in test classes
+
+# Check status on server
+sudo systemctl status springbootapp.service
+# View logs on server
+sudo journalctl -u springbootapp.service -f
 
 ## Security Features
 

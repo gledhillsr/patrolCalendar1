@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title th:text="'Members of the ' + ${resortFullName} + ' Ski Patrol'">Patrol Members</title>
-    <style type="text/css">
+    <style th:inline="css" type="text/css">
         body {
             font-size: 10pt;
             color: #000000;
@@ -17,7 +17,7 @@
             border-spacing: 0;
         }
         table.list th {
-            font-size: [[${textFontSize}]]pt;
+            font-size: /*[[${textFontSize}]]*/14pt;
             font-weight: bold;
             color: #000000;
             background-color: #ffffff;
@@ -27,7 +27,7 @@
             padding: 2px;
         }
         table.list td {
-            font-size: [[${textFontSize}]]pt;
+            font-size: /*[[${textFontSize}]]*/14pt;
             color: #000000;
             background-color: #ffffff;
             border-width: 1px;
@@ -43,7 +43,7 @@
         }
     </script>
 </head>
-<body>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${userId})}"></div>
 
     <p><center><h2 th:text="'Members of the ' + ${resortFullName} + ' Ski Patrol'">Members</h2></center></p>
@@ -114,7 +114,7 @@
         </tr>
 
         <tr th:each="member : ${members}">
-            <td th:text="${member.getDisplayName()}">Name</td>
+            <td th:text="${firstNameFirst ? member.getFullName() : member.getFullName_lastNameFirst()}">Name</td>
             <td th:if="${showBlank}">&nbsp;</td>
             <td th:if="${showBlankWide}">&nbsp;&nbsp;&nbsp;</td>
             <td th:if="${showClass}" th:text="${member.getClassification()}">Class</td>

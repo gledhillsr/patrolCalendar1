@@ -23,8 +23,9 @@ public class SessionData {
   private static final Boolean DEBUG = false;
   private static final Boolean DEBUG_VERBOSE = false;
 
-  private static final String PROPERTIES_FILE = "credentials.properties";
-    //used to be prefixed with /var/lib/tomcat7/webapps/
+  public static final String CREDENTIALS_PROPERTIES_FILE = "/etc/patrolCalendar/credentials.properties";
+  private static final String PROPERTIES_FILE = System.getProperty(
+      "credentials.path", CREDENTIALS_PROPERTIES_FILE);
   //these fields should be defined in credentials.properties
   private static final String DB_USER_TAG = "dbUser";
   private static final String DB_PASSWORD_TAG = "dbPassword";
@@ -106,12 +107,12 @@ public class SessionData {
 
   private boolean loadPropertiesFile(Properties properties, PrintWriter out) {
     try (FileInputStream inStream = new FileInputStream(PROPERTIES_FILE)) {
-      debugOut("reading SessionData properties file from disk.");
+      LOG.info("reading SessionData properties file from disk.");
       properties.load(inStream);
     }
     catch (IOException e) {
       if (out != null) {
-        out.println("ERROR, could not open properties file.");
+        LOG.error("ERROR, could not open properties file: " + CREDENTIALS_PROPERTIES_FILE);
       }
       return false;
     }

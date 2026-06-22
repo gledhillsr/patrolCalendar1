@@ -4,155 +4,108 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Patrol Calendar is a multi-tenant web application for managing ski patrol shift scheduling across multiple ski patrol organizations. Built with Java 7/8, Servlet API 2.5, and MySQL, it provides volunteer sign-up, shift management, and administrative tools.
+Patrol Calendar is a multi-tenant web application for managing ski patrol shift scheduling across multiple ski patrol organizations. Built with Java 25, Spring Boot 4.0.5, Thymeleaf, and MySQL.
 
 ## Build & Development Commands
 
-### Build
 ```bash
+# Build (produces target/calendar-1.jar)
 mvn clean package
-```
-Produces `target/calendar-1.war`
 
-### Testing
-```bash
-# Unit tests only
+# Run (starts at http://localhost:8080/calendar-1/)
+java -jar target/calendar-1.jar
+# or
+mvn spring-boot:run
+
+# Unit tests only (default)
 mvn test
 
-# Run specific test
+# Run a specific test
 mvn test -Dtest=ClassName#testMethod
-
-# Integration tests (starts Jetty on port 7070)
-mvn clean package -Dintegration.test
 ```
 
-**Important**: Integration tests use the `integration.test` property to activate the integration-test profile, which starts an embedded Jetty server on port 7070. The application context is accessible at `http://localhost:7070/`
-
-## Spring Boot Migration
-
-The application is migrating from traditional servlets to Spring Boot controllers with Thymeleaf templates.
-
-### Running Spring Boot Application
-
-```bash
-# Build
-mvn clean package
-
-# Run
-java -jar target/calendar-1.jar
-
-# Or use Maven plugin
-mvn spring-boot:run
-```
-
-Application starts on `http://localhost:8080/calendar-1/`
-
-### Migrated Endpoints
-
-- `/ListPatrollers` - Patrol member roster display (Spring Boot + Thymeleaf)
-- `/MemberLogin` - Member login page with password reset (Spring Boot + Thymeleaf)
-- `/MemberLogout` - Member logout action (Spring Boot + redirect)
-- `/VolunteerForm` - Public volunteer signup form (Spring Boot + Thymeleaf)
-- `/MonthCalendar` - Monthly shift calendar (Spring Boot + Thymeleaf)
-- `/Directors` - Director administration panel (Spring Boot + Thymeleaf)
-- `/SubList` - Substitute patroller list (Spring Boot + Thymeleaf)
-- `/MemberList` - All active members list (Spring Boot + Thymeleaf)
-- `/ListAssignments` - Patroller shift assignments (Spring Boot + Thymeleaf)
-- `/UpdateInfo` - Self-service profile updates (Spring Boot + Thymeleaf)
-- `/EmailForm` - Email composition and sending with async delivery (Spring Boot + Thymeleaf)
-- `/WebSitePreferences` - Director preferences configuration (Spring Boot + Thymeleaf)
-- `/EditShiftTemplates` - Shift template editor for directors (Spring Boot + Thymeleaf)
-- `/DayShifts` - Single day shift editor with group assignment mode (Spring Boot + Thymeleaf)
-
-### Security Improvements
-
-**Password Reset Token System**: The MemberLogin migration introduced a secure token-based password reset mechanism:
-- Tokens are cryptographically random (24 bytes, URL-safe Base64 encoded)
-- Tokens expire after 1 hour
-- One-time use: tokens are invalidated immediately after password reset
-- Stored securely in `{resort}_password_reset_tokens` table with expiration timestamps
-- Email delivery via `PasswordResetEmailer` class using JavaMail API
-
-### Legacy Servlets (Still Active)
-
-All other endpoints still use servlet-based implementation registered via `LegacyServletConfig`.
-
-### Migration Pattern
-
-Each servlet migration follows:
-1. Create controller in `src/main/java/org/nsponline/calendar/controller/`
-2. Extract logic from servlet (minimal refactor)
-3. Create Thymeleaf template in `src/main/resources/templates/`
-4. Test coexistence with legacy servlets
-5. Verify identical functionality
-6. Remove old servlet after verification
+**Note**: The pom.xml contains an integration-test profile (`-Dintegration.test`) that references a Jetty plugin, but this profile is incompatible with Spring Boot 4 and is not functional.
 
 ## Architecture
 
-### Servlet-Based Multi-Tenant Design
+### Multi-Tenant Design
 
-The application uses a servlet-based architecture where **all requests must include a `resort` parameter** to identify which ski patrol organization's data to access. The `resort` parameter maps to database table prefixes and configuration in `PatrolData.resortMap`.
+All requests require a `?resort=<name>` parameter identifying the ski patrol organization. This maps to database table prefixes (e.g., `Sample_roster`, `Sample_assignments`) and per-resort configuration in `PatrolData.resortMap`. The resort name is threaded through every layer.
 
-### Resource (Servlet) Organization
+### Package Layout
 
-Servlets in `src/main/java/org/nsponline/calendar/resources/` follow a naming convention:
+```
+org.nsponline.calendar/
+  CalendarApplication.java       Spring Boot entry point
+  controller/                    Spring MVC controllers (migrated, active endpoints)
+  service/                       Business logic (EmailService, ShiftAssignmentService, etc.)
+  dto/                           Form/request/response data objects for controllers
+  config/                        Spring config (AsyncConfig: email thread pool + SMTP bean)
+  store/                         Data access objects (Roster, Assignments, ShiftDefinitions,
+                                 NspSession, DirectorSettings, PasswordResetToken)
+  utils/                         Shared utilities (PatrolData, SessionData, Logger, MailMan)
+  resources/                     LEGACY servlet classes — migration source; not registered
+                                 anywhere, not currently served; migrate each to controller/
+```
 
-- **`Outer*.java`**: Public pages requiring no authentication (e.g., `OuterVolunteerForm`, `OuterMemberLogin`)
-- **`Inner*.java`**: Authenticated pages requiring valid session credentials (e.g., `InnerChangeShiftAssignments`, `InnerEditShiftTemplates`)
-- **`ApiResources.java`**: REST API endpoints that return JSON and require `Authorization` header with session token
+### Migration Status
 
-All servlets extend `ResourceBase` which provides:
-- `initBase()`: Validates resort parameter and initializes database connection
-- `initBaseAndRequireValidSession()`: Additionally validates session token (for API endpoints)
-- `initBaseAndAskForValidCredentials()`: Redirects to login if credentials invalid (for Inner pages)
+**Migrated to Spring Boot controllers** (in `controller/`):
+`/ChangeShiftAssignments`, `/Directors`, `/DayShifts`, `/EditShiftTemplates`, `/EmailForm`,
+`/ListAssignments`, `/ListPatrollers`, `/MemberList`, `/MemberLogin`, `/MemberLogout`,
+`/MonthCalendar`, `/ProcessChangeShiftAssignments`, `/SetupListPatrollers`, `/SubList`,
+`/UpdateInfo`, `/VolunteerForm`, `/WebSitePreferences`
+
+**Still need migration** (in `resources/`, currently not served):
+- `ApiResources.java` — REST JSON endpoints requiring `Authorization` header
+- `InnerDownloadRoster.java`
+- `InnerPurgeAssignments.java`
+- `InnerWebResource.java` / `WebResource.java`
+- `LoginHelp.java`
+- `RefresherTraining.java`
+
+`ResourceBase.java` is the legacy base class that the unmigrated servlets extend — it won't be needed once migration is complete.
+
+### javax/jakarta Bridge
+
+Legacy `store/` and `utils/` classes use the old `javax.servlet` API. Spring Boot 4 uses `jakarta.servlet`. `ServletAdapter` in `controller/` wraps Jakarta request/response/session objects to implement the Javax interfaces, allowing controllers to call into legacy store and utility code without rewriting it.
+
+Pattern used in every controller:
+```java
+javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+```
+
+### Authentication & Session Flow
+
+- **Web sessions**: Cookie-based; `SessionData` reads the session cookie and validates via `NspSession.read(connection, sessionId)`
+- **API sessions**: Token in `Authorization` header
+- Invalid sessions redirect to `MemberLogin?resort=<name>` for web pages, or return 401 for API
+- Director-only pages check `Roster.isDirector` after loading the logged-in user's record
 
 ### Data Layer
 
-**Store classes** (`src/main/java/org/nsponline/calendar/store/`):
-- `Roster`: Patrol member information
-- `Assignments`: Shift assignments
-- `ShiftDefinitions`: Shift templates and schedules
-- `NspSession`: Session management
-- `DirectorSettings`: Per-resort configuration
+Store classes manage SQL directly (no ORM). Each method receives a `PatrolData` (holds the live `Connection`) and uses the resort name as a table prefix. `PatrolData` connects to MySQL at `MYSQL_ADDRESS` (default `127.0.0.1`).
 
-**PatrolData** (`src/main/java/org/nsponline/calendar/utils/PatrolData.java`):
-- Central database connection manager
-- Contains `resortMap` with all configured ski patrols
-- Manages MySQL connection at `MYSQL_ADDRESS` (currently 127.0.0.1)
-- Each resort has separate database tables using resort name as prefix
+### Email
 
-## Key Configuration Files
+`EmailService` sends via Spring's `JavaMailSender` (configured in `AsyncConfig` using `smtp.host` from `application.properties`). Director-triggered bulk emails are `@Async` on the `emailTaskExecutor` thread pool. Password reset emails use one-time tokens stored in `{resort}_password_reset_tokens` (24-byte random, 1-hour expiry, single-use).
 
-### Database Configuration
-Update MySQL address in `PatrolData.java`:
-```java
-private final static String MYSQL_ADDRESS = "127.0.0.1";
-```
+### Thymeleaf Templates
 
-### Adding New Resorts
-Add entries to `PatrolData.resortMap` static initializer with resort metadata (name, URL, logo, etc.). Each resort requires corresponding database tables.
+Located in `src/main/resources/templates/`. Shared page chrome is in `templates/fragments/`. Static assets are in `src/main/resources/static/`.
 
-### Servlet Mappings
-Defined in `src/main/webapp/WEB-INF/web.xml` - maps URL patterns to servlet classes.
+## Adding a New Endpoint
 
-## Multi-Tenant Database Pattern
+1. Create controller in `controller/` (plain `@Controller`, no base class)
+2. Use `ServletAdapter.toJavaxRequest/toJavaxResponse` to pass into legacy store/util code
+3. Create Thymeleaf template in `templates/`
+4. There is no `web.xml` — Spring Boot auto-registers `@Controller` beans
 
-Each ski resort has its own set of database tables prefixed with the resort name. When a request comes in with `?resort=Sample`, the application queries tables like `Sample_roster`, `Sample_assignments`, etc.
+## Key Configuration
 
-## Session Management
-
-- Web sessions: Cookie-based via servlet container
-- API sessions: Token-based via `Authorization` header
-- Session validation: Through `NspSession.read(connection, sessionId)`
-- Invalid sessions: API endpoints return 401, web pages redirect to MemberLogin
-
-## Dependency Management
-
-When updating versions in `pom.xml` properties section, also update `src/main/resources/doReminder.sh` classpath to match the JAR versions for the daily reminder cron job.
-
-## Testing Notes
-
-- Integration tests in `example/selenium/` package run against embedded Jetty
-- Unit tests exclude `example/selenium/**` via surefire configuration
-- All test requests must include valid `resort` parameter
-- Selenium tests use HtmlUnit driver (headless browser)
+- **Database**: `PatrolData.MYSQL_ADDRESS` — update to point at your MySQL instance
+- **SMTP**: `smtp.host` in `application.properties` (default `localhost`)
+- **New resorts**: Add entries to `PatrolData.resortMap` static initializer plus matching DB tables
+- **`doReminder.sh`**: Standalone cron script for daily reminders; its classpath must be updated manually when dependency versions change in `pom.xml` (the properties section has a reminder comment)

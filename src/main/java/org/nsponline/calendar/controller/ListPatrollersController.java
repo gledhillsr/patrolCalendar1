@@ -4,7 +4,8 @@ import org.nsponline.calendar.store.*;
 import org.nsponline.calendar.utils.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,7 +18,7 @@ import java.util.*;
 public class ListPatrollersController {
   private static final boolean DEBUG = false;
 
-  @GetMapping("/ListPatrollers")
+  @RequestMapping(value = "/ListPatrollers", method = {RequestMethod.GET, RequestMethod.POST})
   public String listPatrollers(
     HttpServletRequest request,
     HttpServletResponse response,
@@ -117,6 +118,7 @@ public class ListPatrollersController {
     model.addAttribute("patrollersListed", members.size());
     model.addAttribute("currentDate", new Date());
     model.addAttribute("textFontSize", textFontSize);
+    model.addAttribute("firstNameFirst", firstNameFirst);
     model.addAllAttributes(displayFlags);
 
     String emailFormUrl = buildEmailFormUrl(resort, userId, displayFlags,
