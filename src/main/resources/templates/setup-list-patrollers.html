@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Customized Patrol List</title>
+    <script>
+        function validateBtn() {
+            if (!document.form1.DAY_CNT.checked && !document.form1.SWING_CNT.checked &&
+                !document.form1.NIGHT_CNT.checked && !document.form1.TRAINING_CNT.checked &&
+                !document.form1.OTHER_CNT.checked && !document.form1.HOLIDAY_CNT.checked) {
+                alert("Must first check any combination of \nDay, Swing, Night, Training, Other, and/or Holiday!");
+                document.form1.MIN_DAYS.checked = false;
+            } else {
+                document.form1.MinDays.disabled = false;
+            }
+        }
+    </script>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${userId})}"></div>
+
+    <h1 align="center">Customized Patrol List</h1>
+
+    <form name="form1" target="_self" th:action="@{/ListPatrollers}" method="POST">
+        <input type="hidden" name="resort" th:value="${resort}">
+        <input type="hidden" name="ID" th:value="${userId}">
+
+        <!-- Step 1: Filter patrollers -->
+        <p align="left"><font size="4">Step 1) </font><font size="4">Only include patrollers: (MUST select at least 1 from each category)</font></p>
+        <table border="0" width="100%">
+            <tr>
+                <td width="25%" bgcolor="#E5E5E5">With Classification:</td>
+                <td width="20%" bgcolor="#E5E5E5">
+                    <input type="checkbox" name="AUX" value="ON" checked>Auxiliary<br>
+                    <input type="checkbox" name="BAS" value="ON" checked>Basic<br>
+                    <input type="checkbox" name="SR" value="ON" checked>Senior
+                </td>
+                <td width="20%" bgcolor="#E5E5E5">
+                    <input type="checkbox" name="SRA" value="ON" checked>Senior Auxiliary<br>
+                    <input type="checkbox" name="TRA" value="ON" checked>Transfer<br>
+                    <input type="checkbox" name="CAN" value="ON" checked>Candidate
+                </td>
+                <td width="35%" bgcolor="#E5E5E5">
+                    <input type="checkbox" name="PRO" value="ON">Pro<br>
+                    <input type="checkbox" name="ALM" value="ON">Alumni<br>
+                    <input type="checkbox" name="OTH" value="ON">Other
+                </td>
+            </tr>
+            <tr>
+                <td width="25%" bgcolor="#E5E5E5">AND Commitment:</td>
+                <td width="20%" bgcolor="#E5E5E5"><input type="checkbox" name="FullTime" value="ON" checked>Full Time</td>
+                <td width="20%" bgcolor="#E5E5E5"><input type="checkbox" name="PartTime" value="ON" checked>Part Time</td>
+                <td width="35%" bgcolor="#E5E5E5"><input type="checkbox" name="Inactive" value="ON">Currently Inactive</td>
+            </tr>
+            <tr>
+                <td width="25%" bgcolor="#E5E5E5">AND:</td>
+                <td width="20%" bgcolor="#E5E5E5">
+                    <input type="checkbox" name="ALL" value="ON" checked>Everyone<br>
+                    <input type="checkbox" name="ListDirector">Directors
+                </td>
+                <td width="20%" bgcolor="#E5E5E5">
+                    <input type="checkbox" name="OEC">OEC Instructor<br>
+                    <input type="checkbox" name="CPR">CPR Instructor
+                </td>
+                <td width="35%" bgcolor="#E5E5E5">
+                    <input type="checkbox" name="Ski">Ski Instructor<br>
+                    <input type="checkbox" name="Toboggan">Toboggan Instructor
+                </td>
+            </tr>
+        </table>
+
+        <!-- Step 2: Select fields to display -->
+        <p align="left">
+            <font size="4">Step 2) Select what fields to display:</font>
+            <font th:if="${isBrighton and isDirector}" color="RED">&nbsp;&nbsp;&nbsp;(Director ONLY access)</font>
+        </p>
+        <div align="center">
+            <center>
+                <table border="0" width="100%">
+                    <tr>
+                        <td width="20%" bgcolor="#E5E5E5">
+                            <input type="radio" value="FIRST" name="NAME">First&nbsp;Name&nbsp;Last&nbsp;Name<br>
+                            <input type="radio" value="LAST" name="NAME" checked>Last&nbsp;Name,&nbsp;First&nbsp;Name<br>
+                            <input type="checkbox" name="CLASS">Classification<br>
+                            <input type="checkbox" name="SHOW_ID">Patroller&nbsp;ID<br>
+                            <input type="checkbox" name="SHOW_BLANK">Slim&nbsp;Blank&nbsp;Column<br>
+                            <input type="checkbox" name="SHOW_BLANK2">Wide&nbsp;Blank&nbsp;Column<br>
+                            <div th:if="${isDirector}">
+                                <font color="RED">
+                                    <br><input type="checkbox" name="COMMENTS">Private&nbsp;Comments<br>
+                                    <span th:if="${isBrighton}">
+                                        <input type="checkbox" name="TEAM_LEAD">Team Lead Trained<br>
+                                        <input type="checkbox" name="MENTORING">Mentoring Status
+                                    </span>
+                                </font>
+                            </div>
+                        </td>
+                        <td width="15%" bgcolor="#E5E5E5">
+                            <input type="checkbox" name="SPOUSE">Spouse<br>
+                            <input type="checkbox" name="ADDR">Address<br>
+                            <input type="checkbox" name="CITY">City<br>
+                            <input type="checkbox" name="STATE">State<br>
+                            <input type="checkbox" name="ZIP">Zip&nbsp;Code
+                        </td>
+                        <td width="15%" bgcolor="#E5E5E5">
+                            <input type="checkbox" name="HOME" checked>Home Phone<br>
+                            <input type="checkbox" name="WORK" checked>Work Phone<br>
+                            <input type="checkbox" name="CELL" checked>Cell Phone<br>
+                            <input type="checkbox" name="PAGER">Pager<br>
+                            <input type="checkbox" name="EMAIL" checked>Email&nbsp;Address
+                        </td>
+                        <td width="20%" bgcolor="#E5E5E5">
+                            <input type="checkbox" name="EMERGENCY">Emergency Call Up<br>
+                            <input type="checkbox" name="SUBSTITUTE">Substitute List<br>
+                            <input type="checkbox" name="COMMIT">Commitment Level<br>
+                            <input type="checkbox" name="INSTRUCTOR">Instructor&nbsp;Qualifications<br>
+                            <input type="checkbox" name="DIRECTOR">Director Status<br>
+                            <input type="checkbox" name="LAST_UPDATED">Last Updated Date
+                        </td>
+                        <td width="30%" bgcolor="#E5E5E5">
+                            Starting:&nbsp;<select size="1" name="StartDay">
+                                <option th:each="d : ${#numbers.sequence(1, 31)}"
+                                        th:value="${d}" th:text="${d}"
+                                        th:selected="${d == 1}"></option>
+                            </select>&nbsp;&nbsp;<select size="1" name="StartMonth">
+                                <option th:each="m : ${#numbers.sequence(1, 12)}"
+                                        th:value="${m}"
+                                        th:text="${{'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'}[m-1]}"
+                                        th:selected="${m == 1}"></option>
+                            </select>&nbsp;&nbsp;<select size="1" name="StartYear">
+                                <option th:each="y : ${#numbers.sequence(startYear, endYear)}"
+                                        th:value="${y}" th:text="${y}"
+                                        th:selected="${y == startYear}"></option>
+                            </select><br>
+
+                            Ending:&nbsp;&nbsp;<select size="1" name="EndDay">
+                                <option th:each="d : ${#numbers.sequence(1, 31)}"
+                                        th:value="${d}" th:text="${d}"
+                                        th:selected="${d == 31}"></option>
+                            </select>&nbsp;&nbsp;<select size="1" name="EndMonth">
+                                <option th:each="m : ${#numbers.sequence(1, 12)}"
+                                        th:value="${m}"
+                                        th:text="${{'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'}[m-1]}"
+                                        th:selected="${m == 12}"></option>
+                            </select>&nbsp;&nbsp;<select size="1" name="EndYear">
+                                <option th:each="y : ${#numbers.sequence(startYear, endYear)}"
+                                        th:value="${y}" th:text="${y}"
+                                        th:selected="${y == endYear}"></option>
+                            </select><br>
+
+                            ---Shift&nbsp;Info-(Within&nbsp;above&nbsp;Range)---<br>
+                            <input type="checkbox" name="DAY_CNT">#&nbsp;Days:&nbsp;&nbsp;
+                            &nbsp;&nbsp;<input type="checkbox" name="DAY_DETAILS">Include&nbsp;Details<br>
+                            <input type="checkbox" name="SWING_CNT"># Swings:
+                            &nbsp;<input type="checkbox" name="SWING_DETAILS">Include&nbsp;Details<br>
+                            <input type="checkbox" name="NIGHT_CNT"># Nights:
+                            &nbsp;&nbsp;<input type="checkbox" name="NIGHT_DETAILS">Include&nbsp;Details<br>
+                            <input type="checkbox" name="TRAINING_CNT"># Training:
+                            &nbsp;&nbsp;<input type="checkbox" name="TRAINING_DETAILS">Include&nbsp;Details<br>
+                            <input type="checkbox" name="OTHER_CNT"># Other:
+                            &nbsp;&nbsp;<input type="checkbox" name="OTHER_DETAILS">Include&nbsp;Details<br>
+                            <input type="checkbox" name="HOLIDAY_CNT"># Holiday:
+                            &nbsp;&nbsp;<input type="checkbox" name="HOLIDAY_DETAILS">Include&nbsp;Details<br>
+                            ---&nbsp;Limit&nbsp;names&nbsp;if&nbsp;above&nbsp;total&nbsp;is:&nbsp;----<br>
+                            <input type="checkbox" name="MIN_DAYS" onclick="validateBtn()">Only list if less than
+                            <select size="1" name="MinDays">
+                                <option th:each="i : ${#numbers.sequence(1, 20)}"
+                                        th:value="${i}" th:text="${i}"
+                                        th:selected="${i == 6}"></option>
+                            </select> shifts.
+                        </td>
+                    </tr>
+                </table>
+            </center>
+        </div>
+
+        <!-- Step 3: Sort order -->
+        <p align="left"><font size="4">Step 3) Sort by:</font></p>
+        <div align="center">
+            <center>
+                <table border="0" width="100%">
+                    <tr>
+                        <td width="34%" bgcolor="#E5E5E5"><p align="center"><b>First</b> sort by:</td>
+                        <td width="33%" bgcolor="#E5E5E5"><p align="center"><b>Second</b> Sort by:</td>
+                        <td width="33%" bgcolor="#E5E5E5"><p align="center"><b>Third</b> Sort by:</td>
+                    </tr>
+                    <tr>
+                        <td width="34%" bgcolor="#E5E5E5">
+                            &nbsp;&nbsp; <input type="radio" name="FirstSort" value="Name" checked>Name<br>
+                            &nbsp;&nbsp; <input type="radio" name="FirstSort" value="Class">Classification<br>
+                            &nbsp;&nbsp; <input type="radio" name="FirstSort" value="Comm">Commitment<br>
+                            &nbsp;&nbsp; <input type="radio" name="FirstSort" value="shiftCnt"># of Shift Assignments<br>
+                            &nbsp;&nbsp; <input type="radio" name="FirstSort" value="Updt">Last Updated Date
+                        </td>
+                        <td width="33%" bgcolor="#E5E5E5">
+                            &nbsp;&nbsp; <input type="radio" name="SecondSort" value="None" checked>NO second sort field<br>
+                            &nbsp;&nbsp; <input type="radio" name="SecondSort" value="Name">Name<br>
+                            &nbsp;&nbsp; <input type="radio" name="SecondSort" value="Class">Classification<br>
+                            &nbsp;&nbsp; <input type="radio" name="SecondSort" value="Comm">Commitment
+                        </td>
+                        <td width="33%" bgcolor="#E5E5E5">
+                            &nbsp;&nbsp; <input type="radio" name="ThirdSort" value="None" checked>NO third sort field<br>
+                            &nbsp;&nbsp; <input type="radio" name="ThirdSort" value="Name">Name<br>
+                            &nbsp;&nbsp; <input type="radio" name="ThirdSort" value="Class">Classification<br>
+                            &nbsp;&nbsp; <input type="radio" name="ThirdSort" value="Comm">Commitment
+                        </td>
+                    </tr>
+                </table>
+            </center>
+        </div>
+
+        Font Point Size: <select name="FontSize" size="1">
+            <option>18</option>
+            <option>16</option>
+            <option selected>14</option>
+            <option>13</option>
+            <option>12</option>
+            <option>11</option>
+            <option>10</option>
+            <option>9</option>
+        </select>
+
+        <p align="center"><br>
+            <input type="submit" value="Display / Print / E-mail">
+        </p>
+        <br/><br/>
+    </form>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

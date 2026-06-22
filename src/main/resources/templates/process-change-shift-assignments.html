@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Process Change Shift Assignments</title>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+
+    <div th:if="${dupError}">
+        <h2>ERROR! Submission Failed.</h2>
+        <h3>Cannot insert <span th:text="${newName}">Name</span>. He/She is <b>already</b> on this shift.</h3>
+    </div>
+
+    <div th:if="${!dupError and err}">
+        <h2>ERROR! Submission failed</h2>
+    </div>
+
+    <div th:if="${!dupError and !err}">
+        <h2 th:text="${transactionName + ' (this screen is temporary, please validate what you did.)'}">Transaction</h2>
+        <b th:text="${newName}">Name</b><br><br>
+        Submission done by: <span th:text="${submitterName}">Submitter</span><br>
+        Submission time: <span th:text="${submissionTime}">Time</span><br><br>
+        <br>At Ski Resort: <span th:text="${resort}">Resort</span><br>
+    </div>
+
+    <br/>&nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="button" value="Return to Calendar"
+           th:attr="onclick='window.location=\'' + ${calendarUrl} + '\''">
+    <br/><br/>
+
+</body>
+</html>
