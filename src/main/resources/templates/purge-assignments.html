@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Delete Old Assignments - ' + ${resortFullName}">Purge Assignments</title>
+    <script th:inline="javascript">
+        function goHome() {
+            window.location = /*[[${directorsUrl}]]*/ '#';
+        }
+        function validate() {
+            return confirm("Delete ALL shift assignments before the selected date?");
+        }
+    </script>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${userId})}"></div>
+
+    <h1 align="center" th:text="'Delete Old Assignments for ' + ${resortFullName}">Delete Old Assignments</h1>
+
+    <form target="_self" th:action="@{/PurgeAssignments}" method="POST" onsubmit="return validate()">
+        <input type="hidden" name="resort" th:value="${resort}">
+        <input type="hidden" name="ID" th:value="${userId}">
+
+        <p>
+            <b>DANGER!</b> Delete all assignments dated before&nbsp;
+
+            <select name="startDay" size="1">
+                <option th:each="d : ${#numbers.sequence(1, 31)}"
+                        th:value="${d}"
+                        th:text="${d}"
+                        th:selected="${d == startDay}"></option>
+            </select>&nbsp;&nbsp;
+
+            <select name="startMonth" size="1">
+                <option th:each="m : ${#numbers.sequence(1, 12)}"
+                        th:value="${m}"
+                        th:text="${{'January','February','March','April','May','June','July','August','September','October','November','December'}[m-1]}"
+                        th:selected="${m == startMonth}"></option>
+            </select>&nbsp;&nbsp;
+
+            <select name="startYear" size="1">
+                <option th:each="y : ${years}"
+                        th:value="${y}"
+                        th:text="${y}"
+                        th:selected="${y == startYear}"></option>
+            </select>
+        </p>
+
+        <p>
+            <input type="submit" value="Delete Old Assignments...">
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <input type="button" value="Cancel" onclick="goHome()">
+        </p>
+    </form>
+
+    <p><br></p>
+    <p th:text="'As of: ' + ${#dates.format(#dates.createNow(), 'EEE MMM dd HH:mm:ss zzz yyyy')}">Date</p>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

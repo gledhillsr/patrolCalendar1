@@ -53,13 +53,12 @@ org.nsponline.calendar/
 **Migrated to Spring Boot controllers** (in `controller/`):
 `/ChangeShiftAssignments`, `/Directors`, `/DayShifts`, `/EditShiftTemplates`, `/EmailForm`,
 `/ListAssignments`, `/ListPatrollers`, `/MemberList`, `/MemberLogin`, `/MemberLogout`,
-`/MonthCalendar`, `/ProcessChangeShiftAssignments`, `/SetupListPatrollers`, `/SubList`,
-`/UpdateInfo`, `/VolunteerForm`, `/WebSitePreferences`
+`/MonthCalendar`, `/ProcessChangeShiftAssignments`, `/PurgeAssignments`, `/SetupListPatrollers`,
+`/SubList`, `/UpdateInfo`, `/VolunteerForm`, `/WebSitePreferences`
 
 **Still need migration** (in `resources/`, currently not served):
 - `ApiResources.java` — REST JSON endpoints requiring `Authorization` header
 - `InnerDownloadRoster.java`
-- `InnerPurgeAssignments.java`
 - `InnerWebResource.java` / `WebResource.java`
 - `LoginHelp.java`
 - `RefresherTraining.java`

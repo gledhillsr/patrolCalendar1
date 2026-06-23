@@ -51,9 +51,8 @@ public class OuterPage {
       replaceAll("__RESORT_IMAGE", resortData.getResortImage()).
       replaceAll("__JAVA_SCRIPT", javaScript);
     if (!StringUtils.isBlank(loggedInUserId)) {
-      String buttonClass = "Brighton".equals(resortData.getResortShortName()) ? "class='button'" : "";
-      String logout = "<a " + buttonClass + " href='/calendar-1/MemberLogout?resort=" + resortData.getResortShortName() + "' "
-        + "target='_self'>Logout</a>";
+      String logout = "<a class='nav-btn nav-btn-logout' href='/calendar-1/MemberLogout?resort="
+        + resortData.getResortShortName() + "' target='_self'>Logout</a>";
       str1 = str1.replace("__LOGOUT", logout);
     }
     else {
