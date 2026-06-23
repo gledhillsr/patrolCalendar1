@@ -10,6 +10,9 @@ import org.nsponline.calendar.utils.Logger;
 import org.nsponline.calendar.utils.PatrolData;
 import org.nsponline.calendar.utils.ResortData;
 import org.nsponline.calendar.utils.StaticUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -28,6 +31,10 @@ public class EmailService {
     private static final String FALLBACK_FROM_ADDRESS = "steve@gledhills.com";
 
     private final JavaMailSender mailSender;
+
+    // Self-injection via @Lazy gives us the Spring proxy so @Async on sendBatch actually fires asynchronously
+    @Autowired @Lazy
+    private EmailService self;
 
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
@@ -75,8 +82,8 @@ public class EmailService {
                                  form.getMessage().contains("$carryovercredits$") ||
                                  form.getMessage().contains("$credit$");
 
-        // Send async
-        sendBatch(recipients, form.getSubject(), form.getMessage(), fromEmail,
+        // Send async — call via self (proxied instance) so @Async takes effect
+        self.sendBatch(recipients, form.getSubject(), form.getMessage(), fromEmail,
                  fromMember, hasValidReturnEmail, form.getResort(), hasTemplateVars, logger);
 
         return new EmailSendResult(trackingId, recipients.size(), LocalDateTime.now());
@@ -106,7 +113,7 @@ public class EmailService {
 
                 logger.info("Email sent to " + recipient.getFullNameLastFirst() +
                            " at " + recipient.getEmailAddress());
-            } catch (MessagingException e) {
+            } catch (MessagingException | MailException e) {
                 logger.logException("Failed to send email to " + recipient.getEmailAddress(), e);
             }
         }

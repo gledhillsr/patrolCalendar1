@@ -15,12 +15,13 @@
             border-style: solid;
             border-collapse: collapse;
             border-spacing: 0;
+            background-color: transparent;
         }
         table.list th {
             font-size: /*[[${textFontSize}]]*/14pt;
             font-weight: bold;
             color: #000000;
-            background-color: #ffffff;
+            background-color: #E5E5E5;
             border-width: 1px;
             border-color: #000000;
             border-style: solid;
@@ -29,7 +30,7 @@
         table.list td {
             font-size: /*[[${textFontSize}]]*/14pt;
             color: #000000;
-            background-color: #ffffff;
+            background-color: transparent;
             border-width: 1px;
             border-color: #000000;
             border-style: solid;
@@ -119,41 +120,45 @@
             <td th:if="${showBlankWide}">&nbsp;&nbsp;&nbsp;</td>
             <td th:if="${showClass}" th:text="${member.getClassification()}">Class</td>
             <td th:if="${showID}" th:text="${member.getID()}">ID</td>
-            <td th:if="${showSpouse}" th:text="${member.getSpouse()}">Spouse</td>
-            <td th:if="${showAddr}" th:text="${member.getAddress()}">Address</td>
-            <td th:if="${showCity}" th:text="${member.getCity()}">City</td>
-            <td th:if="${showState}" th:text="${member.getState()}">State</td>
-            <td th:if="${showZip}" th:text="${member.getZipCode()}">Zip</td>
-            <td th:if="${showHome}" th:text="${member.getHomePhone()}">Home</td>
-            <td th:if="${showWork}" th:text="${member.getWorkPhone()}">Work</td>
-            <td th:if="${showCell}" th:text="${member.getCellPhone()}">Cell</td>
-            <td th:if="${showPager}" th:text="${member.getPager()}">Pager</td>
-            <td th:if="${showEmail}" th:text="${member.getEmailAddress()}">Email</td>
-            <td th:if="${showEmergency}" th:text="${member.getEmergencyCallUp()}">Emergency</td>
-            <td th:if="${showSubstitute}" th:text="${member.getNightSubstitute()}">Sub</td>
-            <td th:if="${showCommit}" th:text="${member.getCommitment()}">Commitment</td>
-            <td th:if="${showInstructor}" th:text="${member.getInstructor()}">Instructor</td>
+            <td th:if="${showSpouse}" th:text="${#strings.replace(member.getSpouse(), '&amp;nbsp;', '')}">Spouse</td>
+            <td th:if="${showAddr}" th:text="${#strings.replace(member.getAddress(), '&amp;nbsp;', '')}">Address</td>
+            <td th:if="${showCity}" th:text="${#strings.replace(member.getCity(), '&amp;nbsp;', '')}">City</td>
+            <td th:if="${showState}" th:text="${#strings.replace(member.getState(), '&amp;nbsp;', '')}">State</td>
+            <td th:if="${showZip}" th:text="${#strings.replace(member.getZipCode(), '&amp;nbsp;', '')}">Zip</td>
+            <td th:if="${showHome}" th:text="${#strings.replace(member.getHomePhone(), '&amp;nbsp;', '')}">Home</td>
+            <td th:if="${showWork}" th:text="${#strings.replace(member.getWorkPhone(), '&amp;nbsp;', '')}">Work</td>
+            <td th:if="${showCell}" th:text="${#strings.replace(member.getCellPhone(), '&amp;nbsp;', '')}">Cell</td>
+            <td th:if="${showPager}" th:text="${#strings.replace(member.getPager(), '&amp;nbsp;', '')}">Pager</td>
+            <td th:if="${showEmail}">
+                <a th:if="${!#strings.equals(member.getEmailAddress(), '&amp;nbsp;') and !#strings.isEmpty(member.getEmailAddress())}"
+                   th:href="'mailto:' + ${member.getEmailAddress()}"
+                   th:text="${member.getEmailAddress()}">Email</a>
+            </td>
+            <td th:if="${showEmergency}" th:text="${#strings.replace(member.getEmergencyCallUp(), '&amp;nbsp;', '')}">Emergency</td>
+            <td th:if="${showSubstitute}" th:text="${#strings.replace(member.getNightSubstitute(), '&amp;nbsp;', '')}">Sub</td>
+            <td th:if="${showCommit}" th:text="${#strings.replace(member.getCommitment(), '&amp;nbsp;', '')}">Commitment</td>
+            <td th:if="${showInstructor}" th:text="${#strings.replace(member.getInstructor(), '&amp;nbsp;', '')}">Instructor</td>
             <td th:if="${showDirector}" th:text="${member.isDirector() ? 'Yes' : 'No'}">Director</td>
-            <td th:if="${showLastUpdated}" th:text="${member.getLastUpdated()}">Updated</td>
-            <td th:if="${showComments}" th:text="${member.getComments()}">Comments</td>
+            <td th:if="${showLastUpdated}" th:text="${#strings.replace(member.getLastUpdated(), '&amp;nbsp;', '')}">Updated</td>
+            <td th:if="${showComments}" th:text="${#strings.replace(member.getComments(), '&amp;nbsp;', '')}">Comments</td>
             <td th:if="${showCanEarnCredits}" th:text="${member.canEarnCredits() ? 'Yes' : 'No'}">Credits</td>
-            <td th:if="${showCreditsEarned}" th:text="${member.getCreditsEarned()}">Earned</td>
-            <td th:if="${showCreditDate}" th:text="${member.getLastCreditUpdate()}">Credit Date</td>
+            <td th:if="${showCreditsEarned}" th:text="${#strings.replace(member.getCreditsEarned(), '&amp;nbsp;', '')}">Earned</td>
+            <td th:if="${showCreditDate}" th:text="${#strings.replace(member.getLastCreditUpdate(), '&amp;nbsp;', '')}">Credit Date</td>
             <td th:if="${showTeamLead}" th:text="${member.isTeamLead() ? 'Yes' : 'No'}">Team Lead</td>
             <td th:if="${showMentoring}" th:text="${member.isMentoring() ? 'Yes' : 'No'}">Mentoring</td>
 
             <td th:if="${showDayCnt}" th:text="${member.AssignmentCount[1]}">0</td>
-            <td th:if="${showDayList}" th:text="${member.szAssignments[1]}">Details</td>
+            <td th:if="${showDayList}" th:text="${#strings.replace(member.szAssignments[1], '&amp;nbsp;', '')}">Details</td>
             <td th:if="${showSwingCnt}" th:text="${member.AssignmentCount[2]}">0</td>
-            <td th:if="${showSwingList}" th:text="${member.szAssignments[2]}">Details</td>
+            <td th:if="${showSwingList}" th:text="${#strings.replace(member.szAssignments[2], '&amp;nbsp;', '')}">Details</td>
             <td th:if="${showNightCnt}" th:text="${member.AssignmentCount[0]}">0</td>
-            <td th:if="${showNightList}" th:text="${member.szAssignments[0]}">Details</td>
+            <td th:if="${showNightList}" th:text="${#strings.replace(member.szAssignments[0], '&amp;nbsp;', '')}">Details</td>
             <td th:if="${showTrainingCnt}" th:text="${member.AssignmentCount[3]}">0</td>
-            <td th:if="${showTrainingList}" th:text="${member.szAssignments[3]}">Details</td>
+            <td th:if="${showTrainingList}" th:text="${#strings.replace(member.szAssignments[3], '&amp;nbsp;', '')}">Details</td>
             <td th:if="${showOtherCnt}" th:text="${member.AssignmentCount[4]}">0</td>
-            <td th:if="${showOtherList}" th:text="${member.szAssignments[4]}">Details</td>
+            <td th:if="${showOtherList}" th:text="${#strings.replace(member.szAssignments[4], '&amp;nbsp;', '')}">Details</td>
             <td th:if="${showHolidayCnt}" th:text="${member.AssignmentCount[5]}">0</td>
-            <td th:if="${showHolidayList}" th:text="${member.szAssignments[5]}">Details</td>
+            <td th:if="${showHolidayList}" th:text="${#strings.replace(member.szAssignments[5], '&amp;nbsp;', '')}">Details</td>
         </tr>
 
     </table>
