@@ -7,6 +7,6 @@ createNewEc2Instance.txt
 *.ear
 *.iws
 .DS_Store
-credentials.properties
+*.properties
 .idea/
 target/

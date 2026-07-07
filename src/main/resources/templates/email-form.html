@@ -97,6 +97,17 @@
             cursor: not-allowed;
         }
     </style>
+    <script type="text/javascript">
+        function updateEmailCount() {
+            var select = document.getElementById('recipientSelect');
+            var count = 0;
+            for (var i = 0; i < select.options.length; i++) {
+                if (select.options[i].selected) count++;
+            }
+            document.getElementById('emailCount').textContent = count;
+        }
+        window.addEventListener('load', updateEmailCount);
+    </script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <!-- Reuse header fragment -->
@@ -170,17 +181,20 @@
                 <tr>
                     <td class="recipient-column">
                         <b>To:</b><br/>
-                        <font size="1">Use CTRL+Click to unselect specific members</font>
+                        <font size="1">
+                            PC: Hold Ctrl and click to select or deselect individual members; hold Shift+Click to select a range.<br/>
+                            Mac: Hold &#8984; (Cmd) and click to select or deselect individual members; hold Shift+Click to select a range.
+                        </font>
                         <br/><br/>
-                        <select th:field="*{patrollerIds}" multiple="multiple" size="6">
+                        <select id="recipientSelect" th:field="*{patrollerIds}" multiple="multiple" size="6"
+                                onchange="updateEmailCount()">
                             <option th:each="recipient : ${validRecipients}"
                                     th:value="${recipient.id}"
-                                    th:text="${recipient.lastName} + ', ' + ${recipient.firstName}"
-                                    selected="selected">
+                                    th:text="${recipient.lastName} + ', ' + ${recipient.firstName}">
                             </option>
                         </select>
                         <br/>
-                        <font size="1" th:text="|${#lists.size(validRecipients)} Email's to send|"></font>
+                        <font size="1"><span id="emailCount"></span> Email's to send</font>
                     </td>
                     <td class="recipient-column">
                         <b>Patrollers with No Valid Email Address</b>

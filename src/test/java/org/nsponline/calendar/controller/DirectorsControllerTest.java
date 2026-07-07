@@ -62,7 +62,7 @@ class DirectorsControllerTest {
                 .session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString(
-                        "Sorry, you are -not- authorized for this menu")))
+                        "Sorry, you are not authorized for this menu")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString(
                         "Customized Listing")));
     }

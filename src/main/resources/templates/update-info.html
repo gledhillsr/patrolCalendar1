@@ -81,6 +81,17 @@
             </div>
 
             <table border="0" width="900">
+                <!-- ID Number row - always at the top -->
+                <tr>
+                    <td width="351" align="right"><font size="3">ID Number:</font></td>
+                    <td width="600">
+                        <span th:if="${!isSetNewID and !isAddPatroller}" th:text="${idNumber}">ID</span>
+                        <input th:if="${isSetNewID or isAddPatroller}" type="text" th:field="*{idNumber}" size="10" maxlength="10" required="required" />
+                        <span th:if="${isSetNewID}" style="color: #666; font-size: 10pt;"> (Old ID: <span th:text="${oldMemberID}">Old ID</span>)</span>
+                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 10pt;"> Required.  (Number between 100000 and 999999)</span>
+                    </td>
+                </tr>
+
                 <!-- Personal Information Section -->
                 <tr>
                     <td colspan="2">
@@ -156,12 +167,7 @@
                         <input type="text" th:field="*{cellPhone}" size="30" />
                     </td>
                 </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Pager:</font></td>
-                    <td width="600">
-                        <input type="text" th:field="*{pager}" size="30" />
-                    </td>
-                </tr>
+
                 <tr>
                     <td width="351" align="right"><font size="3">E-mail:</font></td>
                     <td width="600">
@@ -208,57 +214,107 @@
                     </td>
                 </tr>
 
-                <!-- Read-Only Information Section -->
+                <!-- Patrol Information Section -->
                 <tr>
                     <td colspan="2">
-                        <h3>Read-Only Information</h3>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">ID:</font></td>
-                    <td width="600">
-                        <span th:if="${!isSetNewID and !isAddPatroller}" th:text="${idNumber}">ID</span>
-                        <input th:if="${isSetNewID or isAddPatroller}" type="text" th:field="*{idNumber}" size="10" maxlength="10" required="required" />
-                        <span th:if="${isSetNewID}" style="color: #666; font-size: 10pt;"> (Old ID: <span th:text="${oldMemberID}">Old ID</span>)</span>
-                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 10pt;"> (Enter new ID number)</span>
+                        <h3>Patrol Information</h3>
                     </td>
                 </tr>
                 <tr>
                     <td width="351" align="right"><font size="3">Classification:</font></td>
                     <td width="600">
-                        <span th:text="${classification}">Classification</span>
+                        <span th:unless="${isDirector or isAddPatroller}" th:text="${classification}">Classification</span>
+                        <select th:if="${isDirector or isAddPatroller}" th:field="*{classification}">
+                            <option value="BAS">Basic</option>
+                            <option value="SR">Senior</option>
+                            <option value="SRA">Senior Auxiliary</option>
+                            <option value="ALM">Alumni</option>
+                            <option value="PRO">Pro</option>
+                            <option value="AUX">Auxiliary</option>
+                            <option value="TRA">Transfer</option>
+                            <option value="CAN">Candidate</option>
+                            <option value="OTH">Other</option>
+                        </select>
                     </td>
                 </tr>
                 <tr>
                     <td width="351" align="right"><font size="3">Commitment:</font></td>
                     <td width="600">
-                        <span th:text="${commitment}">Commitment</span>
+                        <span th:unless="${isDirector or isAddPatroller}" th:text="${commitment}">Commitment</span>
+                        <select th:if="${isDirector or isAddPatroller}" th:field="*{commitment}">
+                            <option value="0">Inactive</option>
+                            <option value="1">Part Time</option>
+                            <option value="2">Full Time</option>
+                        </select>
                     </td>
                 </tr>
                 <tr>
                     <td width="351" align="right"><font size="3">Instructor:</font></td>
                     <td width="600">
-                        <span th:text="${instructor}">Instructor</span>
+                        <span th:unless="${isDirector or isAddPatroller}" th:text="${instructor}">Instructor</span>
+                        <span th:if="${isDirector or isAddPatroller}">
+                            <input type="checkbox" th:field="*{instructorOEC}" />OEC&nbsp;&nbsp;
+                            <input type="checkbox" th:field="*{instructorCPR}" />CPR&nbsp;&nbsp;
+                            <input type="checkbox" th:field="*{instructorSki}" />Ski&nbsp;&nbsp;
+                            <input type="checkbox" th:field="*{instructorToboggan}" />Toboggan
+                        </span>
                     </td>
                 </tr>
-                <tr>
+                <tr th:if="${isDirector or isAddPatroller}">
+                    <td width="351" align="right"><font size="3">Director:</font></td>
+                    <td width="600">
+                        <select th:field="*{director}">
+                            <option value="">No</option>
+                            <option value="yes">Yes</option>
+                            <option value="yesEmail">Yes &amp; email me ALL schedule changes</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr th:if="${isDirector or isAddPatroller}">
+                    <td width="351" align="right"><font size="3">Team Lead Trained:</font></td>
+                    <td width="600">
+                        <select th:field="*{teamLead}">
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr th:if="${isDirector or isAddPatroller}">
+                    <td width="351" align="right"><font size="3">Currently Being Mentored:</font></td>
+                    <td width="600">
+                        <select th:field="*{mentoring}">
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr th:unless="${isAddPatroller}">
                     <td width="351" align="right"><font size="3">Last Updated:</font></td>
                     <td width="600">
                         <span th:text="${lastUpdated}">Last Updated</span>
                     </td>
                 </tr>
+                <tr th:if="${isDirector or isAddPatroller}">
+                    <td width="351" align="right" valign="top">
+                        <font size="3">Private Comments<br><b>(Only</b> visible to directors)</font>
+                    </td>
+                    <td width="600">
+                        <textarea th:field="*{comments}" rows="4" cols="60"></textarea>
+                    </td>
+                </tr>
 
-                <!-- Hidden fields to preserve director-controlled values -->
-                <tr style="display: none;">
+                <!-- Hidden fields to preserve director-controlled values (non-director, non-addPatroller only) -->
+                <tr th:unless="${isDirector or isAddPatroller}" style="display: none;">
                     <td colspan="2">
-                        <input type="hidden" name="hiddenClassification" th:value="${hiddenClassification}" />
-                        <input type="hidden" name="hiddenCommitment" th:value="${hiddenCommitment}" />
-                        <input type="hidden" name="hiddenInstructor" th:value="${hiddenInstructor}" />
                         <input type="hidden" name="hiddenDirector" th:value="${hiddenDirector}" />
                         <input type="hidden" name="hiddenTeamLead" th:value="${hiddenTeamLead}" />
                         <input type="hidden" name="hiddenMentoring" th:value="${hiddenMentoring}" />
                         <input type="hidden" name="hiddenComments" th:value="${hiddenComments}" />
-                        <!-- SetNewID specific hidden fields -->
+                    </td>
+                </tr>
+                <!-- SetNewID / AddPatroller hidden fields -->
+                <tr style="display: none;">
+                    <td colspan="2">
                         <input th:if="${isSetNewID}" type="hidden" name="Purpose" value="setNewID" />
                         <input th:if="${isSetNewID}" type="hidden" name="removeOldID" th:value="${oldMemberID}" />
                         <input th:if="${isAddPatroller}" type="hidden" name="Purpose" value="Add_Patroller" />

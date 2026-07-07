@@ -52,6 +52,18 @@ public class UpdateInfoController {
         private String password;
         private String idNumber; // For setNewID functionality
 
+        // Director-editable fields
+        private String classification;
+        private String commitment;
+        private boolean instructorOEC;
+        private boolean instructorCPR;
+        private boolean instructorSki;
+        private boolean instructorToboggan;
+        private String director;
+        private String teamLead;
+        private String mentoring;
+        private String comments;
+
         // No-arg constructor
         public MemberUpdateForm() {
         }
@@ -207,6 +219,36 @@ public class UpdateInfoController {
             this.idNumber = idNumber;
         }
 
+        public String getClassification() { return classification; }
+        public void setClassification(String classification) { this.classification = classification; }
+
+        public String getCommitment() { return commitment; }
+        public void setCommitment(String commitment) { this.commitment = commitment; }
+
+        public boolean isInstructorOEC() { return instructorOEC; }
+        public void setInstructorOEC(boolean instructorOEC) { this.instructorOEC = instructorOEC; }
+
+        public boolean isInstructorCPR() { return instructorCPR; }
+        public void setInstructorCPR(boolean instructorCPR) { this.instructorCPR = instructorCPR; }
+
+        public boolean isInstructorSki() { return instructorSki; }
+        public void setInstructorSki(boolean instructorSki) { this.instructorSki = instructorSki; }
+
+        public boolean isInstructorToboggan() { return instructorToboggan; }
+        public void setInstructorToboggan(boolean instructorToboggan) { this.instructorToboggan = instructorToboggan; }
+
+        public String getDirector() { return director; }
+        public void setDirector(String director) { this.director = director; }
+
+        public String getTeamLead() { return teamLead; }
+        public void setTeamLead(String teamLead) { this.teamLead = teamLead; }
+
+        public String getMentoring() { return mentoring; }
+        public void setMentoring(String mentoring) { this.mentoring = mentoring; }
+
+        public String getComments() { return comments; }
+        public void setComments(String comments) { this.comments = comments; }
+
         /**
          * Create MemberUpdateForm populated from Roster object.
          * Uses Roster field constants to extract data from memberData array.
@@ -234,6 +276,23 @@ public class UpdateInfoController {
             form.setPassword(""); // Never populate password from database
             form.setIdNumber(roster.memberData[Roster.ID_NUM]); // For setNewID functionality
 
+            // Director-editable fields
+            form.setClassification(roster.memberData[Roster.CLASSIFICATION]);
+            form.setCommitment(roster.memberData[Roster.COMMITMENT]);
+            try {
+                int instructorBits = Integer.parseInt(roster.memberData[Roster.INSTRUCTOR]);
+                form.setInstructorOEC((instructorBits & 1) != 0);
+                form.setInstructorCPR((instructorBits & 2) != 0);
+                form.setInstructorSki((instructorBits & 4) != 0);
+                form.setInstructorToboggan((instructorBits & 8) != 0);
+            } catch (NumberFormatException ignored) {
+            }
+            String dir = roster.memberData[Roster.DIRECTOR];
+            form.setDirector((dir != null) ? dir : "");
+            form.setTeamLead(roster.memberData[Roster.TEAM_LEAD]);
+            form.setMentoring(roster.memberData[Roster.MENTORING]);
+            form.setComments(roster.memberData[Roster.COMMENTS]);
+
             return form;
         }
 
@@ -241,12 +300,14 @@ public class UpdateInfoController {
          * Apply form data to Roster object for database update.
          * Handles null values by converting to empty strings.
          * Password is only updated if non-blank (hashed with SaltUtils).
+         * Director-only fields (classification, commitment, instructor) are only applied when isDirector is true.
          *
          * @param roster Roster object to update
          * @param sessionData SessionData for password hashing
          * @param LOG Logger for error reporting
+         * @param isDirector Whether the logged-in user is a director
          */
-        public void applyToRoster(Roster roster, SessionData sessionData, Logger LOG) {
+        public void applyToRoster(Roster roster, SessionData sessionData, Logger LOG, boolean isDirector) {
             if (roster == null || roster.memberData == null) {
                 return;
             }
@@ -272,15 +333,40 @@ public class UpdateInfoController {
                 roster.memberData[Roster.ID_NUM] = idNumber;
             }
 
-            // Password: only update if non-blank
+            // Password: only update if non-blank.
+            // Set the plain-text PASSWORD field so Roster's SQL builder detects the change
+            // and writes both password and the SHA-512 hash into newPassword.
             if (password != null && !password.trim().isEmpty()) {
-                try {
-                    String hashedPassword = new SaltUtils().hashPassword(sessionData, password);
-                    roster.memberData[Roster.NEW_PASSWORD] = hashedPassword;
-                } catch (java.security.NoSuchAlgorithmException e) {
-                    LOG.logException("Failed to hash password", e);
-                }
+                roster.memberData[Roster.PASSWORD] = password;
             }
+
+            // Director-only fields
+            if (isDirector) {
+                if (classification != null && !classification.trim().isEmpty()) {
+                    roster.memberData[Roster.CLASSIFICATION] = classification;
+                }
+                if (commitment != null && !commitment.trim().isEmpty()) {
+                    roster.memberData[Roster.COMMITMENT] = commitment;
+                }
+                int bits = (instructorOEC ? 1 : 0) | (instructorCPR ? 2 : 0)
+                         | (instructorSki ? 4 : 0) | (instructorToboggan ? 8 : 0);
+                roster.memberData[Roster.INSTRUCTOR] = String.valueOf(bits);
+                if (director != null) {
+                    roster.memberData[Roster.DIRECTOR] = director;
+                }
+                if (teamLead != null) {
+                    roster.memberData[Roster.TEAM_LEAD] = teamLead;
+                }
+                if (mentoring != null) {
+                    roster.memberData[Roster.MENTORING] = mentoring;
+                }
+                roster.memberData[Roster.COMMENTS] = (comments != null) ? comments : "";
+            }
+        }
+
+        // Keep old signature for backward compat with setNewID / addPatroller paths
+        public void applyToRoster(Roster roster, SessionData sessionData, Logger LOG) {
+            applyToRoster(roster, sessionData, LOG, false);
         }
     }
 
@@ -354,6 +440,10 @@ public class UpdateInfoController {
 
             // 6. Get logged-in user info
             String loggedInUserId = sessionData.getLoggedInUserId();
+
+            // Determine if logged-in user is a director
+            Roster loggedInMember = patrolData.getMemberByID(loggedInUserId);
+            boolean isDirector = loggedInMember != null && loggedInMember.isDirector();
 
             // Check if editing another patroller (director function)
             String editID = request.getParameter("EditID");
@@ -430,7 +520,8 @@ public class UpdateInfoController {
             model.addAttribute("editingPatrollerId", patrollerId); // The ID being edited
             model.addAttribute("memberName", member.getFullName());
             model.addAttribute("isBackdoorUser", false);
-                model.addAttribute("isAddPatroller", false);
+            model.addAttribute("isAddPatroller", false);
+            model.addAttribute("isDirector", isDirector);
             model.addAttribute("memberForm", memberForm);
             model.addAttribute("isSetNewID", isSetNewID);
             model.addAttribute("isAddPatroller", false);
@@ -566,6 +657,10 @@ public class UpdateInfoController {
             // This could be the logged-in user updating themselves, or a director editing another member
             // patrollerId already has the value from request.getParameter("ID") on line 433
 
+            // Determine if logged-in user is a director
+            Roster loggedInMember = patrolData.getMemberByID(loggedInUserId);
+            boolean isDirector = loggedInMember != null && loggedInMember.isDirector();
+
             // 8. Check for backdoor user (cannot update)
             boolean isBackdoorUser = loggedInUserId.equalsIgnoreCase(sessionData.getBackDoorUser());
 
@@ -601,10 +696,14 @@ public class UpdateInfoController {
                 // Re-populate all model attributes for error display
                 model.addAttribute("resort", resort);
                 model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
-                model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("patrollerId", loggedInUserId);
+                model.addAttribute("editingPatrollerId", patrollerId);
                 model.addAttribute("memberName", member.getFullName());
                 model.addAttribute("isBackdoorUser", false);
                 model.addAttribute("isAddPatroller", false);
+                model.addAttribute("isSetNewID", false);
+                model.addAttribute("oldMemberID", null);
+                model.addAttribute("isDirector", isDirector);
 
                 // Add read-only display attributes
                 model.addAttribute("idNumber", member.memberData[Roster.ID_NUM]);
@@ -668,7 +767,7 @@ public class UpdateInfoController {
             }
 
             // 10. Apply form values to roster
-            memberForm.applyToRoster(member, sessionData, LOG);
+            memberForm.applyToRoster(member, sessionData, LOG, isDirector);
 
             // 11. Update database
             try {
@@ -684,10 +783,14 @@ public class UpdateInfoController {
                 // Re-populate form on error
                 model.addAttribute("resort", resort);
                 model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
-                model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("patrollerId", loggedInUserId);
+                model.addAttribute("editingPatrollerId", patrollerId);
                 model.addAttribute("memberName", member.getFullName());
                 model.addAttribute("isBackdoorUser", false);
                 model.addAttribute("isAddPatroller", false);
+                model.addAttribute("isSetNewID", false);
+                model.addAttribute("oldMemberID", null);
+                model.addAttribute("isDirector", isDirector);
                 model.addAttribute("memberForm", memberForm);
                 model.addAttribute("errorMessage", "Database error: Failed to update profile. Please try again.");
 
@@ -747,10 +850,14 @@ public class UpdateInfoController {
             // 14. Add all model attributes for success display
             model.addAttribute("resort", resort);
             model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
-            model.addAttribute("patrollerId", patrollerId);
+            model.addAttribute("patrollerId", loggedInUserId);
+            model.addAttribute("editingPatrollerId", patrollerId);
             model.addAttribute("memberName", member.getFullName());
             model.addAttribute("isBackdoorUser", false);
-                model.addAttribute("isAddPatroller", false);
+            model.addAttribute("isAddPatroller", false);
+            model.addAttribute("isSetNewID", false);
+            model.addAttribute("oldMemberID", null);
+            model.addAttribute("isDirector", isDirector);
             model.addAttribute("memberForm", updatedForm);
             model.addAttribute("updateSuccess", true);
 
@@ -815,34 +922,33 @@ public class UpdateInfoController {
             Model model,
             Logger LOG) {
 
-        // Create empty form
+        // Create empty form with sensible defaults for patrol fields
         MemberUpdateForm memberForm = new MemberUpdateForm();
+        memberForm.setClassification("CAN"); // Candidate
+        memberForm.setCommitment("0");       // Inactive
+        memberForm.setDirector("");          // No
+        memberForm.setTeamLead("0");         // No
+        memberForm.setMentoring("0");        // No
+        memberForm.setComments("");
 
         // Add model attributes
         model.addAttribute("resort", resort);
         model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
-        model.addAttribute("patrollerId", loggedInUserId); // For header navigation
-        model.addAttribute("editingPatrollerId", ""); // No ID yet for new patroller
+        model.addAttribute("patrollerId", loggedInUserId);
+        model.addAttribute("editingPatrollerId", "");
         model.addAttribute("memberName", "New Patroller");
         model.addAttribute("isBackdoorUser", false);
-                model.addAttribute("isAddPatroller", false);
-        model.addAttribute("memberForm", memberForm);
-        model.addAttribute("isSetNewID", false);
+        model.addAttribute("isDirector", false);
         model.addAttribute("isAddPatroller", true);
+        model.addAttribute("isSetNewID", false);
+        model.addAttribute("memberForm", memberForm);
 
-        // Add empty display attributes
+        // Display attributes (not shown in add-patroller mode but needed to avoid null)
         model.addAttribute("idNumber", "");
         model.addAttribute("classification", "");
         model.addAttribute("commitment", "");
         model.addAttribute("instructor", "");
         model.addAttribute("lastUpdated", "");
-
-        // Add empty hidden field values
-        model.addAttribute("hiddenClassification", "");
-        model.addAttribute("hiddenCommitment", "");
-        model.addAttribute("hiddenInstructor", "");
-        model.addAttribute("hiddenTeamLead", "");
-        model.addAttribute("hiddenDirector", "");
 
         // Add resort metadata for header
         ResortData resortData = PatrolData.getResortInfo(resort);
@@ -1117,7 +1223,7 @@ public class UpdateInfoController {
                 deleteStatement.setString(1, oldMemberID);
                 deleteStatement.executeUpdate();
 
-                LOG.info("Changed member ID from " + oldMemberID + " to " + newMemberID);
+                LOG.info("Changed member ID from " + oldMemberID + " to " + newMemberID + ".  Done by " + loggedInUserId);
             }
 
             // Redirect to Directors with success
@@ -1166,9 +1272,10 @@ public class UpdateInfoController {
             model.addAttribute("resort", resort);
             model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
             model.addAttribute("patrollerId", loggedInUserId);
+            model.addAttribute("isSetNewID", false);
+            model.addAttribute("isAddPatroller", true);
             model.addAttribute("errorMessage", "ID Number is required for new patroller");
             model.addAttribute("memberForm", memberForm);
-            model.addAttribute("isAddPatroller", true);
             return "update-info";
         }
 
@@ -1178,9 +1285,10 @@ public class UpdateInfoController {
             model.addAttribute("resort", resort);
             model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
             model.addAttribute("patrollerId", loggedInUserId);
+            model.addAttribute("isSetNewID", false);
+            model.addAttribute("isAddPatroller", true);
             model.addAttribute("errorMessage", "ID Number " + newIdNumber + " already exists");
             model.addAttribute("memberForm", memberForm);
-            model.addAttribute("isAddPatroller", true);
             return "update-info";
         }
 
@@ -1188,15 +1296,9 @@ public class UpdateInfoController {
         Roster newMember = new Roster(LOG);
         newMember.memberData[Roster.ID_NUM] = newIdNumber;
 
-        // Apply form values to new member
-        memberForm.applyToRoster(newMember, sessionData, LOG);
+        // Apply form values including director-editable patrol fields
+        memberForm.applyToRoster(newMember, sessionData, LOG, true);
 
-        // Set default values for new patroller
-        newMember.memberData[Roster.CLASSIFICATION] = "0"; // Auxiliary
-        newMember.memberData[Roster.COMMITMENT] = "0"; // No commitment
-        newMember.memberData[Roster.INSTRUCTOR] = "false";
-        newMember.memberData[Roster.TEAM_LEAD] = "false";
-        newMember.memberData[Roster.DIRECTOR] = "false";
         newMember.memberData[Roster.LAST_UPDATED] = new java.util.Date().toString();
 
         // Write new member to database
@@ -1212,9 +1314,10 @@ public class UpdateInfoController {
             model.addAttribute("resort", resort);
             model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
             model.addAttribute("patrollerId", loggedInUserId);
+            model.addAttribute("isSetNewID", false);
+            model.addAttribute("isAddPatroller", true);
             model.addAttribute("errorMessage", "Database error: Failed to add new patroller. Please try again.");
             model.addAttribute("memberForm", memberForm);
-            model.addAttribute("isAddPatroller", true);
             return "update-info";
         }
 

@@ -183,6 +183,12 @@ public class EmailFormController {
                 form.setResort(resort);
                 form.setFromPatrollerId(id);
                 form.setOriginalPatrollerCount(validRecipients.size());
+                // Pre-select all valid recipients
+                List<String> allIds = new ArrayList<>();
+                for (EmailRecipient r : validRecipients) {
+                    allIds.add(r.getId());
+                }
+                form.setPatrollerIds(allIds);
                 model.addAttribute("compositionForm", form);
             }
 

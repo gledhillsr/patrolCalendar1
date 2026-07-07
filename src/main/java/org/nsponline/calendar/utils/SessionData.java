@@ -107,7 +107,7 @@ public class SessionData {
 
   private boolean loadPropertiesFile(Properties properties, PrintWriter out) {
     try (FileInputStream inStream = new FileInputStream(PROPERTIES_FILE)) {
-      LOG.info("reading SessionData properties file from disk.");
+      LOG.debug("reading SessionData properties file from disk.");
       properties.load(inStream);
     }
     catch (IOException e) {

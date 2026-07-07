@@ -242,7 +242,12 @@ public class Logger {
   private void _printCommonHeader(HttpServletRequest request, String resort) {
     String fromIp = "undef";
     if (request != null) {
-      fromIp = request.getHeader("x-forwarded-for"); //x-forwarded-for: 216.49.181.51
+      try {
+        fromIp = request.getHeader("x-forwarded-for"); //x-forwarded-for: 216.49.181.51
+        if (fromIp == null) fromIp = "undef";
+      } catch (IllegalStateException e) {
+        fromIp = "async";
+      }
     }
     _printCommonHeader(fromIp, resort);
   }

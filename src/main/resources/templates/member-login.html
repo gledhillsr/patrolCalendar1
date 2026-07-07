@@ -134,7 +134,7 @@
                         <tr>
                             <td><font face="verdana" size="2" color="white">Password:</font></td>
                             <td>
-                                <input type="password" id="Password" name="Password"/>
+                                <input type="password" id="Password" name="Password" onkeydown="if(event.key==='Enter'){document.getElementById('submit1').click();}" />
                                 <input type="submit" value="Login" id="submit1" name="submit1"/>
                             </td>
                         </tr>
