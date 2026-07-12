@@ -46,7 +46,6 @@ public class MonthCalendar extends ResourceBase {
   private DirectorSettings directorSettings;
   private boolean denseFormat;
   private int maxAssignmentCnt;
-  private int maxNameLen;
   private int textLen;
   private int dayWidth;   //normal is 14 and 14 (100/7 = 14) ps need to FIX is other spots also
   private int wkEndWidth; //big weekend is 11 and 22 (100/9)
@@ -231,26 +230,22 @@ public class MonthCalendar extends ResourceBase {
 
     //  decide if I will make weekend shifts in two columns
     if (resort.contains("Jackson")) {
-      maxNameLen = 30;
       denseFormat = false;
       dayWidth = 14;
       wkEndWidth = 14;
     }
     else if (textLen > 0) {
       //user set an "override"
-      maxNameLen = textLen;
       denseFormat = true;
       dayWidth = 11;
       wkEndWidth = 22;
     }
     else if (maxAssignmentCnt > 12 || resort.equals("Brighton")) {
-      maxNameLen = 20;
       denseFormat = true;
       dayWidth = 11;
       wkEndWidth = 22;
     }
     else {
-      maxNameLen = 30;
       denseFormat = false;
       dayWidth = 14;
       wkEndWidth = 14;
@@ -462,6 +457,9 @@ public class MonthCalendar extends ResourceBase {
     out.println("<style type='text/css'>\n");
     out.println("  .calendar td    {font-size:10pt; face:Verdana,Arial,Helvetica; padding:1px}\n");
     //      out.println("  a    {target:_self}\n"); //todo srg WIP
+    out.println("  .shift-list { table-layout: fixed; }\n");
+    out.println(
+      "  .shift-name { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }\n");
     out.println("</style>\n");
 
     out.println("<TABLE class='calendar' BORDER='3' CELLSPACING='0' CELLPADDING='1' WIDTH='100%'><TR>");
@@ -642,7 +640,7 @@ public class MonthCalendar extends ResourceBase {
           //
           //no data for this day, FILL OUT BLANK FORM
           //
-          out.println("<TABLE WIDTH='100%' Border='0' CELLPADDING='0' CellSpacing='0'>");
+          out.println("<TABLE WIDTH='100%' class='shift-list' Border='0' CELLPADDING='0' CellSpacing='0'>");
           int count = 0;
           for (int i = 0; i < ShiftDefinitions.MAX; ++i) {
             ShiftDefinitions shift = PredefinedDayShifts[dayOfWeek][i];
@@ -681,7 +679,7 @@ public class MonthCalendar extends ResourceBase {
       else {
         out.println(htmDisplayData);
       }
-      out.println("<TABLE WIDTH='100%' Border='0' CELLPADDING='0' CellSpacing='0'>");
+      out.println("<TABLE WIDTH='100%' class='shift-list' Border='0' CELLPADDING='0' CellSpacing='0'>");
       int posCount = 0;
       htmData =
         "ChangeShiftAssignments?resort=" + resort + "&dayOfWeek=" + (dayOfWeek - 1) + "&date=" + day + "&month=" +
@@ -754,14 +752,6 @@ public class MonthCalendar extends ResourceBase {
       QuickTip = "";
       szName = time;
     }
-    int testLen = maxNameLen;
-    if (missed) {
-      testLen += 8;
-    }
-
-    if (szName.length() > testLen) {
-      szName = szName.substring(0, testLen);
-    }
     //this works
     String szRowStart;
     String szRowEnd;
@@ -822,11 +812,13 @@ public class MonthCalendar extends ResourceBase {
         }
       }
       // end highlight ------------------------------------------
-      out.println(szRowStart + "<a target='_self' href='" + html + "' Title='" + QuickTip + "'>" + cellBackgroundStart +
-                    szName + cellBackgroundEnd + "</a>" + szRowEnd);
+      out.println(szRowStart + "<a target='_self' href='" + html + "' Title='" + QuickTip +
+                    "'><span class='shift-name'>" + cellBackgroundStart +
+                    szName + cellBackgroundEnd + "</span></a>" + szRowEnd);
     }
     else {
-      out.println(szRowStart + "<font face='arial,helvetica' color='#000000'>" + szName + "</font>" + szRowEnd);
+      out.println(szRowStart + "<span class='shift-name'><font face='arial,helvetica' color='#000000'>" + szName +
+                    "</font></span>" + szRowEnd);
     }
   }
 

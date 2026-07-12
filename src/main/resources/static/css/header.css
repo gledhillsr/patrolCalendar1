@@ -4,17 +4,26 @@
     font-family: Arial, Helvetica, sans-serif;
 }
 .banner-top {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     padding: 10px 16px;
     gap: 16px;
 }
 .banner-title {
-    font-size: 1.5em;
+    font-size: 3em;
     font-weight: bold;
     color: #003366;
     margin: 0;
-    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+.banner-title-text {
+    display: block;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 .nav-public {
     background: #eeeeee;
