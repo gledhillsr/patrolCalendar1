@@ -18,5 +18,7 @@
 
     <!-- Render the calendar body HTML from legacy servlet -->
     <div th:utext="${calendarBodyHtml}"></div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

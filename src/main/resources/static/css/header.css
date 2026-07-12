@@ -1,7 +1,18 @@
+body {
+    margin: 0;
+    padding: 0 16px;
+    box-sizing: border-box;
+}
+footer {
+    position: sticky;
+    top: 100vh;
+}
 #banner {
     background: white;
     border-bottom: 3px solid #003366;
     font-family: Arial, Helvetica, sans-serif;
+    margin-left: -16px;
+    margin-right: -16px;
 }
 .banner-top {
     display: grid;
