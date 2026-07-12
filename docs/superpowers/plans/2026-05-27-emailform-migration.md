@@ -365,11 +365,8 @@ package org.nsponline.calendar.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.nsponline.calendar.dto.EmailFormRequest;
-import org.nsponline.calendar.dto.EmailRecipient;
-import org.nsponline.calendar.utils.PatrolData;
-
-import java.util.List;
+import dto.com.gledhills.calendar.EmailFormRequest;
+import service.com.gledhills.calendar.PatrolMemberFilterService;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -386,11 +383,11 @@ class PatrolMemberFilterServiceTest {
     void filterMembers_withBASClassification_returnsOnlyBasicMembers() {
         // This test will fail until service is implemented
         EmailFormRequest request = new EmailFormRequest(
-            "Sample", "123", null, null,
-            true, null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null, null,
-            null, null, null, null, null, null, null, null
+                "Sample", "123", null, null,
+                true, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null
         );
 
         // Will need mock PatrolData - for now test compilation
@@ -411,11 +408,11 @@ Expected: Compilation error - PatrolMemberFilterService does not exist
 ```java
 package org.nsponline.calendar.service;
 
-import org.nsponline.calendar.dto.EmailFormRequest;
-import org.nsponline.calendar.dto.EmailRecipient;
-import org.nsponline.calendar.store.Roster;
-import org.nsponline.calendar.utils.PatrolData;
-import org.nsponline.calendar.utils.StaticUtils;
+import dto.com.gledhills.calendar.EmailFormRequest;
+import dto.com.gledhills.calendar.EmailRecipient;
+import store.com.gledhills.calendar.Roster;
+import utils.com.gledhills.calendar.PatrolData;
+import utils.com.gledhills.calendar.StaticUtils;
 import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
@@ -439,30 +436,30 @@ public class PatrolMemberFilterService {
      */
     public List<EmailRecipient> filterMembers(EmailFormRequest request, PatrolData patrolData) {
         List<EmailRecipient> recipients = new ArrayList<>();
-        
+
         // Build classification filter list
         Vector<String> classificationsToDisplay = buildClassificationFilter(request);
         int commitmentToDisplay = buildCommitmentFilter(request);
         int instructorFlags = buildInstructorFlags(request);
-        
+
         // Iterate roster and filter
         ResultSet rosterResults = patrolData.resetRoster();
         Roster member;
         while ((member = patrolData.nextMember("&nbsp;", rosterResults)) != null) {
             if (member.okToDisplay(
-                Boolean.TRUE.equals(request.getEveryBody()),
-                Boolean.TRUE.equals(request.getSubList()),
-                Boolean.TRUE.equals(request.getALL()),
-                classificationsToDisplay,
-                commitmentToDisplay,
-                Boolean.TRUE.equals(request.getListDirector()),
-                instructorFlags,
-                0)) {
-                
+                    Boolean.TRUE.equals(request.getEveryBody()),
+                    Boolean.TRUE.equals(request.getSubList()),
+                    Boolean.TRUE.equals(request.getALL()),
+                    classificationsToDisplay,
+                    commitmentToDisplay,
+                    Boolean.TRUE.equals(request.getListDirector()),
+                    instructorFlags,
+                    0)) {
+
                 recipients.add(convertToEmailRecipient(member));
             }
         }
-        
+
         return recipients;
     }
 
@@ -501,16 +498,16 @@ public class PatrolMemberFilterService {
     private EmailRecipient convertToEmailRecipient(Roster member) {
         String email = member.getEmailAddress();
         boolean hasValidEmail = StaticUtils.isValidEmailAddress(email);
-        
+
         return new EmailRecipient(
-            member.getID(),
-            member.getFirst(),
-            member.getLast(),
-            email,
-            hasValidEmail,
-            new HashMap<>(),  // Empty shift counts initially
-            member.getCarryOverCredits(),
-            member.getCreditsEarned()
+                member.getID(),
+                member.getFirst(),
+                member.getLast(),
+                email,
+                hasValidEmail,
+                new HashMap<>(),  // Empty shift counts initially
+                member.getCarryOverCredits(),
+                member.getCreditsEarned()
         );
     }
 }
@@ -551,7 +548,8 @@ package org.nsponline.calendar.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.nsponline.calendar.dto.EmailRecipient;
+import dto.com.gledhills.calendar.EmailRecipient;
+import service.com.gledhills.calendar.ShiftAssignmentService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -573,8 +571,8 @@ class ShiftAssignmentServiceTest {
         // This test will fail until service is implemented
         List<EmailRecipient> recipients = new ArrayList<>();
         recipients.add(new EmailRecipient(
-            "123", "John", "Doe", "john@example.com",
-            true, new HashMap<>(), "0", "0"
+                "123", "John", "Doe", "john@example.com",
+                true, new HashMap<>(), "0", "0"
         ));
 
         // Will need mock PatrolData - for now test compilation
@@ -595,10 +593,10 @@ Expected: Compilation error - ShiftAssignmentService does not exist
 ```java
 package org.nsponline.calendar.service;
 
-import org.nsponline.calendar.dto.EmailFormRequest;
-import org.nsponline.calendar.dto.EmailRecipient;
-import org.nsponline.calendar.store.Assignments;
-import org.nsponline.calendar.utils.PatrolData;
+import dto.com.gledhills.calendar.EmailFormRequest;
+import dto.com.gledhills.calendar.EmailRecipient;
+import store.com.gledhills.calendar.Assignments;
+import utils.com.gledhills.calendar.PatrolData;
 import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
@@ -643,16 +641,16 @@ public class ShiftAssignmentService {
         Assignments assignment;
         while ((assignment = patrolData.readNextAssignment(assignmentResults)) != null) {
             long currMillis = (new GregorianCalendar(
-                assignment.getYear(),
-                assignment.getMonth(),
-                assignment.getDay()
+                    assignment.getYear(),
+                    assignment.getMonth(),
+                    assignment.getDay()
             )).getTimeInMillis();
 
             if (startMillis <= currMillis && currMillis <= endMillis) {
                 for (int i = 0; i < Assignments.MAX_ASSIGNMENT_SIZE; ++i) {
                     String memberId = assignment.getPosID(i);
                     MutableRecipientData recipientData = recipientMap.get(memberId);
-                    
+
                     if (recipientData != null) {
                         countShift(assignment, recipientData, request);
                     }
@@ -661,9 +659,9 @@ public class ShiftAssignmentService {
         }
 
         // Filter by MinDays and convert back to immutable
-        int minDays = (Boolean.TRUE.equals(request.getMIN_DAYS()) && request.getMinDays() != null) 
-            ? request.getMinDays() : 0;
-        
+        int minDays = (Boolean.TRUE.equals(request.getMIN_DAYS()) && request.getMinDays() != null)
+                ? request.getMinDays() : 0;
+
         List<EmailRecipient> enriched = new ArrayList<>();
         for (MutableRecipientData data : recipientMap.values()) {
             if (data.getTotalShiftCount() >= minDays) {
@@ -712,14 +710,14 @@ public class ShiftAssignmentService {
 
         EmailRecipient toEmailRecipient() {
             return new EmailRecipient(
-                original.getId(),
-                original.getFirstName(),
-                original.getLastName(),
-                original.getEmailAddress(),
-                original.isHasValidEmail(),
-                shiftCounts,
-                original.getCarryOverCredits(),
-                original.getCreditsEarned()
+                    original.getId(),
+                    original.getFirstName(),
+                    original.getLastName(),
+                    original.getEmailAddress(),
+                    original.isHasValidEmail(),
+                    shiftCounts,
+                    original.getCarryOverCredits(),
+                    original.getCreditsEarned()
             );
         }
     }
@@ -763,7 +761,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.nsponline.calendar.dto.EmailCompositionForm;
+import dto.com.gledhills.calendar.EmailCompositionForm;
+import service.com.gledhills.calendar.EmailService;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import java.util.List;
@@ -813,14 +812,14 @@ package org.nsponline.calendar.service;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import org.nsponline.calendar.dto.EmailCompositionForm;
-import org.nsponline.calendar.dto.EmailRecipient;
-import org.nsponline.calendar.dto.EmailSendResult;
-import org.nsponline.calendar.store.Roster;
-import org.nsponline.calendar.utils.Logger;
-import org.nsponline.calendar.utils.PatrolData;
-import org.nsponline.calendar.utils.ResortData;
-import org.nsponline.calendar.utils.StaticUtils;
+import dto.com.gledhills.calendar.EmailCompositionForm;
+import dto.com.gledhills.calendar.EmailRecipient;
+import dto.com.gledhills.calendar.EmailSendResult;
+import store.com.gledhills.calendar.Roster;
+import utils.com.gledhills.calendar.Logger;
+import utils.com.gledhills.calendar.PatrolData;
+import utils.com.gledhills.calendar.ResortData;
+import utils.com.gledhills.calendar.StaticUtils;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -837,7 +836,7 @@ import java.util.UUID;
 @Service
 public class EmailService {
     private static final String FALLBACK_FROM_ADDRESS = "steve@gledhills.com";
-    
+
     private final JavaMailSender mailSender;
 
     public EmailService(JavaMailSender mailSender) {
@@ -854,42 +853,42 @@ public class EmailService {
      */
     public EmailSendResult sendEmailsAsync(EmailCompositionForm form, PatrolData patrolData, Logger logger) {
         String trackingId = UUID.randomUUID().toString();
-        
+
         // Load from member
         Roster fromMember = patrolData.getMemberByID(form.getFromPatrollerId());
         String fromEmail = getFromEmailAddress(fromMember, form.getResort(), logger);
-        boolean hasValidReturnEmail = fromMember != null && 
-            StaticUtils.isValidEmailAddress(fromMember.getEmailAddress());
-        
+        boolean hasValidReturnEmail = fromMember != null &&
+                StaticUtils.isValidEmailAddress(fromMember.getEmailAddress());
+
         // Load recipients
         List<EmailRecipient> recipients = new ArrayList<>();
         for (String memberId : form.getPatrollerIds()) {
             Roster member = patrolData.getMemberByID(memberId);
             if (member != null && StaticUtils.isValidEmailAddress(member.getEmailAddress())) {
                 recipients.add(new EmailRecipient(
-                    member.getID(),
-                    member.getFirst(),
-                    member.getLast(),
-                    member.getEmailAddress(),
-                    true,
-                    new java.util.HashMap<>(),
-                    member.getCarryOverCredits(),
-                    member.getCreditsEarned()
+                        member.getID(),
+                        member.getFirst(),
+                        member.getLast(),
+                        member.getEmailAddress(),
+                        true,
+                        new java.util.HashMap<>(),
+                        member.getCarryOverCredits(),
+                        member.getCreditsEarned()
                 ));
             }
         }
-        
+
         // Detect template variables
         boolean hasTemplateVars = form.getMessage().contains("$first$") ||
-                                 form.getMessage().contains("$last$") ||
-                                 form.getMessage().contains("$id$") ||
-                                 form.getMessage().contains("$carryovercredits$") ||
-                                 form.getMessage().contains("$credit$");
-        
+                form.getMessage().contains("$last$") ||
+                form.getMessage().contains("$id$") ||
+                form.getMessage().contains("$carryovercredits$") ||
+                form.getMessage().contains("$credit$");
+
         // Send async
         sendBatch(recipients, form.getSubject(), form.getMessage(), fromEmail,
-                 fromMember, hasValidReturnEmail, form.getResort(), hasTemplateVars, logger);
-        
+                fromMember, hasValidReturnEmail, form.getResort(), hasTemplateVars, logger);
+
         return new EmailSendResult(trackingId, recipients.size(), LocalDateTime.now());
     }
 
@@ -897,25 +896,25 @@ public class EmailService {
     void sendBatch(List<EmailRecipient> recipients, String subject, String messageTemplate,
                    String fromEmail, Roster fromMember, boolean hasValidReturnEmail,
                    String resort, boolean hasTemplateVars, Logger logger) {
-        
+
         String fullPatrolName = PatrolData.getResortFullName(resort, logger);
-        
+
         for (EmailRecipient recipient : recipients) {
             try {
                 String message = buildMessage(messageTemplate, recipient, fromMember,
-                                            hasValidReturnEmail, fullPatrolName, resort, hasTemplateVars);
-                
+                        hasValidReturnEmail, fullPatrolName, resort, hasTemplateVars);
+
                 MimeMessage mimeMessage = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
                 helper.setFrom(fromEmail);
                 helper.setTo(recipient.getEmailAddress());
                 helper.setSubject(subject);
                 helper.setText(message, false);
-                
+
                 mailSender.send(mimeMessage);
-                
-                logger.info("Email sent to " + recipient.getFullNameLastFirst() + 
-                           " at " + recipient.getEmailAddress());
+
+                logger.info("Email sent to " + recipient.getFullNameLastFirst() +
+                        " at " + recipient.getEmailAddress());
             } catch (MessagingException e) {
                 logger.logException("Failed to send email to " + recipient.getEmailAddress(), e);
             }
@@ -926,20 +925,20 @@ public class EmailService {
         if (fromMember == null) {
             return FALLBACK_FROM_ADDRESS;
         }
-        
+
         String memberEmail = fromMember.getEmailAddress();
         if (StaticUtils.isValidEmailAddress(memberEmail)) {
             return memberEmail;
         }
-        
+
         return FALLBACK_FROM_ADDRESS;
     }
 
     private String buildMessage(String template, EmailRecipient recipient, Roster fromMember,
-                               boolean hasValidReturnEmail, String fullPatrolName, String resort,
-                               boolean hasTemplateVars) {
+                                boolean hasValidReturnEmail, String fullPatrolName, String resort,
+                                boolean hasTemplateVars) {
         String message = fixMagicCharactersFromMicrosoftWordPaste(template);
-        
+
         if (hasTemplateVars) {
             message = message.replaceAll("\\$first\\$", recipient.getFirstName());
             message = message.replaceAll("\\$last\\$", recipient.getLastName());
@@ -947,40 +946,40 @@ public class EmailService {
             message = message.replaceAll("\\$carryovercredits\\$", recipient.getCarryOverCredits());
             message = message.replaceAll("\\$credit\\$", recipient.getCreditsEarned());
         }
-        
+
         message += buildFooter(fromMember, hasValidReturnEmail, fullPatrolName, resort);
-        
+
         return message;
     }
 
     private String buildFooter(Roster fromMember, boolean hasValidReturnEmail,
-                              String fullPatrolName, String resort) {
+                               String fullPatrolName, String resort) {
         StringBuilder footer = new StringBuilder();
         footer.append("\n\n----------------------------------------------\n");
         footer.append("This message sent by: ").append(fromMember.getFullName())
-              .append(" at ( ").append(fromMember.getEmailAddress()).append(" )\n");
+                .append(" at ( ").append(fromMember.getEmailAddress()).append(" )\n");
         footer.append("from ").append(fullPatrolName).append("'s online scheduling web site.\n\n");
-        
+
         if (!hasValidReturnEmail) {
             footer.append("Please Don't respond to this email. SEND any responses\n");
             footer.append("to: ").append(fromMember.getFullName())
-                  .append(", who had an invalid email address in the system.\n\n");
+                    .append(", who had an invalid email address in the system.\n\n");
         } else {
             ResortData resortInfo = PatrolData.getResortInfo(resort);
-            String directorsVerifiedEmail = (resortInfo != null && 
-                StaticUtils.isNotEmpty(resortInfo.getDirectorsVerifiedEmail())) ?
-                resortInfo.getDirectorsVerifiedEmail() : null;
-            
+            String directorsVerifiedEmail = (resortInfo != null &&
+                    StaticUtils.isNotEmpty(resortInfo.getDirectorsVerifiedEmail())) ?
+                    resortInfo.getDirectorsVerifiedEmail() : null;
+
             if (directorsVerifiedEmail == null) {
                 footer.append("Please Don't respond to this email. SEND any responses\n");
                 footer.append("to: ").append(fromMember.getEmailAddress())
-                      .append(". I am working on setting this 'From' address to be specific to your patrol.\n\n");
+                        .append(". I am working on setting this 'From' address to be specific to your patrol.\n\n");
             }
         }
-        
+
         footer.append("This was sent from the Ski Patrol Web Site Auto Mailer.\n");
         footer.append("--------------------------------------------------------\n");
-        
+
         return footer.toString();
     }
 

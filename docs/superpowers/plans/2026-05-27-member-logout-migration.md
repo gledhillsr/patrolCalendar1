@@ -35,18 +35,12 @@
 ```java
 package org.nsponline.calendar.controller;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.nsponline.calendar.utils.Logger;
-import org.nsponline.calendar.utils.PatrolData;
-import org.nsponline.calendar.utils.SessionData;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.io.IOException;
-
-import static org.nsponline.calendar.utils.ValidateCredentialsRedirectIfNeeded.NSP_TOKEN_NAME;
 
 /**
  * Spring Boot controller for member logout.

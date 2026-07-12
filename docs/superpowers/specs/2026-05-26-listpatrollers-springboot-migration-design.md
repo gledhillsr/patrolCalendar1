@@ -208,9 +208,16 @@ package org.nsponline.calendar.controller;
 
 import org.nsponline.calendar.store.*;
 import org.nsponline.calendar.utils.*;
+import store.com.gledhills.calendar.DirectorSettings;
+import store.com.gledhills.calendar.Roster;
+import utils.com.gledhills.calendar.Logger;
+import utils.com.gledhills.calendar.PatrolData;
+import utils.com.gledhills.calendar.SessionData;
+import utils.com.gledhills.calendar.ValidateCredentialsRedirectIfNeeded;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -219,38 +226,38 @@ import java.util.*;
 @Controller
 public class ListPatrollersController {
     private static final boolean DEBUG = false;
-    
+
     @GetMapping("/ListPatrollers")
     public String listPatrollers(
             HttpServletRequest request,
             HttpServletResponse response,
             Model model) throws IOException {
-        
+
         // Initialize logger
         Logger LOG = new Logger(request, "ListPatrollersController");
-        
+
         // 1. Validate resort parameter and initialize base data
         String resort = request.getParameter("resort");
         if (!PatrolData.isValidResort(resort)) {
             response.sendError(400, "Resort not found: " + resort);
             return null;
         }
-        
+
         // 2. Check credentials (adapted from initBaseAndAskForValidCredentials)
         SessionData sessionData = new SessionData(request, null, LOG);
         PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
-        
-        ValidateCredentialsRedirectIfNeeded credentials = 
-            new ValidateCredentialsRedirectIfNeeded(
-                sessionData, request, response, 
-                "ListPatrollersController", patrolData, LOG);
-        
+
+        ValidateCredentialsRedirectIfNeeded credentials =
+                new ValidateCredentialsRedirectIfNeeded(
+                        sessionData, request, response,
+                        "ListPatrollersController", patrolData, LOG);
+
         if (credentials.hasInvalidCredentials()) {
             return "redirect:/MemberLogin?resort=" + resort;
         }
-        
+
         String userId = sessionData.getLoggedInUserId();
-        
+
         // 3. Read all query parameters
         Map<String, Boolean> displayFlags = readDisplayFlags(request);
         Map<String, Integer> dateRange = readDateRange(request);
@@ -262,62 +269,62 @@ public class ListPatrollersController {
         boolean listDirector = request.getParameter("ListDirector") != null;
         int textFontSize = parseIntParam(request.getParameter("FontSize"), 14);
         boolean firstNameFirst = !"LAST".equals(request.getParameter("NAME"));
-        
+
         // 4. Load data
         DirectorSettings directorSettings = patrolData.readDirectorSettings();
         Roster editor = patrolData.getMemberByID(userId);
         boolean isDirector = editor != null && editor.isDirector();
-        
+
         // Configure which columns to display
         configureRosterColumns(displayFlags, firstNameFirst);
-        
+
         // Read members and assignments
         String sortString = buildSortString(sortOptions, firstNameFirst);
         List<Roster> members = loadMembers(
-            patrolData, sortString, classificationsToDisplay,
-            commitmentToDisplay, listAll, listDirector, instructorFlags);
-        
-        if (displayFlags.get("showNightCnt") || displayFlags.get("showDayCnt") || 
-            displayFlags.get("showSwingCnt") || displayFlags.get("showTrainingCnt") ||
-            displayFlags.get("showOtherCnt") || displayFlags.get("showHolidayCnt")) {
+                patrolData, sortString, classificationsToDisplay,
+                commitmentToDisplay, listAll, listDirector, instructorFlags);
+
+        if (displayFlags.get("showNightCnt") || displayFlags.get("showDayCnt") ||
+                displayFlags.get("showSwingCnt") || displayFlags.get("showTrainingCnt") ||
+                displayFlags.get("showOtherCnt") || displayFlags.get("showHolidayCnt")) {
             loadAssignments(patrolData, members, displayFlags, dateRange,
-                classificationsToDisplay, commitmentToDisplay, 
-                listAll, listDirector, instructorFlags);
+                    classificationsToDisplay, commitmentToDisplay,
+                    listAll, listDirector, instructorFlags);
         }
-        
+
         // Sort by shift count if requested
         if ("shiftCnt".equals(sortOptions.get("sort1"))) {
             members = sortByShiftCount(members, displayFlags, dateRange);
         }
-        
+
         patrolData.close();
-        
+
         // 5. Prepare model for template
         model.addAttribute("resort", resort);
         model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
         model.addAttribute("userId", userId);
         model.addAttribute("isDirector", isDirector);
-        model.addAttribute("emailAllAllowed", 
-            directorSettings != null && directorSettings.getEmailAll());
+        model.addAttribute("emailAllAllowed",
+                directorSettings != null && directorSettings.getEmailAll());
         model.addAttribute("members", members);
         model.addAttribute("patrollersListed", members.size());
         model.addAttribute("currentDate", new Date());
         model.addAttribute("textFontSize", textFontSize);
-        
+
         // Add all display flags to model
         model.addAllAttributes(displayFlags);
-        
+
         // Build email form URL
         String emailFormUrl = buildEmailFormUrl(resort, userId, displayFlags,
-            classificationsToDisplay, commitmentToDisplay, listAll, 
-            listDirector, instructorFlags, dateRange);
+                classificationsToDisplay, commitmentToDisplay, listAll,
+                listDirector, instructorFlags, dateRange);
         model.addAttribute("emailFormUrl", emailFormUrl);
-        
+
         return "list-patrollers";
     }
-    
+
     // Helper methods (extracted from servlet logic)
-    
+
     private Map<String, Boolean> readDisplayFlags(HttpServletRequest request) {
         Map<String, Boolean> flags = new HashMap<>();
         flags.put("showClass", request.getParameter("CLASS") != null);
@@ -360,7 +367,7 @@ public class ListPatrollersController {
         flags.put("showCanEarnCredits", request.getParameter("CAN_EARN_CREDITS") != null);
         return flags;
     }
-    
+
     private Map<String, Integer> readDateRange(HttpServletRequest request) {
         Map<String, Integer> range = new HashMap<>();
         range.put("startDay", parseIntParam(request.getParameter("StartDay"), 0));
@@ -373,7 +380,7 @@ public class ListPatrollersController {
         range.put("useMinDays", request.getParameter("MIN_DAYS") != null ? 1 : 0);
         return range;
     }
-    
+
     private Map<String, String> readSortOptions(HttpServletRequest request) {
         Map<String, String> sort = new HashMap<>();
         sort.put("sort1", request.getParameter("FirstSort"));
@@ -381,7 +388,7 @@ public class ListPatrollersController {
         sort.put("sort3", request.getParameter("ThirdSort"));
         return sort;
     }
-    
+
     private List<String> readClassifications(HttpServletRequest request) {
         String[] incList = {"BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "OTH"};
         List<String> classifications = new ArrayList<>();
@@ -392,7 +399,7 @@ public class ListPatrollersController {
         }
         return classifications;
     }
-    
+
     private int readCommitmentFlags(HttpServletRequest request) {
         int commitment = 0;
         if (request.getParameter("FullTime") != null) commitment += 4;
@@ -400,7 +407,7 @@ public class ListPatrollersController {
         if (request.getParameter("Inactive") != null) commitment += 1;
         return commitment;
     }
-    
+
     private int readInstructorFlags(HttpServletRequest request) {
         int flags = 0;
         if (request.getParameter("OEC") != null) flags += 1;
@@ -409,7 +416,7 @@ public class ListPatrollersController {
         if (request.getParameter("Toboggan") != null) flags += 8;
         return flags;
     }
-    
+
     private void configureRosterColumns(Map<String, Boolean> flags, boolean firstNameFirst) {
         Roster.addColumn(-1);
         Roster.addColumn(firstNameFirst ? Roster.FIRST : Roster.LAST);
@@ -419,12 +426,12 @@ public class ListPatrollersController {
         if (flags.get("showID")) Roster.addColumn(Roster.ID_NUM);
         // ... configure all other columns based on flags ...
     }
-    
+
     private String buildSortString(Map<String, String> sort, boolean firstNameFirst) {
         // Replicate getSortString() logic from servlet
         String sort1 = sort.get("sort1");
         String sortString;
-        
+
         if (sort1 == null || sort1.equals("Name") || sort1.equals("shiftCnt")) {
             sortString = firstNameFirst ? "FirstName,LastName" : "LastName,FirstName";
         } else if (sort1.equals("Class")) {
@@ -436,63 +443,63 @@ public class ListPatrollersController {
         } else {
             sortString = "FirstName,LastName";
         }
-        
+
         // Add secondary and tertiary sorts...
         // (same logic as servlet)
-        
+
         return sortString;
     }
-    
+
     private List<Roster> loadMembers(
             PatrolData patrol, String sortString,
             List<String> classifications, int commitment,
             boolean listAll, boolean listDirector, int instructorFlags) {
-        
+
         List<Roster> members = new ArrayList<>();
         ResultSet rosterResults = patrol.resetRoster(sortString);
         Roster member;
-        
+
         while ((member = patrol.nextMember("&nbsp;", rosterResults)) != null) {
-            if (member.okToDisplay(false, false, listAll, 
+            if (member.okToDisplay(false, false, listAll,
                     classifications, commitment, listDirector, instructorFlags, 0)) {
                 members.add(member);
             }
         }
-        
+
         return members;
     }
-    
+
     private void loadAssignments(
             PatrolData patrol, List<Roster> members,
             Map<String, Boolean> flags, Map<String, Integer> dateRange,
             List<String> classifications, int commitment,
             boolean listAll, boolean listDirector, int instructorFlags) {
-        
+
         // Replicate readAssignments() logic from servlet
         // Build member hash, iterate assignments, populate counts
         // (same logic as servlet's readAssignments method)
     }
-    
+
     private List<Roster> sortByShiftCount(
             List<Roster> members, Map<String, Boolean> flags,
             Map<String, Integer> dateRange) {
-        
+
         // Replicate shift count sorting logic using TreeMap
         // (same logic as servlet's printBody when sort1="shiftCnt")
         return members; // sorted
     }
-    
+
     private String buildEmailFormUrl(
             String resort, String userId, Map<String, Boolean> flags,
             List<String> classifications, int commitment,
             boolean listAll, boolean listDirector, int instructorFlags,
             Map<String, Integer> dateRange) {
-        
+
         // Build URL with all query parameters
         // (same logic as servlet's showButtonsAtTop)
         return "EmailForm?resort=" + resort + "&ID=" + userId + "...";
     }
-    
+
     private int parseIntParam(String param, int defaultValue) {
         try {
             return (param != null) ? Integer.parseInt(param) : defaultValue;
@@ -740,7 +747,7 @@ public class ListPatrollersController {
 package org.nsponline.calendar.config;
 
 import org.nsponline.calendar.resources.*;
-import org.nsponline.calendar.utils.Logger;
+import utils.com.gledhills.calendar.Logger;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -752,38 +759,38 @@ import java.io.IOException;
 
 @Configuration
 public class LegacyServletConfig {
-    
+
     // Register unmigrated servlets
-    
+
     @Bean
     public ServletRegistrationBean<VolunteerFormServletWrapper> volunteerFormServlet() {
         return new ServletRegistrationBean<>(
-            new VolunteerFormServletWrapper(), "/VolunteerForm");
+                new VolunteerFormServletWrapper(), "/VolunteerForm");
     }
-    
+
     @Bean
     public ServletRegistrationBean<MemberLoginServletWrapper> memberLoginServlet() {
         return new ServletRegistrationBean<>(
-            new MemberLoginServletWrapper(), "/MemberLogin");
+                new MemberLoginServletWrapper(), "/MemberLogin");
     }
-    
+
     // ... register other unmigrated servlets ...
-    
+
     // Wrapper classes to adapt old servlet-style constructors
-    
+
     private static class VolunteerFormServletWrapper extends HttpServlet {
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
             Logger LOG = new Logger(req, "OuterVolunteerForm");
             OuterVolunteerForm servlet = new OuterVolunteerForm(req, resp, LOG);
             servlet.runner("OuterVolunteerForm");
         }
     }
-    
+
     private static class MemberLoginServletWrapper extends HttpServlet {
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
             Logger LOG = new Logger(req, "OuterMemberLogin");
             OuterMemberLogin servlet = new OuterMemberLogin(req, resp, LOG);

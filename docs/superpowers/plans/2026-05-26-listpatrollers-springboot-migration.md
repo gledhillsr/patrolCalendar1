@@ -1182,7 +1182,7 @@ Create `src/main/java/org/nsponline/calendar/config/LegacyServletConfig.java`:
 package org.nsponline.calendar.config;
 
 import org.nsponline.calendar.resources.*;
-import org.nsponline.calendar.utils.Logger;
+import utils.com.gledhills.calendar.Logger;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -1190,80 +1190,81 @@ import org.springframework.context.annotation.Configuration;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 @Configuration
 public class LegacyServletConfig {
-    
+
     @Bean
     public ServletRegistrationBean<MemberLoginServletWrapper> memberLoginServlet() {
         return new ServletRegistrationBean<>(
-            new MemberLoginServletWrapper(), "/MemberLogin");
+                new MemberLoginServletWrapper(), "/MemberLogin");
     }
-    
+
     @Bean
     public ServletRegistrationBean<VolunteerFormServletWrapper> volunteerFormServlet() {
         return new ServletRegistrationBean<>(
-            new VolunteerFormServletWrapper(), "/VolunteerForm");
+                new VolunteerFormServletWrapper(), "/VolunteerForm");
     }
-    
+
     @Bean
     public ServletRegistrationBean<MonthCalendarServletWrapper> monthCalendarServlet() {
         return new ServletRegistrationBean<>(
-            new MonthCalendarServletWrapper(), "/MonthCalendar");
+                new MonthCalendarServletWrapper(), "/MonthCalendar");
     }
-    
+
     @Bean
     public ServletRegistrationBean<DirectorServletWrapper> directorServlet() {
         return new ServletRegistrationBean<>(
-            new DirectorServletWrapper(), "/Directors");
+                new DirectorServletWrapper(), "/Directors");
     }
-    
+
     private static class MemberLoginServletWrapper extends HttpServlet {
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
             Logger LOG = new Logger(req, "OuterMemberLogin");
             OuterMemberLogin servlet = new OuterMemberLogin(req, resp, LOG);
             servlet.runner("OuterMemberLogin");
         }
-        
+
         @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) 
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
             doGet(req, resp);
         }
     }
-    
+
     private static class VolunteerFormServletWrapper extends HttpServlet {
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
             Logger LOG = new Logger(req, "OuterVolunteerForm");
             OuterVolunteerForm servlet = new OuterVolunteerForm(req, resp, LOG);
             servlet.runner("OuterVolunteerForm");
         }
-        
+
         @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) 
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
             doGet(req, resp);
         }
     }
-    
+
     private static class MonthCalendarServletWrapper extends HttpServlet {
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
             Logger LOG = new Logger(req, "OuterMonthCalendar");
             OuterMonthCalendar servlet = new OuterMonthCalendar(req, resp, LOG);
             servlet.runner("OuterMonthCalendar");
         }
     }
-    
+
     private static class DirectorServletWrapper extends HttpServlet {
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp)
                 throws IOException {
             Logger LOG = new Logger(req, "OuterDirector");
             OuterDirector servlet = new OuterDirector(req, resp, LOG);

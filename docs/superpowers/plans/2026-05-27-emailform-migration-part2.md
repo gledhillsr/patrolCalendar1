@@ -15,18 +15,18 @@ package org.nsponline.calendar.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.nsponline.calendar.dto.EmailCompositionForm;
-import org.nsponline.calendar.dto.EmailFormRequest;
-import org.nsponline.calendar.dto.EmailRecipient;
-import org.nsponline.calendar.dto.EmailSendResult;
-import org.nsponline.calendar.service.EmailService;
-import org.nsponline.calendar.service.PatrolMemberFilterService;
-import org.nsponline.calendar.service.ShiftAssignmentService;
-import org.nsponline.calendar.store.Roster;
-import org.nsponline.calendar.utils.Logger;
-import org.nsponline.calendar.utils.PatrolData;
-import org.nsponline.calendar.utils.SessionData;
-import org.nsponline.calendar.controller.ServletAdapter;
+import dto.com.gledhills.calendar.EmailCompositionForm;
+import dto.com.gledhills.calendar.EmailFormRequest;
+import dto.com.gledhills.calendar.EmailRecipient;
+import dto.com.gledhills.calendar.EmailSendResult;
+import service.com.gledhills.calendar.EmailService;
+import service.com.gledhills.calendar.PatrolMemberFilterService;
+import service.com.gledhills.calendar.ShiftAssignmentService;
+import store.com.gledhills.calendar.Roster;
+import utils.com.gledhills.calendar.Logger;
+import utils.com.gledhills.calendar.PatrolData;
+import utils.com.gledhills.calendar.SessionData;
+import controller.com.gledhills.calendar.ServletAdapter;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -45,151 +45,151 @@ import java.util.List;
 @Controller
 public class EmailFormController {
 
-    private final PatrolMemberFilterService filterService;
-    private final ShiftAssignmentService assignmentService;
-    private final EmailService emailService;
+  private final PatrolMemberFilterService filterService;
+  private final ShiftAssignmentService assignmentService;
+  private final EmailService emailService;
 
-    public EmailFormController(PatrolMemberFilterService filterService,
-                              ShiftAssignmentService assignmentService,
-                              EmailService emailService) {
-        this.filterService = filterService;
-        this.assignmentService = assignmentService;
-        this.emailService = emailService;
+  public EmailFormController(PatrolMemberFilterService filterService,
+                             ShiftAssignmentService assignmentService,
+                             EmailService emailService) {
+    this.filterService = filterService;
+    this.assignmentService = assignmentService;
+    this.emailService = emailService;
+  }
+
+  @GetMapping("/EmailForm")
+  public String showEmailForm(EmailFormRequest request,
+                              HttpServletRequest httpRequest,
+                              HttpServletResponse response,
+                              Model model) throws IOException {
+
+    // Setup logging and session
+    javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(httpRequest);
+    Logger LOG = new Logger(EmailFormController.class, javaxRequest, "GET", request.getResort(), Logger.INFO);
+    SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+
+    // Validate session
+    String patrollerId = sessionData.getLoggedInUserId();
+    if (patrollerId == null || patrollerId.isEmpty()) {
+      response.sendRedirect("MemberLogin?resort=" + request.getResort());
+      return null;
     }
 
-    @GetMapping("/EmailForm")
-    public String showEmailForm(EmailFormRequest request,
-                               HttpServletRequest httpRequest,
-                               HttpServletResponse response,
-                               Model model) throws IOException {
-        
-        // Setup logging and session
-        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(httpRequest);
-        Logger LOG = new Logger(EmailFormController.class, javaxRequest, "GET", request.getResort(), Logger.INFO);
-        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+    PatrolData patrolData = new PatrolData(request.getResort(), sessionData, LOG);
+    try {
+      // Filter members
+      List<EmailRecipient> allRecipients = filterService.filterMembers(request, patrolData);
 
-        // Validate session
-        String patrollerId = sessionData.getLoggedInUserId();
-        if (patrollerId == null || patrollerId.isEmpty()) {
-            response.sendRedirect("MemberLogin?resort=" + request.getResort());
-            return null;
-        }
+      // Enrich with shift counts if date range specified
+      if (request.getStartYear() != null) {
+        allRecipients = assignmentService.enrichWithShiftCounts(allRecipients, request, patrolData);
+      }
 
-        PatrolData patrolData = new PatrolData(request.getResort(), sessionData, LOG);
-        try {
-            // Filter members
-            List<EmailRecipient> allRecipients = filterService.filterMembers(request, patrolData);
-            
-            // Enrich with shift counts if date range specified
-            if (request.getStartYear() != null) {
-                allRecipients = assignmentService.enrichWithShiftCounts(allRecipients, request, patrolData);
-            }
-            
-            // Split into valid/invalid email lists
-            List<EmailRecipient> validRecipients = new ArrayList<>();
-            List<EmailRecipient> invalidRecipients = new ArrayList<>();
-            for (EmailRecipient recipient : allRecipients) {
-                if (recipient.isHasValidEmail()) {
-                    validRecipients.add(recipient);
-                } else {
-                    invalidRecipients.add(recipient);
-                }
-            }
-            
-            // Sort by last name
-            validRecipients.sort((a, b) -> a.getLastName().compareToIgnoreCase(b.getLastName()));
-            invalidRecipients.sort((a, b) -> a.getLastName().compareToIgnoreCase(b.getLastName()));
-            
-            // Get from member info
-            Roster fromMember = patrolData.getMemberByID(patrollerId);
-            String fromName = fromMember != null ? fromMember.getFullName() : "Unknown";
-            String fromEmail = fromMember != null ? fromMember.getEmailAddress() : "";
-            
-            // Add to model
-            model.addAttribute("resort", request.getResort());
-            model.addAttribute("resortFullName", PatrolData.getResortFullName(request.getResort(), LOG));
-            model.addAttribute("patrollerId", patrollerId);
-            model.addAttribute("fromName", fromName);
-            model.addAttribute("fromEmail", fromEmail);
-            model.addAttribute("validRecipients", validRecipients);
-            model.addAttribute("invalidRecipients", invalidRecipients);
-            model.addAttribute("validCount", validRecipients.size());
-            model.addAttribute("invalidCount", invalidRecipients.size());
-            
-            // Preserve filter parameters
-            model.addAttribute("filterRequest", request);
-            
-            // Empty composition form for POST
-            model.addAttribute("compositionForm", new EmailCompositionForm());
-            
-            return "email-form";
-            
-        } finally {
-            patrolData.close();
+      // Split into valid/invalid email lists
+      List<EmailRecipient> validRecipients = new ArrayList<>();
+      List<EmailRecipient> invalidRecipients = new ArrayList<>();
+      for (EmailRecipient recipient : allRecipients) {
+        if (recipient.isHasValidEmail()) {
+          validRecipients.add(recipient);
+        } else {
+          invalidRecipients.add(recipient);
         }
+      }
+
+      // Sort by last name
+      validRecipients.sort((a, b) -> a.getLastName().compareToIgnoreCase(b.getLastName()));
+      invalidRecipients.sort((a, b) -> a.getLastName().compareToIgnoreCase(b.getLastName()));
+
+      // Get from member info
+      Roster fromMember = patrolData.getMemberByID(patrollerId);
+      String fromName = fromMember != null ? fromMember.getFullName() : "Unknown";
+      String fromEmail = fromMember != null ? fromMember.getEmailAddress() : "";
+
+      // Add to model
+      model.addAttribute("resort", request.getResort());
+      model.addAttribute("resortFullName", PatrolData.getResortFullName(request.getResort(), LOG));
+      model.addAttribute("patrollerId", patrollerId);
+      model.addAttribute("fromName", fromName);
+      model.addAttribute("fromEmail", fromEmail);
+      model.addAttribute("validRecipients", validRecipients);
+      model.addAttribute("invalidRecipients", invalidRecipients);
+      model.addAttribute("validCount", validRecipients.size());
+      model.addAttribute("invalidCount", invalidRecipients.size());
+
+      // Preserve filter parameters
+      model.addAttribute("filterRequest", request);
+
+      // Empty composition form for POST
+      model.addAttribute("compositionForm", new EmailCompositionForm());
+
+      return "email-form";
+
+    } finally {
+      patrolData.close();
+    }
+  }
+
+  @PostMapping("/EmailForm")
+  public String sendEmails(@Valid @ModelAttribute("compositionForm") EmailCompositionForm form,
+                           BindingResult bindingResult,
+                           HttpServletRequest httpRequest,
+                           HttpServletResponse response,
+                           Model model) throws IOException {
+
+    // Setup logging and session
+    javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(httpRequest);
+    Logger LOG = new Logger(EmailFormController.class, javaxRequest, "POST", form.getResort(), Logger.INFO);
+    SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+
+    // Validate session
+    String patrollerId = sessionData.getLoggedInUserId();
+    if (patrollerId == null || patrollerId.isEmpty()) {
+      response.sendRedirect("MemberLogin?resort=" + form.getResort());
+      return null;
     }
 
-    @PostMapping("/EmailForm")
-    public String sendEmails(@Valid @ModelAttribute("compositionForm") EmailCompositionForm form,
-                            BindingResult bindingResult,
-                            HttpServletRequest httpRequest,
-                            HttpServletResponse response,
-                            Model model) throws IOException {
-        
-        // Setup logging and session
-        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(httpRequest);
-        Logger LOG = new Logger(EmailFormController.class, javaxRequest, "POST", form.getResort(), Logger.INFO);
-        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
-
-        // Validate session
-        String patrollerId = sessionData.getLoggedInUserId();
-        if (patrollerId == null || patrollerId.isEmpty()) {
-            response.sendRedirect("MemberLogin?resort=" + form.getResort());
-            return null;
-        }
-
-        // Check for Sample resort
-        if ("Sample".equals(form.getResort())) {
-            model.addAttribute("error", "Email sending is disabled in the demo");
-            return showEmailFormWithErrors(form, model, httpRequest, response);
-        }
-
-        // If validation errors, redisplay form
-        if (bindingResult.hasErrors()) {
-            return showEmailFormWithErrors(form, model, httpRequest, response);
-        }
-
-        // Send emails async
-        PatrolData patrolData = new PatrolData(form.getResort(), sessionData, LOG);
-        try {
-            form.setFromPatrollerId(patrollerId);
-            EmailSendResult result = emailService.sendEmailsAsync(form, patrolData, LOG);
-            
-            model.addAttribute("totalRecipients", result.getTotalRecipients());
-            model.addAttribute("resort", form.getResort());
-            model.addAttribute("patrollerId", patrollerId);
-            
-            return "email-confirmation";
-            
-        } finally {
-            patrolData.close();
-        }
+    // Check for Sample resort
+    if ("Sample".equals(form.getResort())) {
+      model.addAttribute("error", "Email sending is disabled in the demo");
+      return showEmailFormWithErrors(form, model, httpRequest, response);
     }
 
-    private String showEmailFormWithErrors(EmailCompositionForm form, Model model,
-                                          HttpServletRequest httpRequest,
-                                          HttpServletResponse response) throws IOException {
-        // Reconstruct GET request to redisplay form with errors
-        EmailFormRequest request = new EmailFormRequest(
+    // If validation errors, redisplay form
+    if (bindingResult.hasErrors()) {
+      return showEmailFormWithErrors(form, model, httpRequest, response);
+    }
+
+    // Send emails async
+    PatrolData patrolData = new PatrolData(form.getResort(), sessionData, LOG);
+    try {
+      form.setFromPatrollerId(patrollerId);
+      EmailSendResult result = emailService.sendEmailsAsync(form, patrolData, LOG);
+
+      model.addAttribute("totalRecipients", result.getTotalRecipients());
+      model.addAttribute("resort", form.getResort());
+      model.addAttribute("patrollerId", patrollerId);
+
+      return "email-confirmation";
+
+    } finally {
+      patrolData.close();
+    }
+  }
+
+  private String showEmailFormWithErrors(EmailCompositionForm form, Model model,
+                                         HttpServletRequest httpRequest,
+                                         HttpServletResponse response) throws IOException {
+    // Reconstruct GET request to redisplay form with errors
+    EmailFormRequest request = new EmailFormRequest(
             form.getResort(), form.getFromPatrollerId(),
             null, null, null, null, null, null, null, null, null, null, null, null,
             null, null, null, null, null, null, null, null, null,
             null, null, null, null, null, null,
             null, null, null, null, null, null, null, null
-        );
-        
-        return showEmailForm(request, httpRequest, response, model);
-    }
+    );
+
+    return showEmailForm(request, httpRequest, response, model);
+  }
 }
 ```
 
@@ -536,6 +536,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import dto.com.gledhills.calendar.EmailCompositionForm;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -548,95 +549,95 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class EmailCompositionFormValidationTest {
 
-    private Validator validator;
+  private Validator validator;
 
-    @BeforeEach
-    void setUp() {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        validator = factory.getValidator();
-    }
+  @BeforeEach
+  void setUp() {
+    ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+    validator = factory.getValidator();
+  }
 
-    @Test
-    void validate_withEmptySubject_failsValidation() {
-        EmailCompositionForm form = new EmailCompositionForm();
-        form.setSubject("");
-        form.setMessage("Test message");
-        form.setPatrollerIds(List.of("123"));
+  @Test
+  void validate_withEmptySubject_failsValidation() {
+    EmailCompositionForm form = new EmailCompositionForm();
+    form.setSubject("");
+    form.setMessage("Test message");
+    form.setPatrollerIds(List.of("123"));
 
-        Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
+    Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
 
-        assertFalse(violations.isEmpty());
-        assertTrue(violations.stream()
+    assertFalse(violations.isEmpty());
+    assertTrue(violations.stream()
             .anyMatch(v -> v.getMessage().contains("Subject is required")));
-    }
+  }
 
-    @Test
-    void validate_withShortSubject_failsValidation() {
-        EmailCompositionForm form = new EmailCompositionForm();
-        form.setSubject("A");
-        form.setMessage("Test message");
-        form.setPatrollerIds(List.of("123"));
+  @Test
+  void validate_withShortSubject_failsValidation() {
+    EmailCompositionForm form = new EmailCompositionForm();
+    form.setSubject("A");
+    form.setMessage("Test message");
+    form.setPatrollerIds(List.of("123"));
 
-        Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
+    Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
 
-        assertFalse(violations.isEmpty());
-        assertTrue(violations.stream()
+    assertFalse(violations.isEmpty());
+    assertTrue(violations.stream()
             .anyMatch(v -> v.getMessage().contains("at least 2 characters")));
-    }
+  }
 
-    @Test
-    void validate_withEmptyMessage_failsValidation() {
-        EmailCompositionForm form = new EmailCompositionForm();
-        form.setSubject("Test");
-        form.setMessage("");
-        form.setPatrollerIds(List.of("123"));
+  @Test
+  void validate_withEmptyMessage_failsValidation() {
+    EmailCompositionForm form = new EmailCompositionForm();
+    form.setSubject("Test");
+    form.setMessage("");
+    form.setPatrollerIds(List.of("123"));
 
-        Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
+    Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
 
-        assertFalse(violations.isEmpty());
-        assertTrue(violations.stream()
+    assertFalse(violations.isEmpty());
+    assertTrue(violations.stream()
             .anyMatch(v -> v.getMessage().contains("Message is required")));
-    }
+  }
 
-    @Test
-    void validate_withShortMessage_failsValidation() {
-        EmailCompositionForm form = new EmailCompositionForm();
-        form.setSubject("Test");
-        form.setMessage("Hi");
-        form.setPatrollerIds(List.of("123"));
+  @Test
+  void validate_withShortMessage_failsValidation() {
+    EmailCompositionForm form = new EmailCompositionForm();
+    form.setSubject("Test");
+    form.setMessage("Hi");
+    form.setPatrollerIds(List.of("123"));
 
-        Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
+    Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
 
-        assertFalse(violations.isEmpty());
-        assertTrue(violations.stream()
+    assertFalse(violations.isEmpty());
+    assertTrue(violations.stream()
             .anyMatch(v -> v.getMessage().contains("at least 4 characters")));
-    }
+  }
 
-    @Test
-    void validate_withEmptyPatrollerIds_failsValidation() {
-        EmailCompositionForm form = new EmailCompositionForm();
-        form.setSubject("Test");
-        form.setMessage("Test message");
-        form.setPatrollerIds(new ArrayList<>());
+  @Test
+  void validate_withEmptyPatrollerIds_failsValidation() {
+    EmailCompositionForm form = new EmailCompositionForm();
+    form.setSubject("Test");
+    form.setMessage("Test message");
+    form.setPatrollerIds(new ArrayList<>());
 
-        Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
+    Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
 
-        assertFalse(violations.isEmpty());
-        assertTrue(violations.stream()
+    assertFalse(violations.isEmpty());
+    assertTrue(violations.stream()
             .anyMatch(v -> v.getMessage().contains("At least one recipient")));
-    }
+  }
 
-    @Test
-    void validate_withValidData_passesValidation() {
-        EmailCompositionForm form = new EmailCompositionForm();
-        form.setSubject("Test Subject");
-        form.setMessage("Test message content");
-        form.setPatrollerIds(List.of("123", "456"));
+  @Test
+  void validate_withValidData_passesValidation() {
+    EmailCompositionForm form = new EmailCompositionForm();
+    form.setSubject("Test Subject");
+    form.setMessage("Test message content");
+    form.setPatrollerIds(List.of("123", "456"));
 
-        Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
+    Set<ConstraintViolation<EmailCompositionForm>> violations = validator.validate(form);
 
-        assertTrue(violations.isEmpty());
-    }
+    assertTrue(violations.isEmpty());
+  }
 }
 ```
 

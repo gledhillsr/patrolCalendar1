@@ -144,11 +144,15 @@ Following the established pattern from Directors migration:
 The controller must clear the NSP_TOKEN_NAME cookie exactly as the servlet does:
 
 ```java
-import static org.nsponline.calendar.utils.ValidateCredentialsRedirectIfNeeded.NSP_TOKEN_NAME;
+import static utils.com.gledhills.calendar.ValidateCredentialsRedirectIfNeeded.NSP_TOKEN_NAME;
 
 Cookie cookie = new Cookie(NSP_TOKEN_NAME, "");
-cookie.setMaxAge(0);  // Tells browser to delete the cookie
-response.addCookie(cookie);
+cookie.
+
+setMaxAge(0);  // Tells browser to delete the cookie
+response.
+
+addCookie(cookie);
 ```
 
 ### Session Clearing

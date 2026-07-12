@@ -66,7 +66,7 @@
 
         function testName(str) {
             currName = str;
-            if (str != '[[${T(org.nsponline.calendar.utils.PatrolData).NEW_SHIFT_STYLE}]]' && str != '' && str != ' ')
+            if (str != '[[${T(com.gledhills.calendar.utils.PatrolData).NEW_SHIFT_STYLE}]]' && str != '' && str != ' ')
                 mustChangeName = false;
             if (str == '' || str == ' ')
                 currName = 'Blank';
@@ -193,7 +193,7 @@
                                                                             <input type="submit"
                                                                                    th:name="'delete_' + ${iterStat.index}"
                                                                                    value="Del"
-                                                                                   th:onclick="'return confirmShiftDelete(' + ${assignment.count} + ')'">
+                                                                                   th:onclick="'return confirmShiftDelete(' + ${assignment.getUseCount(resort)} + ')'">
                                                                         </td>
                                                                         <td width="113">
                                                                             <input type="text"
@@ -209,12 +209,12 @@
                                                                         </td>
                                                                         <td width="166">
                                                                             <select th:name="'shift_' + ${iterStat.index}">
-                                                                                <option value="Day Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).DAY_TYPE}">Day</option>
-                                                                                <option value="Swing Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).SWING_TYPE}">Swing</option>
-                                                                                <option value="Night Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).NIGHT_TYPE}">Night</option>
-                                                                                <option value="Training Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).TRAINING_TYPE}">Training</option>
-                                                                                <option value="Other Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).OTHER_TYPE}">Other</option>
-                                                                                <option value="Holiday Shift" th:selected="${assignment.getType() == T(org.nsponline.calendar.store.Assignments).HOLIDAY_TYPE}">Holiday</option>
+                                                                                <option value="Day Shift" th:selected="${assignment.getType() == T(com.gledhills.calendar.store.Assignments).DAY_TYPE}">Day</option>
+                                                                                <option value="Swing Shift" th:selected="${assignment.getType() == T(com.gledhills.calendar.store.Assignments).SWING_TYPE}">Swing</option>
+                                                                                <option value="Night Shift" th:selected="${assignment.getType() == T(com.gledhills.calendar.store.Assignments).NIGHT_TYPE}">Night</option>
+                                                                                <option value="Training Shift" th:selected="${assignment.getType() == T(com.gledhills.calendar.store.Assignments).TRAINING_TYPE}">Training</option>
+                                                                                <option value="Other Shift" th:selected="${assignment.getType() == T(com.gledhills.calendar.store.Assignments).OTHER_TYPE}">Other</option>
+                                                                                <option value="Holiday Shift" th:selected="${assignment.getType() == T(com.gledhills.calendar.store.Assignments).HOLIDAY_TYPE}">Holiday</option>
                                                                             </select>
                                                                         </td>
                                                                         <td width="130">
@@ -297,7 +297,7 @@
                                                                  cleanId=${id.charAt(0) == '-' ? id.substring(1) : id},
                                                                  name=${numToName.get(cleanId)},
                                                                  time=${assignment.getStartingTimeString() + ' - ' + assignment.getEndingTimeString()},
-                                                                 fieldName=${'name' + T(org.nsponline.calendar.utils.PatrolData).IndexToString(iStat.index) + '_' + T(org.nsponline.calendar.utils.PatrolData).IndexToString(j)}">
+                                                                 fieldName=${'name' + T(com.gledhills.calendar.utils.PatrolData).IndexToString(iStat.index) + '_' + T(com.gledhills.calendar.utils.PatrolData).IndexToString(j)}">
                                                         <td width="20%" bgcolor="#C0C0C0">
                                                             <input type="button" value="Insert --&gt;"
                                                                    th:data-fieldname="${fieldName}"
