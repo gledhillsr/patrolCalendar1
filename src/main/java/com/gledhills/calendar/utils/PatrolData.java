@@ -220,7 +220,6 @@ public class PatrolData {
     }
     catch (Exception e) {
       LOG.error("Error: " + e.getMessage() + " connecting to table:" + resort);
-      java.lang.Thread.currentThread().dumpStack();
     }
     return conn;
   }

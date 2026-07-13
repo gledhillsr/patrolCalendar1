@@ -56,12 +56,27 @@ public final class StaticUtils {
     response.getWriter().write(returnNode.toString());
   }
 
+  //lowercase substrings found in crawler/scraper/scanner user agents but never in real browsers
+  private static final String[] BOT_SIGNATURES = {
+    "bot", "spider", "crawl", "slurp",                          //search engines (googlebot, bingbot, baiduspider, yahoo slurp, ...)
+    "curl", "wget", "python", "scrapy", "go-http-client",       //scripting/CLI tools
+    "libwww", "httpclient", "java/",                            //programmatic http libraries
+    "headless", "phantomjs",                                    //headless browsers
+    "facebookexternalhit", "bingpreview", "ia_archiver",        //link preview / archive fetchers
+    "censys", "shodan", "zgrab", "masscan", "nikto", "sqlmap", "nuclei" //security scanners
+  };
+
   public static boolean isRequestFromBot(String userAgent) {
-    if (!StaticUtils.isEmpty(userAgent)) {
-      String upperUserAgent = userAgent.toUpperCase();
-      return upperUserAgent.contains("BOT") || upperUserAgent.contains("SPIDER") || upperUserAgent.contains("CRAWLER");
+    if (StaticUtils.isEmpty(userAgent)) {
+      return true;  //every real browser sends a User-Agent; missing one means a script
     }
-    return false;  //cannot tell
+    String lowerUserAgent = userAgent.toLowerCase();
+    for (String signature : BOT_SIGNATURES) {
+      if (lowerUserAgent.contains(signature)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public static void buildAndLogErrorResponse(HttpServletResponse response, int status, String errString, Logger LOG) {
