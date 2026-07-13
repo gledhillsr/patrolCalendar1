@@ -109,6 +109,29 @@ public class ProcessChangeShiftAssignmentsController {
     LOG.info("submitter=" + szSubmitterName + " selectedID=" + selectedID + " trans=" + transaction
                + " date1=" + szdate1 + " pos1=" + pos1Str + " index1=" + index1Str);
 
+    // Optimistic concurrency check: 'selectedID' is the occupant the submitter SAW when the
+    // form was rendered ("0" for an empty slot). If the slot holds someone else now, another
+    // patroller changed it between page load and submit — reject instead of overwriting.
+    String currentOccupant = night1.getPosID(nIndex1AsNum);
+    if (!currentOccupant.isEmpty() && currentOccupant.charAt(0) == '-') {
+      currentOccupant = currentOccupant.substring(1); //strip missed-shift marker, as the form rendering did
+    }
+    if (currentOccupant.isEmpty()) {
+      currentOccupant = "0";
+    }
+    String expectedOccupant = StaticUtils.isEmpty(selectedID) ? "0" : selectedID;
+    if (!currentOccupant.equals(expectedOccupant)) {
+      LOG.info("Concurrent shift change detected: " + szdate1 + " index=" + index1Str +
+                 " now holds (" + currentOccupant + ") but the form was rendered with (" + expectedOccupant + ")");
+      patrolData.close();
+      model.addAttribute("conflictMessage",
+                         "That shift assignment has changed since you loaded the page." +
+                           "\nPlease try selecting another shift assignment.");
+      model.addAttribute("calendarUrl", "/calendar-1/MonthCalendar?resort=" + resort +
+        "&month=" + (month1 - 1) + "&year=" + year1 + "&ID=" + szMyID);
+      return "shift-conflict";
+    }
+
     // Process the transaction
     boolean dupError = false;
     boolean err = false;
