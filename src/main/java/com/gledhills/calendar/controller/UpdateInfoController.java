@@ -929,6 +929,8 @@ public class UpdateInfoController {
         memberForm.setDirector("");          // No
         memberForm.setTeamLead("0");         // No
         memberForm.setMentoring("0");        // No
+        memberForm.setEmergencyCallUp("N");  // No
+        memberForm.setSubstituteList("N");   // No
         memberForm.setComments("");
 
         // Add model attributes

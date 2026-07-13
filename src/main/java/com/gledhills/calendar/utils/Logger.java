@@ -218,7 +218,7 @@ public class Logger {
   }
 
   public void logException(String msg, Exception e) {
-    _printCommonHeader("ipAddress", resort);
+    _printCommonHeader(request, resort);
     System.out.println(
       msg + "exceptionCause=\"" + e.getCause() + "\", exceptionMessage=\"" + e.getMessage() + "\" " + e);
   }
@@ -244,7 +244,18 @@ public class Logger {
     if (request != null) {
       try {
         fromIp = request.getHeader("x-forwarded-for"); //x-forwarded-for: 216.49.181.51
-        if (fromIp == null) fromIp = "undef";
+        if (fromIp != null && fromIp.contains(",")) {
+          //header may hold a chain "client, proxy1, proxy2" - the first entry is the real client
+          fromIp = fromIp.substring(0, fromIp.indexOf(',')).trim();
+        }
+        if (fromIp == null || fromIp.isEmpty()) {
+          //no forwarding header; RemoteIpValve (forward-headers-strategy=native) has already
+          //resolved the client address into getRemoteAddr()
+          fromIp = request.getRemoteAddr();
+        }
+        if (fromIp == null || fromIp.isEmpty()) {
+          fromIp = "undef";
+        }
       } catch (IllegalStateException e) {
         fromIp = "async";
       }
