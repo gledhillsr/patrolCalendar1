@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Shift Assignment Changed</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #1f2937; }
+        .notice { max-width: 480px; margin: 60px auto; background: #fff8e1; border: 1px solid #f0c74a;
+                  border-radius: 8px; padding: 20px 24px; white-space: pre-line;
+                  box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    </style>
+</head>
+<body style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <!-- Fallback content in case JavaScript is disabled -->
+    <div class="notice">
+        <b th:text="${conflictMessage}">Shift changed</b>
+        <br/><br/>
+        <a th:href="${calendarUrl}">Return to the calendar</a>
+    </div>
+
+    <script th:inline="javascript">
+        alert(/*[[${conflictMessage}]]*/ '');
+        window.location = /*[[${calendarUrl}]]*/ '/calendar-1/';
+    </script>
+</body>
+</html>
