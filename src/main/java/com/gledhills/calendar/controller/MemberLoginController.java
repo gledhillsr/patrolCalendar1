@@ -60,6 +60,15 @@ public class MemberLoginController {
     return "member-login";
   }
 
+  @GetMapping("/LoginHelp")
+  public String showLoginHelp(HttpServletRequest request, HttpServletResponse response,
+                              Model model) throws IOException {
+    // Same login page, but with the "If you forgot your password" section visible
+    String view = showLoginForm(request, response, model);
+    model.addAttribute("showPasswordReset", true);
+    return view;
+  }
+
   @PostMapping("/LoginHelp")
   public String processLogin(HttpServletRequest request, HttpServletResponse response,
                              Model model) throws IOException {
@@ -235,7 +244,8 @@ public class MemberLoginController {
 
       }
       else {
-        // Failure - show error on login form
+        // Failure - show error on login form, and offer the password reset section
+        model.addAttribute("showPasswordReset", true);
         model.addAttribute("errorMessage",
                            "Invalid member ID or password. Please try again.");
         model.addAttribute("resort", resort);
@@ -286,8 +296,34 @@ public class MemberLoginController {
     // 2. Use ServletAdapter
     javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
     Logger LOG = new Logger(MemberLoginController.class, javaxRequest, "POST", resort, Logger.INFO);
+
+    // Password changes are not allowed on the Sample demo resort
+    if ("Sample".equalsIgnoreCase(resort)) {
+      String demoMessage = "Password changes are not allowed on the Sample demo resort.";
+      model.addAttribute("errorMessage", demoMessage);
+      model.addAttribute("popupMessage", demoMessage);
+      model.addAttribute("resort", resort);
+      model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+      model.addAttribute("gotoPage", gotoPage);
+      model.addAttribute("showSampleCredentials", true);
+
+      // Add resort metadata for header
+      ResortData demoResortData = PatrolData.getResortInfo(resort);
+      if (demoResortData != null) {
+        model.addAttribute("resortUrl", demoResortData.getResortURL());
+        model.addAttribute("resortImage", demoResortData.getResortImage());
+        model.addAttribute("resortImgHeight", demoResortData.getImageHeight());
+      }
+      model.addAttribute("logoutLink", "");
+
+      return "member-login";
+    }
+
     SessionData sessionData = new SessionData(javaxRequest, null, LOG);
     PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+    // Keep the reset section visible on every outcome of a reset request
+    model.addAttribute("showPasswordReset", true);
 
     try {
       Connection conn = patrolData.getConnection();
@@ -303,8 +339,13 @@ public class MemberLoginController {
 
       // 4. Handle member not found
       if (member == null) {
-        model.addAttribute("errorMessage",
-                           "No member found with that ID or email address.");
+        String notFoundMessage = (!StaticUtils.isEmpty(email) && email.length() > 4)
+          ? "The email address \"" + email.trim() + "\" was not found for " +
+            PatrolData.getResortFullName(resort, LOG) +
+            "\nPlease contact your patrol representative to resolve this."
+          : "No member found with that ID or email address.";
+        model.addAttribute("errorMessage", notFoundMessage);
+        model.addAttribute("popupMessage", notFoundMessage);
         model.addAttribute("resort", resort);
         model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
         model.addAttribute("gotoPage", gotoPage);
@@ -359,7 +400,30 @@ public class MemberLoginController {
                                                PatrolData.getResortFullName(resort, LOG));
 
       MailMan mailMan = new MailMan(memberEmail, sessionData, LOG);
-      mailMan.sendMessage(subject, message, memberEmail);
+      boolean emailSent = mailMan.sendMessage(subject, message, memberEmail);
+
+      if (!emailSent) {
+        LOG.error("Password reset email could NOT be sent to " + member.getFullName() + " at " + memberEmail);
+        String failMessage = "Server error: the password reset email could not be sent." +
+          "\nPlease try again later, or contact your patrol representative.";
+        model.addAttribute("errorMessage", failMessage);
+        model.addAttribute("popupMessage", failMessage);
+        model.addAttribute("resort", resort);
+        model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+        model.addAttribute("gotoPage", gotoPage);
+        model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+
+        // Add resort metadata for header
+        ResortData failResortData = PatrolData.getResortInfo(resort);
+        if (failResortData != null) {
+          model.addAttribute("resortUrl", failResortData.getResortURL());
+          model.addAttribute("resortImage", failResortData.getResortImage());
+          model.addAttribute("resortImgHeight", failResortData.getImageHeight());
+        }
+        model.addAttribute("logoutLink", "");
+
+        return "member-login";
+      }
 
       LOG.info("Password reset email sent to " + member.getFullName() + " at " + memberEmail);
 

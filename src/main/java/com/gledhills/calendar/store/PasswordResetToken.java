@@ -73,6 +73,32 @@ public class PasswordResetToken {
   }
 
   /**
+   * Create the per-resort token table if it does not exist yet.
+   * The multi-tenant table set is otherwise created manually per resort
+   * (see docs/migrations/password_reset_tokens.sql), which is easy to miss
+   * when adding a resort — so the code guarantees it here.
+   *
+   * @param connection Database connection
+   * @param resort Resort identifier for table prefix
+   * @throws SQLException if database operation fails
+   */
+  private static void ensureTableExists(Connection connection, String resort) throws SQLException {
+    String sql = "CREATE TABLE IF NOT EXISTS " + resort + "_password_reset_tokens (" +
+      "token VARCHAR(64) PRIMARY KEY, " +
+      "member_id VARCHAR(20) NOT NULL, " +
+      "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " +
+      "expires_at TIMESTAMP NOT NULL, " +
+      "used BOOLEAN NOT NULL DEFAULT FALSE, " +
+      "INDEX idx_member_id (member_id), " +
+      "INDEX idx_expires (expires_at)" +
+      ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    try (Statement stmt = connection.createStatement()) {
+      stmt.executeUpdate(sql);
+    }
+  }
+
+  /**
    * Save this token to the database.
    *
    * @param connection Database connection
@@ -80,6 +106,8 @@ public class PasswordResetToken {
    * @throws SQLException if database operation fails
    */
   public void save(Connection connection, String resort) throws SQLException {
+    ensureTableExists(connection, resort);
+
     String sql = "INSERT INTO " + resort + "_password_reset_tokens " +
       "(token, member_id, created_at, expires_at, used) " +
       "VALUES (?, ?, ?, ?, ?)";
@@ -105,6 +133,8 @@ public class PasswordResetToken {
    */
   public static PasswordResetToken findByToken(Connection connection, String resort,
                                                String token) throws SQLException {
+    ensureTableExists(connection, resort);
+
     String sql = "SELECT * FROM " + resort + "_password_reset_tokens WHERE token = ?";
 
     try (PreparedStatement stmt = connection.prepareStatement(sql)) {

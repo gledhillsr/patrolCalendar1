@@ -1,7 +1,10 @@
 package com.gledhills.calendar.utils;
 
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
+import software.amazon.awssdk.services.ses.SesClientBuilder;
 import software.amazon.awssdk.services.ses.model.*;
 
 import java.util.Collections;
@@ -56,20 +59,29 @@ public class MailMan {
       this.fromAddress = "steve@gledhills.com";
     }
 
-    sesClient = SesClient.builder().region(Region.US_EAST_1).build();
+    // Prefer the AWS keys from credentials.properties (loaded by SessionData);
+    // fall back to the SDK default provider chain (env vars, IAM instance role, ...)
+    SesClientBuilder builder = SesClient.builder().region(Region.US_EAST_1);
+    if (StaticUtils.isNotEmpty(sessionData.getAWSAccessKeyId()) &&
+      StaticUtils.isNotEmpty(sessionData.getAWSSecretKey())) {
+      builder.credentialsProvider(StaticCredentialsProvider.create(
+        AwsBasicCredentials.create(sessionData.getAWSAccessKeyId(), sessionData.getAWSSecretKey())));
+    }
+    sesClient = builder.build();
     //    logger();
   }
 
-  public void sendMessage(String subject, String messageBody, String toAddress) {
+  /** @return true if the email was sent, false if sending failed (already logged) */
+  public boolean sendMessage(String subject, String messageBody, String toAddress) {
     //    logger();
     if (DEBUG_DONT_SEND) {
       debugOutDontSend("nothing sent because of debug");
-      return;
+      return true;
     }
-    sendAmazonEmail(fromAddress, replyToAddress, toAddress, subject, messageBody);
+    return sendAmazonEmail(fromAddress, replyToAddress, toAddress, subject, messageBody);
   }
 
-  private void sendAmazonEmail(String from, String replyToAddress, String toAddress, String subject, String textBody) {
+  private boolean sendAmazonEmail(String from, String replyToAddress, String toAddress, String subject, String textBody) {
     try {
       Destination destination = Destination.builder()
         .toAddresses(toAddress)
@@ -107,9 +119,11 @@ public class MailMan {
       Long endMillis = System.nanoTime() / 1000000L;
       LOG.info("Email sent from=" + from + ", to: " + destination + ", mailTime=" + (endMillis - startMillis) +
                  " milliSeconds.  result=" + result.toString());
+      return true;
     }
     catch (Exception ex) {
       LOG.error("The email was not sent.  Exception message: " + ex.getMessage());
+      return false;
     }
   }
 

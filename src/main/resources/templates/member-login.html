@@ -2,89 +2,157 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="-1">
     <title th:text="${resortFullName} + ' Ski Patrol Login'">Login</title>
     <style type="text/css">
         body {
-            font-family: Verdana, Arial, Helvetica, sans-serif;
-            font-size: 10pt;
-            color: #000000;
-            background-color: #ffffff;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 14px;
+            color: #1f2937;
         }
-        h2 {
-            font-size: 14pt;
+
+        #login-main {
+            max-width: 420px;
+            margin: 36px auto 24px;
+            padding: 0 8px;
+        }
+
+        .page-title {
+            text-align: center;
+            color: #003366;
+            font-size: 1.5em;
+            margin: 0 0 20px;
+            letter-spacing: -0.01em;
+        }
+
+        /* Alert boxes */
+        .alert {
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 0 0 16px;
+            font-size: 0.95em;
+            white-space: pre-line;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .alert-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+        }
+        .alert-success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #15803d;
+        }
+        .alert-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+        .alert-info code {
+            background: rgba(255,255,255,0.7);
+            padding: 1px 5px;
+            border-radius: 4px;
             font-weight: bold;
         }
-        table {
-            border-collapse: collapse;
+
+        /* Cards */
+        .card {
+            background: white;
+            border: 1px solid #e2e2e2;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            margin-bottom: 20px;
+            overflow: hidden;
         }
-        td {
-            padding: 4px;
-        }
-        .demo-credentials {
-            width: 500px;
-            border: 0;
-            margin-bottom: 10px;
-        }
-        .login-form {
-            width: 450px;
-            background-color: #ABABAB;
-            border: 0;
-            border-spacing: 1px;
-            padding: 5px;
-        }
-        .login-form-inner {
-            width: 75%;
-            background-color: #ABABAB;
-            border: 0;
-            border-spacing: 1px;
-            padding: 1px;
-        }
-        .login-form td {
-            font-size: 10pt;
-            font-weight: bold;
+        .card-hdr {
+            background: #003366;
             color: white;
-        }
-        .reset-form {
-            width: 450px;
-            background-color: #EFEFEF;
-            border: 0;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .reset-left {
-            width: 120px;
-            background-color: #FFFFFF;
-            text-align: left;
             font-weight: bold;
+            font-size: 1.05em;
+            padding: 14px 24px;
         }
-        .reset-input {
-            width: 153px;
-            background-color: #C0F0B5;
-            text-align: right;
+        .card-body {
+            padding: 22px 24px;
         }
-        .reset-field {
-            width: 167px;
-            background-color: #C0F0B5;
+
+        .field {
+            margin-bottom: 16px;
         }
-        .help-images {
-            margin-top: 20px;
-        }
-        .help-images img {
-            margin: 10px;
-            border: 0;
-        }
-        .error {
-            color: red;
+        .field label {
+            display: block;
             font-weight: bold;
-            margin: 10px 0;
+            font-size: 0.85em;
+            color: #374151;
+            margin-bottom: 5px;
         }
-        .success {
-            color: green;
+        .field input[type="text"],
+        .field input[type="password"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 9px 12px;
+            font-size: 1em;
+            font-family: inherit;
+            border: 1px solid #c6cdd4;
+            border-radius: 6px;
+            background: #fdfdfd;
+        }
+        .field input:focus {
+            outline: 2px solid #003366;
+            outline-offset: 0;
+            border-color: #003366;
+            background: white;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 1em;
             font-weight: bold;
-            margin: 10px 0;
+            font-family: inherit;
+            cursor: pointer;
+            border: 1px solid #003366;
+            background: #003366;
+            color: white;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .btn:hover {
+            background: #00509e;
+            border-color: #00509e;
+        }
+        .btn-secondary {
+            background: white;
+            color: #003366;
+            border-color: #b9c2cc;
+        }
+        .btn-secondary:hover {
+            background: #003366;
+            color: white;
+            border-color: #003366;
+        }
+
+        .card-links {
+            text-align: center;
+            margin-top: 14px;
+            font-size: 0.9em;
+        }
+        .card-links a {
+            color: #00509e;
+            text-decoration: none;
+        }
+        .card-links a:hover {
+            text-decoration: underline;
+        }
+
+        .reset-hint {
+            margin: 0 0 14px;
+            color: #6b7280;
+            font-size: 0.9em;
         }
     </style>
 </head>
@@ -92,134 +160,75 @@
     <!-- Reuse header fragment -->
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${null})}"></div>
 
-    <!-- Page title -->
-    <p><h2 th:text="${resortFullName} + ' Ski Patrol Login'">Ski Patrol Login</h2></p>
+    <div id="login-main">
+        <h2 class="page-title" th:text="${resortFullName} + ' Ski Patrol Login'">Ski Patrol Login</h2>
 
-    <!-- Sample resort demo credentials -->
-    <div th:if="${showSampleCredentials}">
-        <p>&nbsp;</p>
-        <table class="demo-credentials">
-            <tr>
-                <td width="75%">
-                    To try <b>DEMO</b> mode, login as a Director, or a Normal Patroller<br/>
-                    &nbsp;&nbsp;&nbsp;&nbsp;Director  id='<b>123456</b>' password='<b>patrolCalendar</b>'<br/>
-                    &nbsp;&nbsp;&nbsp;&nbsp;Patroller id='<b>111111</b>' password='<b>patrolCalendar</b>'<br/><br/>
-                    Everything is enabled, but no email notifications will be sent.
-                </td>
-            </tr>
-        </table>
-    </div>
+        <!-- Error/Success messages -->
+        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
 
-    <!-- Error/Success messages -->
-    <div th:if="${errorMessage}" class="error" th:text="${errorMessage}"></div>
-    <div th:if="${successMessage}" class="success" th:text="${successMessage}"></div>
+        <!-- Sample resort demo credentials -->
+        <div th:if="${showSampleCredentials}" class="alert alert-info">
+            To try <b>DEMO</b> mode, login as a Director or a Normal Patroller:<br/>
+            &nbsp;&nbsp;Director: id <code>123456</code> password <code>patrolCalendar</code><br/>
+            &nbsp;&nbsp;Patroller: id <code>111111</code> password <code>patrolCalendar</code><br/>
+            Everything is enabled, but no email notifications will be sent.
+        </div>
 
-    <!-- Login form -->
-    <p>&nbsp;</p>
-    <form target="_self" method="post" th:action="@{/LoginHelp}">
-        <input type="hidden" name="NSPgoto" th:value="${gotoPage}"/>
-        <input type="hidden" name="resort" th:value="${resort}"/>
+        <!-- Login card -->
+        <div class="card">
+            <div class="card-hdr">Member Login</div>
+            <div class="card-body">
+                <form target="_self" method="post" th:action="@{/LoginHelp}">
+                    <input type="hidden" name="NSPgoto" th:value="${gotoPage}"/>
+                    <input type="hidden" name="resort" th:value="${resort}"/>
 
-        <table class="login-form" align="center">
-            <tr>
-                <td>
-                    <p>&nbsp;</p>
-                    <table class="login-form-inner" align="center">
-                        <tr>
-                            <td><font face="verdana" size="2" color="white">Member ID Number:</font></td>
-                            <td>
-                                <input id="ID" name="ID" type="text"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><font face="verdana" size="2" color="white">Password:</font></td>
-                            <td>
-                                <input type="password" id="Password" name="Password" onkeydown="if(event.key==='Enter'){document.getElementById('submit1').click();}" />
-                                <input type="submit" value="Login" id="submit1" name="submit1"/>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="2" align="middle">
-                                <font face="verdana" size="2">
-                                    <a th:href="@{/LoginHelp(resort=${resort},NSPgoto=${gotoPage})}" target="_self">Login Help</a>
-                                </font>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </form>
+                    <div class="field">
+                        <label for="ID">Member ID Number</label>
+                        <input id="ID" name="ID" type="text" autocomplete="username"/>
+                    </div>
+                    <div class="field">
+                        <label for="Password">Password</label>
+                        <input type="password" id="Password" name="Password" autocomplete="current-password"
+                               onkeydown="if(event.key==='Enter'){document.getElementById('submit1').click();}"/>
+                    </div>
+                    <input type="submit" value="Login" id="submit1" name="submit1" class="btn"/>
 
-    <!-- Password reset section -->
-    <p>&nbsp;</p>
-    <form target="_self" method="post" th:action="@{/LoginHelp}">
-        <input type="hidden" name="NSPgoto" th:value="${gotoPage}"/>
-        <input type="hidden" name="resort" th:value="${resort}"/>
-        <input type="hidden" name="emailme" value="1"/>
+                    <div class="card-links" th:unless="${showPasswordReset == true or showSampleCredentials == true}">
+                        <a th:href="@{/LoginHelp(resort=${resort},NSPgoto=${gotoPage})}" target="_self">Forgot your password?</a>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-        <table class="reset-form">
-            <tr>
-                <td class="reset-left" rowspan="3">
-                    <font face="verdana" size="2">
-                        <b>If you forgot your password:</b>
-                    </font>
-                </td>
-                <td class="reset-input">
-                    <font face="verdana" size="2">Member ID:</font>
-                </td>
-                <td class="reset-field">
-                    <input type="text" name="ID2" size="20"/>
-                </td>
-            </tr>
-            <tr>
-                <td class="reset-input">
-                    <font size="2">-or-&nbsp; e-mail address:</font>
-                </td>
-                <td class="reset-field">
-                    <input type="text" name="email" size="20"/>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2" align="center" class="reset-field">
-                    <font face="verdana" size="2">
-                        <input type="submit" value="Email me a password reset link" name="emailme"/>
-                    </font>
-                </td>
-            </tr>
-        </table>
-    </form>
+        <!-- Password reset card (shown after a failed login, or via the Forgot link; never on the Sample demo resort) -->
+        <div th:if="${showPasswordReset == true and showSampleCredentials != true}" class="card">
+            <div class="card-hdr">Reset Your Password</div>
+            <div class="card-body">
+                <p class="reset-hint">
+                    Enter the email address on file with your patrol and we'll send you a reset link.
+                </p>
+                <form target="_self" method="post" th:action="@{/LoginHelp}">
+                    <input type="hidden" name="NSPgoto" th:value="${gotoPage}"/>
+                    <input type="hidden" name="resort" th:value="${resort}"/>
+                    <input type="hidden" name="emailme" value="1"/>
 
-    <!-- Help images -->
-    <div class="help-images">
-        <font face="verdana" size="2">
-            For help on locating your NSP Member ID Number, check the examples below of your NSP Membership Card,
-            your OEC Card and the mailing label on your issues of <i>Ski Patrol Magazine</i>
-        </font>
-        <table>
-            <tr>
-                <td align="center">
-                    <img src="http://nsponline.org/images/MembershipCard.jpg"
-                         alt="NSP Membership Card"
-                         width="210" height="138"/>
-                </td>
-                <td align="center">
-                    <img src="http://nsponline.org/images/OECCard.jpg"
-                         alt="NSP Membership Card"
-                         width="210" height="148"/>
-                </td>
-            </tr>
-            <tr>
-                <td align="center">
-                    <img src="http://nsponline.org/images/label.jpg"
-                         alt="Mailing Label From SPM"
-                         width="210" height="93"/>
-                </td>
-            </tr>
-        </table>
+                    <div class="field">
+                        <label for="email">E-mail Address</label>
+                        <input type="text" id="email" name="email" autocomplete="email"/>
+                    </div>
+                    <input type="submit" value="Email me a password reset link" name="emailme" class="btn btn-secondary"/>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Reuse footer fragment -->
     <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Popup for password-reset lookup failures -->
+    <script th:if="${popupMessage}" th:inline="javascript">
+        alert(/*[[${popupMessage}]]*/ '');
+    </script>
 </body>
 </html>

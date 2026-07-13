@@ -1,10 +1,9 @@
 -- Password Reset Tokens Migration
 -- Creates password_reset_tokens table for each resort
--- Run this script manually against MySQL database
 --
--- MANUAL EXECUTION REQUIRED:
--- This migration must be run manually by a DBA or developer with MySQL access.
--- Connect to the MySQL instance at the configured MYSQL_ADDRESS and execute this script.
+-- NOTE: As of July 2026 this migration is OBSOLETE — PasswordResetToken.java
+-- now runs CREATE TABLE IF NOT EXISTS automatically on first use for each
+-- resort, so no manual step is needed. Kept for schema reference only.
 --
 -- MULTI-TENANT PATTERN:
 -- Each resort requires its own password_reset_tokens table with the resort name prefix.
