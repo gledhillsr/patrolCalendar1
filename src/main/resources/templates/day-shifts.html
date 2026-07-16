@@ -33,14 +33,15 @@
             background-color: #C0C0C0;
         }
     </style>
-    <script type="text/javascript" th:if="${isDirector}">
+    <script type="text/javascript" th:if="${isDirector}" th:inline="javascript">
         var mustChangeName = true;
         var currName = /*[[${selectedShift}]]*/ '';
 
         function reloadPage(list) {
             var idx = list.selectedIndex;
             var msg = list.options[idx].text;
-            location = /*[[@{/DayShifts(resort=${resort}, dayOfWeek=${dayOfWeek}, date=${date}, month=${month}, year=${year}, ID=${patrollerId}, dropdownShift=)}]]*/ '' + msg;
+            var base = /*[[@{/DayShifts(resort=${resort}, dayOfWeek=${dayOfWeek}, date=${date}, month=${month}, year=${year}, ID=${patrollerId})}]]*/ '';
+            location = base + '&dropdownShift=' + encodeURIComponent(msg);
         }
 
         function captureEnter(keycode) {
@@ -164,13 +165,12 @@
                                                     Use Predefined Shift format:
                                                     <select onchange="reloadPage(this)" size="1" name="selectedShift">
                                                         <option value="">--New Shift Style--</option>
-                                                        <th:block th:each="template : ${shiftTemplates}">
-                                                            <option th:value="${template.parsedEventName()}"
-                                                                    th:text="${template.parsedEventName()}"
-                                                                    th:selected="${template.parsedEventName() == selectedShift}">
-                                                                Template
-                                                            </option>
-                                                        </th:block>
+                                                        <option th:each="option : ${shiftOptions}"
+                                                                th:value="${option.key}"
+                                                                th:text="${option.value}"
+                                                                th:selected="${option.key == selectedShift}">
+                                                            Template
+                                                        </option>
                                                     </select>
                                                     <br>
                                                     &nbsp;&nbsp;
@@ -341,5 +341,10 @@
 
     <!-- Footer -->
     <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Popup shown when a shift-format change is not allowed -->
+    <script th:if="${popupMessage}" th:inline="javascript">
+        alert(/*[[${popupMessage}]]*/ '');
+    </script>
 </body>
 </html>

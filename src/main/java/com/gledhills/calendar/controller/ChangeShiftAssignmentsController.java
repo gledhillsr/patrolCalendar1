@@ -131,7 +131,7 @@ public class ChangeShiftAssignmentsController {
     // Count visible radio buttons before "replace with someone else" for JS autoSelectRadioBtn
     int replaceWithSomeoneElseRadioIndex = 0;
     if (allowEditing && !myName.isEmpty()) {
-      if (posWasEmpty && !outsideEarlyLimit && !isNightShiftForPos) {
+      if (posWasEmpty && (!outsideEarlyLimit || isNightShiftForPos)) {
         replaceWithSomeoneElseRadioIndex++; // "Insert myself" appears first
       } else if (!posWasEmpty && !editingMyself && !outsideEarlyLimit) {
         replaceWithSomeoneElseRadioIndex++; // "Replace with myself" appears first

@@ -185,17 +185,39 @@ public class DayShiftsController {
         Hashtable<String, String> numToName = buildRosterLookup(patrolData);
         String[] sortedRoster = buildSortedRoster(patrolData);
 
+        // A "Use Predefined Shift format" selection reloads the page with dropdownShift set;
+        // it overrides which pattern is displayed (matches the legacy servlet behavior).
+        // Selecting "--New Shift Style--" matches no template, which yields a blank slate.
+        // If the day already has saved assignments, the pattern cannot be changed - tell the
+        // user and keep showing the saved assignments.
+        if (dropdownShift != null && dropdownShift.length() > 1) {
+            if (assignments.isEmpty()) {
+                selectedShift = dropdownShift;
+            } else {
+                model.addAttribute("popupMessage", "Shift changes unavailable when patrollers are on the schedule");
+            }
+        }
         if (selectedShift == null || selectedShift.isEmpty()) {
             selectedShift = StaticUtils.szDays[dayOfWeek];
         }
 
-        // If no assignments exist for this date, populate from shift template
-        if (assignments.isEmpty() && dropdownShift == null) {
+        // If no assignments exist for this date, populate the rows from the selected template
+        if (assignments.isEmpty()) {
             populateAssignmentsFromTemplate(assignments, shiftTemplates, selectedShift,
                     date, month, year, LOG);
         }
 
         String originalName = assignments.isEmpty() ? "" : assignments.get(0).getEventName();
+
+        // Unique shift names for the "Use Predefined Shift format" dropdown:
+        // everything before the first "_" of the template name, de-duplicated
+        LinkedHashMap<String, String> shiftOptions = new LinkedHashMap<>();
+        for (ShiftDefinitions shift : shiftTemplates) {
+            String name = shiftDropdownName(shift.getEventName());
+            if (!name.trim().isEmpty()) {
+                shiftOptions.put(name, name);
+            }
+        }
 
         model.addAttribute("resort", resort);
         model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
@@ -208,6 +230,7 @@ public class DayShiftsController {
         model.addAttribute("year", year);
         model.addAttribute("assignments", assignments);
         model.addAttribute("shiftTemplates", shiftTemplates);
+        model.addAttribute("shiftOptions", shiftOptions);
         model.addAttribute("selectedShift", selectedShift);
         model.addAttribute("originalName", originalName);
         model.addAttribute("numToName", numToName);
@@ -450,14 +473,21 @@ public class DayShiftsController {
         }
     }
 
+    /** Dropdown display name for a shift template: everything before the first "_". */
+    private static String shiftDropdownName(String eventName) {
+        int underscore = eventName.indexOf('_');
+        return underscore >= 0 ? eventName.substring(0, underscore) : eventName;
+    }
+
     private void populateAssignmentsFromTemplate(ArrayList<Assignments> assignments,
             ArrayList<ShiftDefinitions> shiftTemplates, String selectedShift,
             int date, int month, int year, Logger LOG) {
 
         // Find all shift definitions that match the selected shift name
+        // (same first-"_" trimming used for the dropdown options)
         int position = 1;
         for (ShiftDefinitions template : shiftTemplates) {
-            String parsedName = template.parsedEventName();
+            String parsedName = shiftDropdownName(template.getEventName());
             if (parsedName.equals(selectedShift)) {
                 String szAssignmentDate = getTodaysAssignmentString(date, month, year, position);
                 Assignments assignment = new Assignments(szAssignmentDate, template, LOG);

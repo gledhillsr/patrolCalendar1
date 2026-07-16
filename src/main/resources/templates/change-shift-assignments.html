@@ -55,8 +55,8 @@
                 </td>
             </tr>
 
-            <!-- Insert myself (position empty, not outside limit, not a night shift) -->
-            <tr th:if="${allowEditing and !#strings.isEmpty(myName) and posWasEmpty and !outsideEarlyLimit and !isNightShift}">
+            <!-- Insert myself (position empty; the early limit only blocks day/swing shifts, never night shifts) -->
+            <tr th:if="${allowEditing and !#strings.isEmpty(myName) and posWasEmpty and (!outsideEarlyLimit or isNightShift)}">
                 <td width="100%" colspan="2">
                     <input type="radio" name="transaction" value="insertMyName" checked>
                     <b>Insert</b> myself (<span th:text="${myName}">Name</span>).&nbsp;

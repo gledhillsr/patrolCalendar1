@@ -36,6 +36,13 @@ footer {
     white-space: nowrap;
     text-overflow: ellipsis;
 }
+.banner-beta {
+    font-size: 0.4em;
+    font-weight: normal;
+    font-style: italic;
+    color: #b91c1c;
+    vertical-align: middle;
+}
 .nav-public {
     background: #eeeeee;
     padding: 5px 14px;
