@@ -185,16 +185,24 @@ public class DayShiftsController {
         Hashtable<String, String> numToName = buildRosterLookup(patrolData);
         String[] sortedRoster = buildSortedRoster(patrolData);
 
+        // Total patrollers actually assigned today (empty slots don't count) - gates the
+        // pattern-change block below and the "Delete All (restore template)" confirm dialog
+        int patrollersOnSchedule = 0;
+        for (Assignments assignment : assignments) {
+            patrollersOnSchedule += assignment.getUseCount(resort);
+        }
+
         // A "Use Predefined Shift format" selection reloads the page with dropdownShift set;
         // it overrides which pattern is displayed (matches the legacy servlet behavior).
         // Selecting "--New Shift Style--" matches no template, which yields a blank slate.
-        // If the day already has saved assignments, the pattern cannot be changed - tell the
-        // user and keep showing the saved assignments.
+        // Only block the change when patrollers are actually assigned - a day whose saved
+        // rows are all empty (e.g. everyone was removed) may still switch patterns.
         if (dropdownShift != null && dropdownShift.length() > 1) {
-            if (assignments.isEmpty()) {
-                selectedShift = dropdownShift;
-            } else {
+            if (patrollersOnSchedule > 0) {
                 model.addAttribute("popupMessage", "Shift changes unavailable when patrollers are on the schedule");
+            } else {
+                selectedShift = dropdownShift;
+                assignments.clear(); //forget the saved rows; display the chosen pattern instead
             }
         }
         if (selectedShift == null || selectedShift.isEmpty()) {
@@ -231,6 +239,7 @@ public class DayShiftsController {
         model.addAttribute("assignments", assignments);
         model.addAttribute("shiftTemplates", shiftTemplates);
         model.addAttribute("shiftOptions", shiftOptions);
+        model.addAttribute("patrollersOnSchedule", patrollersOnSchedule);
         model.addAttribute("selectedShift", selectedShift);
         model.addAttribute("originalName", originalName);
         model.addAttribute("numToName", numToName);
@@ -263,15 +272,15 @@ public class DayShiftsController {
             }
         }
 
-        if (matchCount == 0) {
-            System.out.println("DayShifts DEBUG: No assignments found for " + year + "-" + (month+1) + "-" + date);
-            System.out.println("DayShifts DEBUG: Total assignments in month: " + monthOfAssignments.size());
-            for (Assignments data : monthOfAssignments) {
-                System.out.println("DayShifts DEBUG: Assignment date: " + data.getYear() + "-" + data.getMonth() + "-" + data.getDay());
-            }
-        } else {
-            System.out.println("DayShifts DEBUG: Found " + matchCount + " assignments for " + year + "-" + (month+1) + "-" + date);
-        }
+//        if (matchCount == 0) {
+//            System.out.println("DayShifts DEBUG: No assignments found for " + year + "-" + (month+1) + "-" + date);
+//            System.out.println("DayShifts DEBUG: Total assignments in month: " + monthOfAssignments.size());
+//            for (Assignments data : monthOfAssignments) {
+//                System.out.println("DayShifts DEBUG: Assignment date: " + data.getYear() + "-" + data.getMonth() + "-" + data.getDay());
+//            }
+//        } else {
+//            System.out.println("DayShifts DEBUG: Found " + matchCount + " assignments for " + year + "-" + (month+1) + "-" + date);
+//        }
     }
 
     private void readParameterShifts(javax.servlet.http.HttpServletRequest request, int shiftCount,
@@ -413,6 +422,11 @@ public class DayShiftsController {
 
         if (parameterShifts.size() > 0) {
             saveShiftInfo(patrolData, assignments, parameterShifts, newName, date, month, year, LOG);
+            // Delete leftover saved rows beyond the new row count
+            // (e.g. the day was switched to a template with fewer shifts)
+            for (int i = parameterShifts.size(); i < assignments.size(); i++) {
+                patrolData.deleteAssignment(assignments.get(i));
+            }
         } else if (newName != null && newName.trim().length() > 0) {
             // Add comment-only assignment
             ShiftDefinitions sData = new ShiftDefinitions(newName, " ", " ",

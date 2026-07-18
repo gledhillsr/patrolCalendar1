@@ -1016,7 +1016,7 @@ public class PatrolData {
         }
 
         if (validLogin) {
-          LOG.error("Login Sucessful: " + firstName + " " + lastName + ", " + ID + " (" + resort + ") " + emailAddress);
+          LOG.warn("Login Sucessful: " + firstName + " " + lastName + ", " + ID + " (" + resort + ") " + emailAddress);
         }
         else {
           LOG.error(

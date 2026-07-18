@@ -97,14 +97,15 @@ public class EditShiftTemplatesController {
         try {
             String loggedInUserId = sessionData.getLoggedInUserId();
 
-            // Handle Save Changes button - redirect back to Directors
+            // Process form submission FIRST - this is what persists row edits/adds/deletes.
+            // (The legacy servlet also parsed and wrote changes before honoring SaveChangesBtn.)
+            ProcessResult result = processFormSubmission(request, sessionData, patrolData, selectedShift, deleteTemplateBtn, LOG);
+
+            // Handle Save Changes button - changes are saved above, now return to Directors
             if (saveChangesBtn != null) {
                 response.sendRedirect("Directors?resort=" + resort + "&ID=" + loggedInUserId);
                 return null;
             }
-
-            // Process form submission
-            ProcessResult result = processFormSubmission(request, sessionData, patrolData, selectedShift, deleteTemplateBtn, LOG);
 
             if (deleteTemplateBtn != null) {
                 model.addAttribute("deleteSuccess", true);
@@ -221,6 +222,9 @@ public class EditShiftTemplatesController {
             if (newShift) {
                 patrolData.writeShift(todaysData[i]);
             }
+            // Rows for an existing template are already in the DB - mark them so
+            // writeShift() generates an UPDATE instead of a failing duplicate INSERT
+            todaysData[i].setExists(true);
         }
 
         // Process deletions and updates

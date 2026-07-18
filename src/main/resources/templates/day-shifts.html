@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title th:text="${resortFullName} + ' - Day Shifts for ' + ${monthName} + ' ' + ${date} + ', ' + ${year}">Day Shifts</title>
     <meta http-equiv="pragma" content="no-cache">
@@ -51,6 +52,11 @@
         function confirmShiftDelete(count) {
             if (count == 0) return true;
             return confirm('This shift has patrollers assigned to it. \nAre you sure you want to DELETE it?');
+        }
+
+        function confirmDeleteAll(count) {
+            if (count == 0) return true;
+            return confirm('Patrollers are on the schedule for this day.\nAre you sure you want to delete everything on this day?');
         }
 
         function insertName(form, where) {
@@ -247,7 +253,8 @@
                                                                th:data-url="@{/MonthCalendar(month=${month}, year=${year}, resort=${resort}, ID=${patrollerId})}"
                                                                onclick="window.location=this.dataset.url">
                                                         &nbsp;&nbsp;
-                                                        <input type="submit" value="Delete All (restore template)" name="deleteAllShiftsBtn">
+                                                        <input type="submit" value="Delete All (restore template)" name="deleteAllShiftsBtn"
+                                                               th:onclick="'return confirmDeleteAll(' + ${patrollersOnSchedule} + ')'">
                                                     </p>
                                                 </td>
                                             </tr>
