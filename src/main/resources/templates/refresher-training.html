@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title th:text="${resortFullName} + ' Ski Patrol - Refresher and Training'">Refresher and Training</title>
+    <style type="text/css">
+        body {
+            font-family: Verdana, Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        .training-link {
+            font-size: 10pt;
+            color: red;
+            font-weight: bold;
+        }
+        .warning {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <!-- Header -->
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <h2 th:text="${resortFullName} + ' Ski Patrol - Refresher and Training information'">Refresher and Training</h2>
+
+    <br/><br/>
+    <span th:text="${memberName}">Name</span>, this is <b>your</b> link to the new online refresher:
+    <a class="training-link" th:href="${refresherUrl}" target="_blank">2021 Brighton Ski Patrol Refresher</a>
+
+    <br/><br/><br/>
+    <span class="warning">Please do NOT share this link. IT IS NOT PUBLIC INFORMATION.</span>
+    <br/><br/>
+    Also, this link is specific to you, it will be how we track your progress!
+
+    <br/><br/><br/>
+    Support Brighton Ski Patrol via donations from
+    <a href="http://gledhills.com/Brighton/BrightonSmiths_4.20222.pdf" target="_blank"><b>Smith&lsquo;s Inspiring Donations</b></a> program.
+
+    <h3>Ongoing Training</h3>
+    <br/>
+    <a class="training-link" href="https://youtu.be/b2gi3gqgYSg" target="_blank">December 2021 Brighton Ski Patrol Meeting</a>
+    <br/><br/>
+    <a class="training-link" href="https://www.youtube.com/watch?v=xvVSpyec5LM&feature=youtu.be" target="_blank">
+        Know Before You Go avalanche awareness refresher presented by Peter Tucker (27 min), Joey Manship (30 min), and Craig Gordon (55 min)
+    </a>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>
