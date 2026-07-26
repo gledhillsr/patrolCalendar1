@@ -149,13 +149,9 @@ public class ValidateCredentialsRedirectIfNeeded {
           LOG.error("failed to delete cookie, message=" + e.getMessage());
         }
       }
-      else {
-        LOG.warn("no credentials, and no 'nspToken' cookie");
-      }
+      //else no credentials, and no 'nspToken' cookie
     }
-    else {
-      LOG.warn("NO cookies exist");
-    }
+    //else no cookies exist
   }
 
   private void init(SessionData sessionData, String parent, String idParameter) {

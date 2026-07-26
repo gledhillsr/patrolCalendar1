@@ -27,8 +27,8 @@ public class BotBlockingFilter extends OncePerRequestFilter {
     if (StaticUtils.isRequestFromBot(userAgent)) {
       Logger LOG = new Logger(BotBlockingFilter.class, ServletAdapter.toJavaxRequest(request),
                               request.getMethod(), request.getParameter("resort"), Logger.INFO);
-      LOG.info("Blocked bot request: uri=" + request.getRequestURI() +
-                 ", query=(" + request.getQueryString() + "), userAgent=(" + userAgent + ")");
+//      LOG.info("Blocked bot request: uri=" + request.getRequestURI() +
+//                 ", query=(" + request.getQueryString() + "), userAgent=(" + userAgent + ")");
       response.setStatus(403);
       response.setContentType("text/plain");
       response.getWriter().write("Automated requests are not allowed.");

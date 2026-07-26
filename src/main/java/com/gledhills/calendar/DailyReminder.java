@@ -17,17 +17,25 @@ public class DailyReminder {
     LOG = new Logger(this.getClass(), null, "DailyReminder", "DailyReminder", Logger.INFO);
     LOG.info("*** Processing email reminders for resort=" + resort);
     PatrolData patrol = new PatrolData(resort, sessionData, LOG);
-    DirectorSettings ds = patrol.readDirectorSettings();
-    if (!ds.getSendReminder()) {
-      LOG.info("Don't send email reminders for resort=" + resort + ". The director settings denied this...");
-      return;
-    }
-    int daysAhead = ds.getReminderDays();
+    try {
+      DirectorSettings ds = patrol.readDirectorSettings();
+      if (ds == null) {
+        LOG.error("Could not read director settings for resort=" + resort + ", skipping this resort.");
+        return;
+      }
+      if (!ds.getSendReminder()) {
+        LOG.info("Don't send email reminders for resort=" + resort + ". The director settings denied this...");
+        return;
+      }
+      int daysAhead = ds.getReminderDays();
 
-    GregorianCalendar assignmentDate = getReminderDateToSend(daysAhead);
-    int messagesSent = checkAndSend(sessionData, assignmentDate, mail, resort, patrol);
-    LOG.info("finished processing ALL reminders for resort=" + resort + ", messagesSent=" + messagesSent);
-    patrol.close();
+      GregorianCalendar assignmentDate = getReminderDateToSend(daysAhead);
+      int messagesSent = checkAndSend(sessionData, assignmentDate, mail, resort, patrol);
+      LOG.info("finished processing ALL reminders for resort=" + resort + ", messagesSent=" + messagesSent);
+    }
+    finally {
+      patrol.close();
+    }
   }
 
   private GregorianCalendar getReminderDateToSend(int daysAhead) {
@@ -146,7 +154,7 @@ public class DailyReminder {
   /**
    * @param args the command line arguments (none, send to all resorts)
    */
-  static void main(String[] args) {    //this NEEDS to be static
+  public static void main(String[] args) {    //this NEEDS to be static
     Properties properties = System.getProperties();
     PrintWriter out = new PrintWriter(System.out);
     SessionData sessionData = new SessionData(properties, out);
@@ -156,17 +164,24 @@ public class DailyReminder {
     out.println("******************************************************");
     if (sessionData.getDbPassword() == null) {
       LOG.error("error session credentials not found");
+      out.flush();
       System.exit(1);
     }
     //setup credentials and connection
     //loop for resorts
     for (String resort : PatrolData.resortMap.keySet()) {
       if (!"Sample".equals(resort)) {
-        sessionData.setLoggedInResort(resort); //used to set From field in emails (if director has SES verified address)
-        MailMan mail = new MailMan(sessionData.getEmailUser(), sessionData, LOG);
-        new DailyReminder(resort, sessionData, mail);
+        try {
+          sessionData.setLoggedInResort(resort); //used to set From field in emails (if director has SES verified address)
+          MailMan mail = new MailMan(sessionData.getEmailUser(), sessionData, LOG);
+          new DailyReminder(resort, sessionData, mail);
+        }
+        catch (Exception e) {
+          LOG.logException("Failed processing reminders for resort=" + resort + ", continuing with remaining resorts.", e);
+        }
       }
     }
+    out.flush();
   }
 
 }

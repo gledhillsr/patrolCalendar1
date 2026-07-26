@@ -67,6 +67,8 @@ public class SessionData {
                      PrintWriter out) {  //called ONLY by DailyReminder (there is no http request)
     this.session = null;
     this.request = null;
+    // methodType "DailyReminder" tells Logger this has no HTTP request by design (see Logger.<init>)
+    this.LOG = new Logger(SessionData.class, null, "DailyReminder", "DailyReminder", Logger.INFO);
     readCredentialPropertiesFile(properties, out);
   }
 

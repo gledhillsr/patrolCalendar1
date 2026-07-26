@@ -36,7 +36,7 @@ public class MemberLogoutController {
     // 3. Use ServletAdapter for legacy code compatibility
     javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
     Logger LOG = new Logger(MemberLogoutController.class, javaxRequest, "GET", resort, Logger.INFO);
-    LOG.warn("deleting cookie in member logout");
+    LOG.info("deleting cookie in member logout: resort=" + resort);
 
     // 4. Validate resort parameter
     if (resort == null || !PatrolData.isValidResort(resort)) {

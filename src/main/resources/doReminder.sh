@@ -1,40 +1,25 @@
-#/bin/bash
-# make sure to explicitly list all ".jar"
-#export CLASSPATH="/var/lib/tomcat7/webapps/calendar-1/WEB-INF/classes:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/commons-lang3-3.5.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/aws-java-sdk-ses-1.11.815.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/mysql-connector-java-5.1.6.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/httpclient-4.5.5.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/jackson-core-2.10.1.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/aws-java-sdk-ses-1.11.470.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/mail-1.4.7.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/activation-1.1.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/commons-codec-1.10.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/jackson-databind-2.10.1.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/aws-java-sdk-core-1.11.470.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/joda-time-2.8.1.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/jackson-annotations-2.10.1.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/commons-logging-1.1.3.jar:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/httpcore-4.4.9.jar"
+#!/bin/bash
+# Sends daily shift reminder emails for every resort.
+#
+# Run this daily from cron. It reuses the same executable jar the app
+# itself runs from (java -jar calendar-1.jar) and launches DailyReminder's
+# main() instead of the Spring Boot application, via Spring Boot's
+# PropertiesLauncher. That launcher sets up the exact same runtime
+# classpath (BOOT-INF/classes + BOOT-INF/lib) the app uses, so there is
+# no separate jar list here to keep in sync with pom.xml.
+#
+# By default this looks for calendar-1.jar next to this script. Set
+# CALENDAR_JAR to point at a different jar if needed.
 
-export CLASSPATH="/var/lib/tomcat7/webapps/calendar-1/WEB-INF/classes"
+set -euo pipefail
 
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/ses-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/apache-client-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/sdk-core-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/auth-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/regions-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/utils-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/aws-core-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/http-client-spi-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/metrics-spi-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/json-utils-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/endpoints-spi-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/profiles-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/apache-http-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/netty-nio-client-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/protocol-core-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/aws-query-protocol-2.29.29.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/commons-codec-1.11.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/commons-lang3-3.10.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/commons-logging-1.1.3.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/dom4j-2.1.3.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/httpclient-4.5.9.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/httpcore-4.4.11.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/ion-java-1.0.2.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/jackson-core-2.15.3.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/jackson-databind-2.15.3.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/jackson-annotations-2.15.3.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/jackson-dataformat-cbor-2.6.7.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/javax.mail-api-1.6.2.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/jmespath-java-1.11.815.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/joda-time-2.8.1.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/mysql-connector-java-8.0.28.jar"
-export CLASSPATH="$CLASSPATH:/var/lib/tomcat7/webapps/calendar-1/WEB-INF/lib/protobuf-java-3.6.1.jar"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+JAR="${CALENDAR_JAR:-$SCRIPT_DIR/calendar-1.jar}"
 
-java -cp $CLASSPATH org.nsponline.calendar.DailyReminder
+if [ ! -f "$JAR" ]; then
+  echo "ERROR: calendar jar not found at $JAR (set CALENDAR_JAR to override)" >&2
+  exit 1
+fi
+
+java -cp "$JAR" -Dloader.main=com.gledhills.calendar.DailyReminder \
+  org.springframework.boot.loader.launch.PropertiesLauncher

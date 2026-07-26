@@ -457,9 +457,9 @@ public class MonthCalendar extends ResourceBase {
     out.println("<style type='text/css'>\n");
     out.println("  .calendar td    {font-size:10pt; face:Verdana,Arial,Helvetica; padding:1px}\n");
     //      out.println("  a    {target:_self}\n"); //todo srg WIP
-    out.println("  .shift-list { table-layout: fixed; }\n");
+    out.println("  .shift-list { table-layout: auto; }\n");
     out.println(
-      "  .shift-name { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }\n");
+      "  .shift-name { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; min-width: 16ch; max-width: 20ch; }\n");
     out.println("</style>\n");
 
     out.println("<TABLE class='calendar' BORDER='3' CELLSPACING='0' CELLPADDING='1' WIDTH='100%'><TR>");

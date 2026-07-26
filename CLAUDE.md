@@ -106,4 +106,4 @@ Located in `src/main/resources/templates/`. Shared page chrome is in `templates/
 - **Database**: `PatrolData.MYSQL_ADDRESS` — update to point at your MySQL instance
 - **SMTP**: `smtp.host` in `application.properties` (default `localhost`)
 - **New resorts**: Add entries to `PatrolData.resortMap` static initializer plus matching DB tables
-- **`doReminder.sh`**: Standalone cron script for daily reminders; its classpath must be updated manually when dependency versions change in `pom.xml` (the properties section has a reminder comment)
+- **`doReminder.sh`**: Standalone cron script for daily reminders. Runs `DailyReminder.main()` against the same executable jar the app runs from (`calendar-1.jar`), via Spring Boot's `PropertiesLauncher` (`-Dloader.main=com.gledhills.calendar.DailyReminder`) so it reuses the app's runtime classpath with no jar list to maintain
