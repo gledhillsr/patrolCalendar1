@@ -884,7 +884,7 @@ public class InnerChangeSingleDayShift extends ResourceBase {
     out.println("  <tr>");
     out.println("    <td width='100%' bgcolor='#C0C0C0'>");
     out.println(
-      "      <h2 align='center'>Change Today's Assignments (is mostly BROKEN! check back in a few days, or email steve@gledhills.com)</h2>");
+      "      <h2 align='center'>Change Today's Assignments</h2>");
     out.println("    </td>");
     out.println("  </tr>");
     out.println("  <tr>");

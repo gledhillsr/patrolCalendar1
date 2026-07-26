@@ -85,6 +85,7 @@ public class DayShiftsController {
             @RequestParam(required = false) String dropdownShift2,
             @RequestParam(required = false) String selectedShift,
             @RequestParam(required = false) Integer shiftCount,
+            @RequestParam(required = false) String doAssignments,
             HttpServletRequest request,
             HttpServletResponse response,
             Model model) throws IOException {
@@ -95,6 +96,13 @@ public class DayShiftsController {
         PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
         String patrollerId = ID != null ? ID : sessionData.getLoggedInUserId();
+
+        if (doAssignments != null) {
+            // "Group Assignment of Patrollers to Shifts" button - just show the group
+            // assignment grid, nothing to save yet.
+            return showEditShiftView(resort, dayOfWeek, date, month, year, patrollerId,
+                    null, null, true, patrolData, sessionData, model, LOG);
+        }
 
         // Process the change request
         ArrayList<Assignments> assignmentsFromDisk = new ArrayList<>();
