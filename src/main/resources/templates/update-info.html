@@ -153,19 +153,34 @@
                 <tr>
                     <td width="351" align="right"><font size="3">Home Phone:</font></td>
                     <td width="600">
-                        <input type="text" th:field="*{homePhone}" size="30" />
+                        <input type="text" th:field="*{homePhone}" size="30"
+                               th:pattern="${isAddPatroller} ? '\d{3}-\d{3}-\d{4}' : null"
+                               th:title="${isAddPatroller} ? 'Format: 999-999-9999 (may be left blank)' : null" />
+                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;Format: 999-999-9999 (may be left blank)</span>
+                        <span th:unless="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;(desired format: 999-999-9999)</span>
+                        <span th:if="${#fields.hasErrors('homePhone')}" class="error-message" th:errors="*{homePhone}">Home Phone Error</span>
                     </td>
                 </tr>
                 <tr>
                     <td width="351" align="right"><font size="3">Work Phone:</font></td>
                     <td width="600">
-                        <input type="text" th:field="*{workPhone}" size="30" />
+                        <input type="text" th:field="*{workPhone}" size="30"
+                               th:pattern="${isAddPatroller} ? '\d{3}-\d{3}-\d{4}' : null"
+                               th:title="${isAddPatroller} ? 'Format: 999-999-9999 (may be left blank)' : null" />
+                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;Format: 999-999-9999 (may be left blank)</span>
+                        <span th:unless="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;(desired format: 999-999-9999)</span>
+                        <span th:if="${#fields.hasErrors('workPhone')}" class="error-message" th:errors="*{workPhone}">Work Phone Error</span>
                     </td>
                 </tr>
                 <tr>
                     <td width="351" align="right"><font size="3">Cell Phone:</font></td>
                     <td width="600">
-                        <input type="text" th:field="*{cellPhone}" size="30" />
+                        <input type="text" th:field="*{cellPhone}" size="30"
+                               th:pattern="${isAddPatroller} ? '\d{3}-\d{3}-\d{4}' : null"
+                               th:title="${isAddPatroller} ? 'Format: 999-999-9999 (may be left blank)' : null" />
+                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;Format: 999-999-9999 (may be left blank)</span>
+                        <span th:unless="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;(desired format: 999-999-9999)</span>
+                        <span th:if="${#fields.hasErrors('cellPhone')}" class="error-message" th:errors="*{cellPhone}">Cell Phone Error</span>
                     </td>
                 </tr>
 
@@ -211,7 +226,8 @@
                 <tr>
                     <td width="351" align="right"><font size="3">Password:</font></td>
                     <td width="600">
-                        <input type="password" th:field="*{password}" size="30" placeholder="Leave blank to keep current password" />
+                        <input type="password" th:field="*{password}" size="30"
+                               th:placeholder="${isAddPatroller} ? 'Leave blank to default to Last Name' : 'Leave blank to keep current password'" />
                     </td>
                 </tr>
 

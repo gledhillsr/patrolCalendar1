@@ -19,9 +19,19 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.regex.Pattern;
 
 @Controller
 public class UpdateInfoController {
+
+    private static final Pattern PHONE_PATTERN = Pattern.compile("\\d{3}-\\d{3}-\\d{4}");
+
+    /**
+     * Blank is valid (phone is optional); otherwise must match 999-999-9999.
+     */
+    private static boolean isValidPhoneFormat(String phone) {
+        return phone == null || phone.trim().isEmpty() || PHONE_PATTERN.matcher(phone.trim()).matches();
+    }
 
     /**
      * Model class for member update form binding.
@@ -741,7 +751,7 @@ public class UpdateInfoController {
 
             // 9b. Check for Add_Patroller purpose (Adding new member)
             if ("Add_Patroller".equals(postPurpose)) {
-                return handleAddPatroller(resort, loggedInUserId, memberForm, request, response, model, sessionData, patrolData, LOG);
+                return handleAddPatroller(resort, loggedInUserId, memberForm, bindingResult, request, response, model, sessionData, patrolData, LOG);
             }
 
             // 10. Load existing member record
@@ -1261,6 +1271,7 @@ public class UpdateInfoController {
             String resort,
             String loggedInUserId,
             MemberUpdateForm memberForm,
+            BindingResult bindingResult,
             HttpServletRequest request,
             HttpServletResponse response,
             Model model,
@@ -1277,6 +1288,30 @@ public class UpdateInfoController {
             model.addAttribute("isSetNewID", false);
             model.addAttribute("isAddPatroller", true);
             model.addAttribute("errorMessage", "ID Number is required for new patroller");
+            model.addAttribute("memberForm", memberForm);
+            return "update-info";
+        }
+
+        // Validate phone number format for new patrollers; blank is fine, non-blank must be 999-999-9999
+        boolean homePhoneValid = isValidPhoneFormat(memberForm.getHomePhone());
+        boolean workPhoneValid = isValidPhoneFormat(memberForm.getWorkPhone());
+        boolean cellPhoneValid = isValidPhoneFormat(memberForm.getCellPhone());
+        if (!homePhoneValid || !workPhoneValid || !cellPhoneValid) {
+            String phoneFormatError = "Format must be 999-999-9999, or left blank";
+            if (!homePhoneValid) {
+                bindingResult.rejectValue("homePhone", "pattern.homePhone", phoneFormatError);
+            }
+            if (!workPhoneValid) {
+                bindingResult.rejectValue("workPhone", "pattern.workPhone", phoneFormatError);
+            }
+            if (!cellPhoneValid) {
+                bindingResult.rejectValue("cellPhone", "pattern.cellPhone", phoneFormatError);
+            }
+            model.addAttribute("resort", resort);
+            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+            model.addAttribute("patrollerId", loggedInUserId);
+            model.addAttribute("isSetNewID", false);
+            model.addAttribute("isAddPatroller", true);
             model.addAttribute("memberForm", memberForm);
             return "update-info";
         }
