@@ -1,136 +1,95 @@
 package com.gledhills.calendar.dto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Immutable DTO for EmailForm query parameters (GET request).
- * Binds filter criteria from calling pages.
+ * Immutable filter criteria for the EmailForm GET request.
+ *
+ * Component names deliberately match the query parameter names produced by
+ * ListPatrollers / MemberList / SubList, so Spring can bind the whole record
+ * with a single {@code @ModelAttribute}. Every component is optional; an absent
+ * parameter binds to null.
  */
-public class EmailFormRequest {
-    private final String resort;
-    private final String id;
-    private final Boolean EveryBody;
-    private final Boolean SubList;
-    private final Boolean BAS;
-    private final Boolean INA;
-    private final Boolean SR;
-    private final Boolean SRA;
-    private final Boolean ALM;
-    private final Boolean PRO;
-    private final Boolean AUX;
-    private final Boolean TRA;
-    private final Boolean CAN;
-    private final Boolean OTH;
-    private final Boolean FullTime;
-    private final Boolean PartTime;
-    private final Boolean Inactive;
-    private final Boolean ALL;
-    private final Boolean ListDirector;
-    private final Boolean OEC;
-    private final Boolean CPR;
-    private final Boolean Ski;
-    private final Boolean Toboggan;
-    private final Boolean DAY_CNT;
-    private final Boolean SWING_CNT;
-    private final Boolean NIGHT_CNT;
-    private final Boolean TRAINING_CNT;
-    private final Boolean OTHER_CNT;
-    private final Boolean HOLIDAY_CNT;
-    private final Integer StartDay;
-    private final Integer StartMonth;
-    private final Integer StartYear;
-    private final Integer EndDay;
-    private final Integer EndMonth;
-    private final Integer EndYear;
-    private final Integer MinDays;
-    private final Boolean MIN_DAYS;
+public record EmailFormRequest(
+    Boolean EveryBody, Boolean SubList,
+    Boolean BAS, Boolean INA, Boolean SR, Boolean SRA, Boolean ALM,
+    Boolean PRO, Boolean AUX, Boolean TRA, Boolean CAN, Boolean OTH,
+    Boolean FullTime, Boolean PartTime, Boolean Inactive,
+    Boolean ALL, Boolean ListDirector,
+    Boolean OEC, Boolean CPR, Boolean Ski, Boolean Toboggan,
+    Boolean DAY_CNT, Boolean SWING_CNT, Boolean NIGHT_CNT,
+    Boolean TRAINING_CNT, Boolean OTHER_CNT, Boolean HOLIDAY_CNT,
+    Integer StartDay, Integer StartMonth, Integer StartYear,
+    Integer EndDay, Integer EndMonth, Integer EndYear,
+    Integer MinDays, Boolean MIN_DAYS) {
 
-    public EmailFormRequest(String resort, String id, Boolean everyBody, Boolean subList,
-                           Boolean BAS, Boolean INA, Boolean SR, Boolean SRA, Boolean ALM,
-                           Boolean PRO, Boolean AUX, Boolean TRA, Boolean CAN, Boolean OTH,
-                           Boolean fullTime, Boolean partTime, Boolean inactive,
-                           Boolean ALL, Boolean listDirector,
-                           Boolean OEC, Boolean CPR, Boolean ski, Boolean toboggan,
-                           Boolean DAY_CNT, Boolean SWING_CNT, Boolean NIGHT_CNT,
-                           Boolean TRAINING_CNT, Boolean OTHER_CNT, Boolean HOLIDAY_CNT,
-                           Integer startDay, Integer startMonth, Integer startYear,
-                           Integer endDay, Integer endMonth, Integer endYear,
-                           Integer minDays, Boolean MIN_DAYS) {
-        this.resort = resort;
-        this.id = id;
-        this.EveryBody = everyBody;
-        this.SubList = subList;
-        this.BAS = BAS;
-        this.INA = INA;
-        this.SR = SR;
-        this.SRA = SRA;
-        this.ALM = ALM;
-        this.PRO = PRO;
-        this.AUX = AUX;
-        this.TRA = TRA;
-        this.CAN = CAN;
-        this.OTH = OTH;
-        this.FullTime = fullTime;
-        this.PartTime = partTime;
-        this.Inactive = inactive;
-        this.ALL = ALL;
-        this.ListDirector = listDirector;
-        this.OEC = OEC;
-        this.CPR = CPR;
-        this.Ski = ski;
-        this.Toboggan = toboggan;
-        this.DAY_CNT = DAY_CNT;
-        this.SWING_CNT = SWING_CNT;
-        this.NIGHT_CNT = NIGHT_CNT;
-        this.TRAINING_CNT = TRAINING_CNT;
-        this.OTHER_CNT = OTHER_CNT;
-        this.HOLIDAY_CNT = HOLIDAY_CNT;
-        this.StartDay = startDay;
-        this.StartMonth = startMonth;
-        this.StartYear = startYear;
-        this.EndDay = endDay;
-        this.EndMonth = endMonth;
-        this.EndYear = endYear;
-        this.MinDays = minDays;
-        this.MIN_DAYS = MIN_DAYS;
-    }
+  /** Criteria matching every member; used when redisplaying the form after a validation error. */
+  public static EmailFormRequest everybody() {
+    return new EmailFormRequest(
+        true, null,                                                  // EveryBody, SubList
+        null, null, null, null, null, null, null, null, null, null,  // classifications
+        null, null, null,                                            // commitment
+        null, null,                                                  // ALL, ListDirector
+        null, null, null, null,                                      // instructor
+        null, null, null, null, null, null,                          // shift type counters
+        null, null, null, null, null, null,                          // date range
+        null, null);                                                 // MinDays, MIN_DAYS
+  }
 
-    // Getters
-    public String getResort() { return resort; }
-    public String getId() { return id; }
-    public Boolean getEveryBody() { return EveryBody; }
-    public Boolean getSubList() { return SubList; }
-    public Boolean getBAS() { return BAS; }
-    public Boolean getINA() { return INA; }
-    public Boolean getSR() { return SR; }
-    public Boolean getSRA() { return SRA; }
-    public Boolean getALM() { return ALM; }
-    public Boolean getPRO() { return PRO; }
-    public Boolean getAUX() { return AUX; }
-    public Boolean getTRA() { return TRA; }
-    public Boolean getCAN() { return CAN; }
-    public Boolean getOTH() { return OTH; }
-    public Boolean getFullTime() { return FullTime; }
-    public Boolean getPartTime() { return PartTime; }
-    public Boolean getInactive() { return Inactive; }
-    public Boolean getALL() { return ALL; }
-    public Boolean getListDirector() { return ListDirector; }
-    public Boolean getOEC() { return OEC; }
-    public Boolean getCPR() { return CPR; }
-    public Boolean getSki() { return Ski; }
-    public Boolean getToboggan() { return Toboggan; }
-    public Boolean getDAY_CNT() { return DAY_CNT; }
-    public Boolean getSWING_CNT() { return SWING_CNT; }
-    public Boolean getNIGHT_CNT() { return NIGHT_CNT; }
-    public Boolean getTRAINING_CNT() { return TRAINING_CNT; }
-    public Boolean getOTHER_CNT() { return OTHER_CNT; }
-    public Boolean getHOLIDAY_CNT() { return HOLIDAY_CNT; }
-    public Integer getStartDay() { return StartDay; }
-    public Integer getStartMonth() { return StartMonth; }
-    public Integer getStartYear() { return StartYear; }
-    public Integer getEndDay() { return EndDay; }
-    public Integer getEndMonth() { return EndMonth; }
-    public Integer getEndYear() { return EndYear; }
-    public Integer getMinDays() { return MinDays; }
-    public Boolean getMIN_DAYS() { return MIN_DAYS; }
+  public boolean isEveryBody() { return isSet(EveryBody); }
+
+  public boolean isSubList() { return isSet(SubList); }
+
+  public boolean isAll() { return isSet(ALL); }
+
+  public boolean isListDirector() { return isSet(ListDirector); }
+
+  /** Classification codes the caller asked for, in Roster's expected order. */
+  public List<String> classifications() {
+    List<String> classifications = new ArrayList<>();
+    if (isSet(BAS)) classifications.add("BAS");
+    if (isSet(INA)) classifications.add("INA");
+    if (isSet(SR)) classifications.add("SR");
+    if (isSet(SRA)) classifications.add("SRA");
+    if (isSet(ALM)) classifications.add("ALM");
+    if (isSet(PRO)) classifications.add("PRO");
+    if (isSet(AUX)) classifications.add("AUX");
+    if (isSet(TRA)) classifications.add("TRA");
+    if (isSet(CAN)) classifications.add("CAN");
+    if (isSet(OTH)) classifications.add("OTH");
+    return classifications;
+  }
+
+  /** Bit mask expected by {@code Roster.okToDisplay}: 4=full time, 2=part time, 1=inactive. */
+  public int commitmentMask() {
+    int mask = 0;
+    if (isSet(FullTime)) mask += 4;
+    if (isSet(PartTime)) mask += 2;
+    if (isSet(Inactive)) mask += 1;
+    return mask;
+  }
+
+  /** Bit mask expected by {@code Roster.okToDisplay}: 1=OEC, 2=CPR, 4=ski, 8=toboggan. */
+  public int instructorMask() {
+    int mask = 0;
+    if (isSet(OEC)) mask += 1;
+    if (isSet(CPR)) mask += 2;
+    if (isSet(Ski)) mask += 4;
+    if (isSet(Toboggan)) mask += 8;
+    return mask;
+  }
+
+  public boolean hasDateRange() {
+    return StartYear != null;
+  }
+
+  /** Minimum shifts a member must have worked in the date range, or 0 when not filtering. */
+  public int minShiftsThreshold() {
+    return (isSet(MIN_DAYS) && MinDays != null) ? MinDays : 0;
+  }
+
+  private static boolean isSet(Boolean flag) {
+    return Boolean.TRUE.equals(flag);
+  }
 }

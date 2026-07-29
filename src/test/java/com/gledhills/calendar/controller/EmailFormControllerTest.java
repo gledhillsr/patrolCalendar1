@@ -2,145 +2,218 @@ package com.gledhills.calendar.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
-import static org.junit.jupiter.api.Assertions.*;
+import com.gledhills.calendar.dto.EmailFormRequest;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 /**
  * Integration tests for EmailFormController.
- *
- * NOTE: These are placeholder tests that verify basic test structure.
- * Full testing would require:
- * - Spring Boot test context with database setup
- * - Mock SMTP server for email verification
- * - Session/authentication setup
- * - Mock async email service
- * - HtmlUnit or MockMvc for HTML parsing
- *
- * To implement full tests:
- * 1. Add @SpringBootTest and @ExtendWith(SpringExtension.class)
- * 2. Mock JavaMailSender and service dependencies
- * 3. Use MockMvc to perform GET/POST requests
- * 4. Verify responses with Spring test matchers
+ * Uses the Sample resort, where sending is disabled, so no mail is ever handed to SMTP.
  */
+@ExtendWith(SpringExtension.class)
+@SpringBootTest
 class EmailFormControllerTest {
 
-    private boolean testInfrastructureInitialized;
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    private MockMvc mockMvc;
+    private MockHttpSession session;
 
     @BeforeEach
     void setUp() {
-        testInfrastructureInitialized = true;
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        session = new MockHttpSession();
+        session.setAttribute("loggedInUserId", "123456");
+        session.setAttribute("loggedInResort", "Sample");
     }
 
-    /**
-     * Placeholder test: verify form displays with valid session.
-     * Full implementation would require:
-     * - Database with Sample resort data
-     * - Valid session setup
-     * - Patroller data for recipient list
-     */
-    @Test
-    void getEmailForm_withValidSession_displaysForm() throws Exception {
-        // Placeholder: just verify test infrastructure is set up
-        assertTrue(testInfrastructureInitialized, "Test infrastructure should be initialized");
-
-        // TODO: Full test would:
-        // 1. Create authenticated session with mockMvc
-        // 2. GET /EmailForm?resort=Sample
-        // 3. Verify form elements present (subject, message, patrollerIds)
-        // 4. Verify recipient lists populated
-        // 5. Verify filter parameters work
-    }
-
-    /**
-     * Placeholder test: verify POST with valid data redirects to confirmation.
-     * Full implementation would require:
-     * - Mock async email service
-     * - Valid form data
-     * - Authenticated session
-     */
-    @Test
-    void postEmailForm_withValidData_redirectsToConfirmation() throws Exception {
-        // Placeholder: just verify test infrastructure
-        assertTrue(testInfrastructureInitialized, "Test infrastructure should be initialized");
-
-        // TODO: Full test would:
-        // 1. Create authenticated session
-        // 2. POST /EmailForm with valid data:
-        //    - subject: "Test Subject"
-        //    - message: "Test message body"
-        //    - patrollerIds: ["123", "456"]
-        // 3. Verify redirect to /EmailConfirmation
-        // 4. Verify async email task started
-    }
-
-    /**
-     * Placeholder test: verify validation errors display correctly.
-     * Full implementation would require:
-     * - Form submission with invalid data
-     * - Error message verification
-     */
-    @Test
-    void postEmailForm_withValidationErrors_showsErrors() throws Exception {
-        // Placeholder: just verify test infrastructure
-        assertTrue(testInfrastructureInitialized, "Test infrastructure should be initialized");
-
-        // TODO: Full test would:
-        // 1. POST /EmailForm with invalid data:
-        //    - subject: "" (empty - should fail @NotBlank)
-        //    - message: "ab" (too short - should fail @Size(min=5))
-        //    - patrollerIds: [] (empty - should fail @NotEmpty)
-        // 2. Verify form redisplays with errors
-        // 3. Verify error messages appear at top
-        // 4. Verify form fields retain entered values
-    }
-
-    /**
-     * Placeholder test: verify Sample resort disables send button.
-     * Full implementation would require:
-     * - Database with Sample resort configuration
-     * - HTML parsing to verify button state
-     */
-    @Test
-    void getEmailForm_forSampleResort_disablesSendButton() throws Exception {
-        // Placeholder: just verify test infrastructure
-        assertTrue(testInfrastructureInitialized, "Test infrastructure should be initialized");
-
-        // TODO: Full test would:
-        // 1. GET /EmailForm?resort=Sample
-        // 2. Parse HTML to find send button
-        // 3. Verify button has disabled attribute
-        // 4. Verify warning message displays about Sample resort
-    }
-
-    /**
-     * Placeholder test: verify invalid session redirects to login.
-     */
     @Test
     void getEmailForm_withoutSession_redirectsToLogin() throws Exception {
-        // Placeholder: just verify test infrastructure
-        assertTrue(testInfrastructureInitialized, "Test infrastructure should be initialized");
-
-        // TODO: Full test would:
-        // 1. GET /EmailForm?resort=Sample (no session)
-        // 2. Verify redirect to /MemberLogin?resort=Sample
+        mockMvc.perform(get("/EmailForm")
+                .param("resort", "Sample")
+                .param("ID", "123456"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(result -> {
+                    String redirectUrl = result.getResponse().getRedirectedUrl();
+                    assert redirectUrl != null && redirectUrl.contains("MemberLogin")
+                        : "Expected redirect to MemberLogin, got: " + redirectUrl;
+                });
     }
 
-    /**
-     * Placeholder test: verify filter parameters work correctly.
-     */
     @Test
-    void getEmailForm_withFilterParams_filtersRecipients() throws Exception {
-        // Placeholder: just verify test infrastructure
-        assertTrue(testInfrastructureInitialized, "Test infrastructure should be initialized");
+    void getEmailForm_withUnknownResort_returnsBadRequest() throws Exception {
+        mockMvc.perform(get("/EmailForm")
+                .param("resort", "NoSuchResort")
+                .param("ID", "123456")
+                .session(session))
+                .andExpect(status().isBadRequest());
+    }
 
-        // TODO: Full test would:
-        // 1. GET /EmailForm?resort=Sample&category=Basic&status=Active
-        // 2. Verify only matching patrollers appear in recipient list
-        // 3. Test various filter combinations:
-        //    - category only
-        //    - status only
-        //    - combinedStatus
-        //    - patrollerIds
-        //    - Multiple filters together
+    @Test
+    void getEmailForm_bindsFilterParametersFromQueryString() throws Exception {
+        mockMvc.perform(get("/EmailForm")
+                .param("resort", "Sample")
+                .param("ID", "123456")
+                .param("BAS", "1")
+                .param("SR", "1")
+                .param("FullTime", "1")
+                .param("ALL", "1")
+                .param("MIN_DAYS", "1")
+                .param("MinDays", "2")
+                .param("DAY_CNT", "1")
+                .param("StartDay", "1").param("StartMonth", "10").param("StartYear", "2025")
+                .param("EndDay", "30").param("EndMonth", "3").param("EndYear", "2026")
+                .session(session))
+                .andExpect(status().isOk())
+                .andExpect(view().name("email-form"))
+                .andExpect(content().string(containsString("Email Composition Form")))
+                .andExpect(result -> {
+                    EmailFormRequest bound = (EmailFormRequest)
+                        result.getModelAndView().getModel().get("emailFormRequest");
+                    assertNotNull(bound, "filter criteria should bind from the query string");
+                    assertEquals(List.of("BAS", "SR"), bound.classifications());
+                    assertEquals(4, bound.commitmentMask());
+                    assertTrue(bound.isAll());
+                    assertEquals(2, bound.minShiftsThreshold());
+                    assertTrue(bound.hasDateRange());
+                    assertEquals(2025, bound.StartYear());
+                });
+    }
+
+    @Test
+    void getEmailForm_withoutFilters_showsFormAndSelectableRecipients() throws Exception {
+        mockMvc.perform(get("/EmailForm")
+                .param("resort", "Sample")
+                .param("ID", "123456")
+                .param("EveryBody", "1")
+                .session(session))
+                .andExpect(status().isOk())
+                .andExpect(view().name("email-form"))
+                .andExpect(model().attributeExists("validRecipients", "invalidRecipients", "compositionForm"))
+                // shared head fragment supplies the stylesheet and title
+                .andExpect(content().string(containsString("css/styles.css")))
+                .andExpect(content().string(containsString("<title>Email Composition - ")))
+                // the dead filter hidden fields are gone
+                .andExpect(content().string(not(containsString("name=\"MIN_DAYS\""))));
+    }
+
+    @Test
+    void postEmailForm_forSampleResort_isRejectedAndRedisplaysForm() throws Exception {
+        mockMvc.perform(post("/EmailForm")
+                .param("resort", "Sample")
+                .param("fromPatrollerId", "123456")
+                .param("subject", "Test subject")
+                .param("message", "Test message body")
+                .param("patrollerIds", "123456")
+                .session(session))
+                .andExpect(status().isOk())
+                .andExpect(view().name("email-form"))
+                .andExpect(model().attributeExists("validRecipients"))
+                .andExpect(content().string(containsString("Email sending is disabled in the Sample resort")));
+    }
+
+    @Test
+    void postEmailForm_withValidationErrors_redisplaysFormWithMessages() throws Exception {
+        mockMvc.perform(post("/EmailForm")
+                .param("resort", "Sample")
+                .param("fromPatrollerId", "123456")
+                .param("subject", "")
+                .param("message", "ab")
+                .session(session))
+                .andExpect(status().isOk())
+                .andExpect(view().name("email-form"))
+                .andExpect(content().string(containsString("Subject is required")))
+                .andExpect(content().string(containsString("At least one recipient must be selected")));
+    }
+
+    @Test
+    void getEmailForm_offersAttachmentInputWithTheLimit() throws Exception {
+        mockMvc.perform(get("/EmailForm")
+                .param("resort", "Sample")
+                .param("ID", "123456")
+                .param("EveryBody", "1")
+                .session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("enctype=\"multipart/form-data\"")))
+                .andExpect(content().string(containsString("name=\"attachments\"")))
+                .andExpect(content().string(containsString("must be 2.0 MB or less")));
+    }
+
+    @Test
+    void postEmailForm_withAttachmentsOverTwoMegabytes_showsError() throws Exception {
+        MockMultipartFile big1 = new MockMultipartFile(
+            "attachments", "trail-map.pdf", "application/pdf", new byte[1_200_000]);
+        MockMultipartFile big2 = new MockMultipartFile(
+            "attachments", "roster.xlsx", "application/vnd.ms-excel", new byte[1_000_000]);
+
+        mockMvc.perform(multipart("/EmailForm")
+                .file(big1)
+                .file(big2)
+                .param("resort", "Sample")
+                .param("fromPatrollerId", "123456")
+                .param("subject", "Test subject")
+                .param("message", "Test message body")
+                .param("patrollerIds", "123456")
+                .session(session))
+                .andExpect(status().isOk())
+                .andExpect(view().name("email-form"))
+                .andExpect(content().string(containsString("Attachments total 2.1 MB")))
+                .andExpect(content().string(containsString("the limit is 2.0 MB")))
+                .andExpect(content().string(containsString("trail-map.pdf (1.1 MB)")));
+    }
+
+    @Test
+    void postEmailForm_withAttachmentsUnderTheLimit_isAccepted() throws Exception {
+        MockMultipartFile small = new MockMultipartFile(
+            "attachments", "notes.txt", "text/plain", "hello".getBytes());
+
+        // Sample rejects the send itself, so reaching that message means the size check passed
+        mockMvc.perform(multipart("/EmailForm")
+                .file(small)
+                .param("resort", "Sample")
+                .param("fromPatrollerId", "123456")
+                .param("subject", "Test subject")
+                .param("message", "Test message body")
+                .param("patrollerIds", "123456")
+                .session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Email sending is disabled in the Sample resort")))
+                // the phrase only the server-side overage message produces
+                .andExpect(content().string(not(containsString("the limit is 2.0 MB"))));
+    }
+
+    @Test
+    void postEmailForm_withoutSession_redirectsToLogin() throws Exception {
+        mockMvc.perform(post("/EmailForm")
+                .param("resort", "Sample")
+                .param("fromPatrollerId", "123456")
+                .param("subject", "Test subject")
+                .param("message", "Test message body")
+                .param("patrollerIds", "123456"))
+                .andExpect(status().is3xxRedirection());
     }
 }

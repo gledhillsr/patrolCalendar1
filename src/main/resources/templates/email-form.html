@@ -1,101 +1,56 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset="UTF-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="-1">
-    <title th:text="'Email Composition - ' + ${resortFullName}">Email Composition</title>
+    <th:block th:replace="~{fragments/head :: pageHead('Email Composition - ' + ${resortFullName})}"></th:block>
     <style type="text/css">
-        body {
-            font-family: Verdana, Arial, Helvetica, sans-serif;
-            font-size: 10pt;
-            color: #000000;
-            background-color: #ffffff;
-        }
-        h2 {
-            font-size: 14pt;
-            font-weight: bold;
-        }
-        table {
-            border-collapse: collapse;
-        }
-        td {
-            padding: 4px;
-        }
-        .error-box {
-            background-color: #FFE0E0;
-            border: 2px solid #FF0000;
-            padding: 10px;
-            margin: 10px 0;
-            color: red;
-            font-weight: bold;
-        }
-        .error-list {
-            margin-left: 20px;
-        }
-        .form-section {
-            background-color: #EFEFEF;
-            border: 1px solid #999999;
-            padding: 10px;
-            margin: 10px 0;
-        }
-        .readonly-field {
-            background-color: #F5F5F5;
-            border: 1px solid #999999;
-            padding: 4px;
+        /* page-specific: the two-column recipient picker and the replacement-code help table */
+
+        /* wider than the shared 960px default - this page shows two recipient lists side by side */
+        #main {
+            max-width: 1280px;
         }
         .recipient-table {
-            border-collapse: collapse;
             width: 100%;
             margin: 10px 0;
         }
         .recipient-table td {
-            border: 1px solid #999999;
+            border: 1px solid #e2e2e2;
             padding: 10px;
             vertical-align: top;
         }
         .recipient-column {
             width: 50%;
         }
-        select {
+        .recipient-column select {
             width: 95%;
-            font-family: Verdana, Arial, Helvetica, sans-serif;
-            font-size: 10pt;
         }
         textarea {
             width: 100%;
-            font-family: Verdana, Arial, Helvetica, sans-serif;
-            font-size: 10pt;
         }
         .help-table {
-            background-color: #FFFFEE;
-            border: 1px solid #CCCCCC;
-            margin: 20px 0;
+            background-color: #fffdf5;
             width: 100%;
         }
         .help-table td {
-            border: 1px solid #CCCCCC;
+            border: 1px solid #e2e2e2;
             padding: 6px;
         }
+        #attachmentInput {
+            /* ~50% wider than the browser default, so longer file names stay readable */
+            width: 420px;
+            max-width: 100%;
+        }
+        .attachment-error {
+            color: #b91c1c;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+        #attachmentSummary {
+            margin-top: 4px;
+        }
         .help-header {
-            background-color: #FFFFCC;
+            background-color: #fff8e1;
             font-weight: bold;
-        }
-        .button-section {
-            margin: 20px 0;
-            text-align: center;
-        }
-        input[type="submit"], input[type="button"] {
-            padding: 5px 15px;
-            margin: 0 5px;
-            font-weight: bold;
-        }
-        input[type="submit"]:disabled {
-            background-color: #CCCCCC;
-            color: #666666;
-            cursor: not-allowed;
         }
     </style>
     <script type="text/javascript">
@@ -108,59 +63,84 @@
             document.getElementById('emailCount').textContent = count;
         }
         window.addEventListener('load', updateEmailCount);
+
+        /* keep in step with EmailCompositionForm.MAX_ATTACHMENTS_TOTAL_BYTES */
+        var MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
+
+        function attachmentBytes() {
+            var files = document.getElementById('attachmentInput').files;
+            var total = 0;
+            for (var i = 0; i < files.length; i++) {
+                total += files[i].size;
+            }
+            return total;
+        }
+
+        function asMegabytes(bytes) {
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function showAttachmentSummary() {
+            var files = document.getElementById('attachmentInput').files;
+            var summary = document.getElementById('attachmentSummary');
+            var warning = document.getElementById('attachmentTooBig');
+            var total = attachmentBytes();
+
+            if (files.length === 0) {
+                summary.textContent = '';
+                warning.style.display = 'none';
+                return;
+            }
+
+            var names = [];
+            for (var i = 0; i < files.length; i++) {
+                names.push(files[i].name + ' (' + asMegabytes(files[i].size) + ')');
+            }
+            summary.textContent = files.length + ' file(s), ' + asMegabytes(total) + ' total: ' + names.join(', ');
+
+            if (total > MAX_ATTACHMENT_BYTES) {
+                warning.textContent = 'Too large: ' + asMegabytes(total) + ' exceeds the ' +
+                                      asMegabytes(MAX_ATTACHMENT_BYTES) + ' limit. Remove or shrink a file.';
+                warning.style.display = '';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+
+        function attachmentsWithinLimit() {
+            if (attachmentBytes() > MAX_ATTACHMENT_BYTES) {
+                showAttachmentSummary();
+                window.alert('Attachments total ' + asMegabytes(attachmentBytes()) +
+                             '. The limit is ' + asMegabytes(MAX_ATTACHMENT_BYTES) + '.');
+                return false;
+            }
+            return true;
+        }
     </script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <!-- Reuse header fragment -->
-    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${fromPatrollerId})}"></div>
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
-    <!-- Page title -->
-    <p><h2>Email Composition Form</h2></p>
+    <div id="main">
+    <div class="page-head">
+        <h1>Email Composition Form</h1>
+    </div>
 
-    <!-- Main Form -->
-    <form method="post" th:action="@{/EmailForm}" th:object="${compositionForm}">
+    <!-- An upload too large to buffer never reaches the controller, so resort and sender
+         travel in the query string where they survive a rejected body -->
+    <form method="post" enctype="multipart/form-data"
+          th:action="@{/EmailForm(resort=${resort},fromPatrollerId=${patrollerId})}"
+          th:object="${compositionForm}" onsubmit="return attachmentsWithinLimit()">
         <!-- Error Display Area -->
-        <div th:if="${#fields.hasErrors('*')}" class="error-box">
+        <div th:if="${attachmentError}" class="error-box" th:text="${attachmentError}"></div>
+        <div th:if="${#fields.hasErrors('*') or #fields.hasGlobalErrors()}" class="error-box">
             <p>Please correct the following errors:</p>
             <ul class="error-list">
                 <li th:each="err : ${#fields.errors('*')}" th:text="${err}"></li>
+                <li th:each="err : ${#fields.globalErrors()}" th:text="${err}"></li>
             </ul>
         </div>
-        <input type="hidden" th:field="*{resort}"/>
-        <input type="hidden" th:field="*{fromPatrollerId}"/>
-        <input type="hidden" th:field="*{originalPatrollerCount}"/>
-
-        <!-- Hidden fields to preserve filter parameters -->
-        <input type="hidden" name="ID" th:value="${formRequest?.ID}"/>
-        <input type="hidden" name="EveryBody" th:value="${formRequest?.EveryBody}"/>
-        <input type="hidden" name="SubList" th:value="${formRequest?.SubList}"/>
-        <input type="hidden" name="FullTime" th:value="${formRequest?.FullTime}"/>
-        <input type="hidden" name="PartTime" th:value="${formRequest?.PartTime}"/>
-        <input type="hidden" name="Inactive" th:value="${formRequest?.Inactive}"/>
-        <input type="hidden" name="ALL" th:value="${formRequest?.ALL}"/>
-        <input type="hidden" name="ListDirector" th:value="${formRequest?.ListDirector}"/>
-        <input type="hidden" name="OEC" th:value="${formRequest?.OEC}"/>
-        <input type="hidden" name="CPR" th:value="${formRequest?.CPR}"/>
-        <input type="hidden" name="Ski" th:value="${formRequest?.Ski}"/>
-        <input type="hidden" name="Toboggan" th:value="${formRequest?.Toboggan}"/>
-        <input type="hidden" name="DAY_CNT" th:value="${formRequest?.DAY_CNT}"/>
-        <input type="hidden" name="SWING_CNT" th:value="${formRequest?.SWING_CNT}"/>
-        <input type="hidden" name="NIGHT_CNT" th:value="${formRequest?.NIGHT_CNT}"/>
-        <input type="hidden" name="TRAINING_CNT" th:value="${formRequest?.TRAINING_CNT}"/>
-        <input type="hidden" name="OTHER_CNT" th:value="${formRequest?.OTHER_CNT}"/>
-        <input type="hidden" name="HOLIDAY_CNT" th:value="${formRequest?.HOLIDAY_CNT}"/>
-        <input type="hidden" name="StartDay" th:value="${formRequest?.StartDay}"/>
-        <input type="hidden" name="StartMonth" th:value="${formRequest?.StartMonth}"/>
-        <input type="hidden" name="StartYear" th:value="${formRequest?.StartYear}"/>
-        <input type="hidden" name="EndDay" th:value="${formRequest?.EndDay}"/>
-        <input type="hidden" name="EndMonth" th:value="${formRequest?.EndMonth}"/>
-        <input type="hidden" name="EndYear" th:value="${formRequest?.EndYear}"/>
-        <input type="hidden" name="MinDays" th:value="${formRequest?.MinDays}"/>
-        <input type="hidden" name="MIN_DAYS" th:value="${formRequest?.MIN_DAYS}"/>
-
-        <!-- Handle classification list as hidden fields -->
-        <input type="hidden" th:each="classification : ${formRequest?.classifications}"
-               name="classifications" th:value="${classification}"/>
 
         <!-- From Field -->
         <div class="form-section">
@@ -182,10 +162,10 @@
                 <tr>
                     <td class="recipient-column">
                         <b>To:</b><br/>
-                        <font size="1">
+                        <span class="hint">
                             PC: Hold Ctrl and click to select or deselect individual members; hold Shift+Click to select a range.<br/>
                             Mac: Hold &#8984; (Cmd) and click to select or deselect individual members; hold Shift+Click to select a range.
-                        </font>
+                        </span>
                         <br/><br/>
                         <select id="recipientSelect" th:field="*{patrollerIds}" multiple="multiple" size="6"
                                 onchange="updateEmailCount()">
@@ -195,7 +175,7 @@
                             </option>
                         </select>
                         <br/>
-                        <font size="1"><span id="emailCount"></span> Email's to send</font>
+                        <span class="hint"><span id="emailCount"></span> Email's to send</span>
                     </td>
                     <td class="recipient-column">
                         <b>Patrollers with No Valid Email Address</b>
@@ -206,7 +186,7 @@
                             </option>
                         </select>
                         <br/>
-                        <font size="1" th:text="|${#lists.size(invalidRecipients)} Email's SKIPPED|"></font>
+                        <span class="hint" th:text="|${#lists.size(invalidRecipients)} Email's SKIPPED|"></span>
                     </td>
                 </tr>
             </table>
@@ -230,16 +210,34 @@
             </table>
         </div>
 
+        <!-- Attachments -->
+        <div class="form-section">
+            <table width="100%">
+                <tr>
+                    <td width="15%" align="right" valign="top"><b>Attach:</b></td>
+                    <td width="85%">
+                        <input type="file" id="attachmentInput" name="attachments" multiple
+                               onchange="showAttachmentSummary()"/>
+                        <div class="hint" th:text="|Optional. All files together must be ${attachmentLimit} or less.|">
+                            Optional.
+                        </div>
+                        <div id="attachmentSummary" class="hint"></div>
+                        <div id="attachmentTooBig" class="attachment-error" style="display: none;"></div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <!-- Action Buttons -->
         <div class="button-section">
             <th:block th:if="${resort != 'Sample'}">
-                <input type="submit" value="Send Mail"/>
-                <font size="1">(be patient, emails are being sent in background)</font>
+                <input type="submit" class="btn btn-primary" value="Send Mail"/>
+                <span class="hint">(be patient, emails are being sent in background)</span>
             </th:block>
             <th:block th:if="${resort == 'Sample'}">
-                <input type="submit" value="Disabled in Demo" disabled="disabled"/>
+                <input type="submit" class="btn" value="Disabled in Demo" disabled="disabled"/>
             </th:block>
-            <input type="button" value="Cancel" onclick="history.back()"/>
+            <input type="button" class="btn" value="Cancel" onclick="history.back()"/>
         </div>
     </form>
 
@@ -266,6 +264,8 @@
             </tr>
         </table>
     </div>
+
+    </div><!-- /#main -->
 
     <!-- Reuse footer fragment -->
     <div th:replace="~{fragments/footer :: footer}"></div>

@@ -1,26 +1,27 @@
 package com.gledhills.calendar.controller;
 
-import com.gledhills.calendar.utils.*;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
-import com.gledhills.calendar.dto.*;
 import com.gledhills.calendar.dto.EmailCompositionForm;
 import com.gledhills.calendar.dto.EmailFormRequest;
 import com.gledhills.calendar.dto.EmailRecipient;
-import com.gledhills.calendar.dto.EmailSendResult;
 import com.gledhills.calendar.service.EmailService;
 import com.gledhills.calendar.service.PatrolMemberFilterService;
 import com.gledhills.calendar.service.ShiftAssignmentService;
 import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.utils.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,6 +38,10 @@ import java.util.List;
 @Controller
 public class EmailFormController {
 
+    private static final String FORM_VIEW = "email-form";
+    private static final Comparator<EmailRecipient> BY_LAST_NAME =
+        Comparator.comparing(EmailRecipient::getLastName).thenComparing(EmailRecipient::getFirstName);
+
     private final PatrolMemberFilterService filterService;
     private final ShiftAssignmentService shiftAssignmentService;
     private final EmailService emailService;
@@ -49,45 +54,16 @@ public class EmailFormController {
         this.emailService = emailService;
     }
 
+    /**
+     * @param filter the classification/commitment/shift-count filters chosen on the calling
+     *               page; every field is optional and binds straight from the query string
+     */
     @GetMapping("/EmailForm")
     public String showEmailForm(
             @RequestParam String resort,
             @RequestParam(name = "ID") String id,
-            @RequestParam(required = false) Boolean EveryBody,
-            @RequestParam(required = false) Boolean SubList,
-            @RequestParam(required = false) Boolean BAS,
-            @RequestParam(required = false) Boolean INA,
-            @RequestParam(required = false) Boolean SR,
-            @RequestParam(required = false) Boolean SRA,
-            @RequestParam(required = false) Boolean ALM,
-            @RequestParam(required = false) Boolean PRO,
-            @RequestParam(required = false) Boolean AUX,
-            @RequestParam(required = false) Boolean TRA,
-            @RequestParam(required = false) Boolean CAN,
-            @RequestParam(required = false) Boolean OTH,
-            @RequestParam(required = false) Boolean FullTime,
-            @RequestParam(required = false) Boolean PartTime,
-            @RequestParam(required = false) Boolean Inactive,
-            @RequestParam(required = false) Boolean ALL,
-            @RequestParam(required = false) Boolean ListDirector,
-            @RequestParam(required = false) Boolean OEC,
-            @RequestParam(required = false) Boolean CPR,
-            @RequestParam(required = false) Boolean Ski,
-            @RequestParam(required = false) Boolean Toboggan,
-            @RequestParam(required = false) Boolean DAY_CNT,
-            @RequestParam(required = false) Boolean SWING_CNT,
-            @RequestParam(required = false) Boolean NIGHT_CNT,
-            @RequestParam(required = false) Boolean TRAINING_CNT,
-            @RequestParam(required = false) Boolean OTHER_CNT,
-            @RequestParam(required = false) Boolean HOLIDAY_CNT,
-            @RequestParam(required = false) Integer StartDay,
-            @RequestParam(required = false) Integer StartMonth,
-            @RequestParam(required = false) Integer StartYear,
-            @RequestParam(required = false) Integer EndDay,
-            @RequestParam(required = false) Integer EndMonth,
-            @RequestParam(required = false) Integer EndYear,
-            @RequestParam(required = false) Integer MinDays,
-            @RequestParam(required = false) Boolean MIN_DAYS,
+            @RequestParam(defaultValue = "false") boolean attachmentsTooLarge,
+            @ModelAttribute EmailFormRequest filter,
             HttpServletRequest request,
             HttpServletResponse response,
             Model model) throws IOException {
@@ -119,86 +95,14 @@ public class EmailFormController {
         }
 
         try {
-            // Build request DTO
-            EmailFormRequest emailRequest = new EmailFormRequest(
-                resort, id, EveryBody, SubList,
-                BAS, INA, SR, SRA, ALM, PRO, AUX, TRA, CAN, OTH,
-                FullTime, PartTime, Inactive, ALL, ListDirector,
-                OEC, CPR, Ski, Toboggan,
-                DAY_CNT, SWING_CNT, NIGHT_CNT, TRAINING_CNT, OTHER_CNT, HOLIDAY_CNT,
-                StartDay, StartMonth, StartYear, EndDay, EndMonth, EndYear,
-                MinDays, MIN_DAYS
-            );
-
-            // Filter members
-            List<EmailRecipient> recipients = filterService.filterMembers(emailRequest, patrolData);
-
-            // Enrich with shift counts if date range specified
-            if (emailRequest.getStartYear() != null) {
-                recipients = shiftAssignmentService.enrichWithShiftCounts(recipients, emailRequest, patrolData);
+            if (attachmentsTooLarge) {
+                // bounced back here by handleUploadTooLarge - the POST never got parsed
+                model.addAttribute("attachmentError",
+                    "Those attachments were too large to upload. The limit is " +
+                    asMegabytes(EmailCompositionForm.MAX_ATTACHMENTS_TOTAL_BYTES) + " in total.");
             }
-
-            // Split into valid and invalid email lists
-            List<EmailRecipient> validRecipients = new ArrayList<>();
-            List<EmailRecipient> invalidRecipients = new ArrayList<>();
-            for (EmailRecipient recipient : recipients) {
-                if (recipient.isHasValidEmail()) {
-                    validRecipients.add(recipient);
-                } else {
-                    invalidRecipients.add(recipient);
-                }
-            }
-
-            // Sort by last name
-            Comparator<EmailRecipient> byLastName = Comparator.comparing(EmailRecipient::getLastName)
-                .thenComparing(EmailRecipient::getFirstName);
-            validRecipients.sort(byLastName);
-            invalidRecipients.sort(byLastName);
-
-            // Get from member info
-            Roster fromMember = patrolData.getMemberByID(id);
-            String fromName = (fromMember != null) ? fromMember.getFullName() : "Unknown";
-            String fromEmail = (fromMember != null) ? fromMember.getEmailAddress() : "";
-
-            // Add all to model
-            model.addAttribute("resort", resort);
-            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
-            model.addAttribute("patrollerId", id);
-            model.addAttribute("fromName", fromName);
-            model.addAttribute("fromEmail", fromEmail);
-            model.addAttribute("validRecipients", validRecipients);
-            model.addAttribute("invalidRecipients", invalidRecipients);
-            model.addAttribute("validCount", validRecipients.size());
-            model.addAttribute("invalidCount", invalidRecipients.size());
-
-            // Add resort metadata for header
-            ResortData resortData = PatrolData.getResortInfo(resort);
-            if (resortData != null) {
-                model.addAttribute("resortUrl", resortData.getResortURL());
-                model.addAttribute("resortImage", resortData.getResortImage());
-                model.addAttribute("resortImgHeight", resortData.getImageHeight());
-            }
-
-            // Add filter parameters for hidden fields
-            model.addAttribute("filterRequest", emailRequest);
-
-            // Add empty form object for POST binding
-            if (!model.containsAttribute("compositionForm")) {
-                EmailCompositionForm form = new EmailCompositionForm();
-                form.setResort(resort);
-                form.setFromPatrollerId(id);
-                form.setOriginalPatrollerCount(validRecipients.size());
-                // Pre-select all valid recipients
-                List<String> allIds = new ArrayList<>();
-                for (EmailRecipient r : validRecipients) {
-                    allIds.add(r.getId());
-                }
-                form.setPatrollerIds(allIds);
-                model.addAttribute("compositionForm", form);
-            }
-
-            return "email-form";
-
+            populateForm(model, resort, id, filter, patrolData, LOG);
+            return FORM_VIEW;
         } finally {
             patrolData.close();
         }
@@ -212,41 +116,61 @@ public class EmailFormController {
             HttpServletResponse response,
             Model model) throws IOException {
 
+        String resort = form.getResort();
+
         // Use ServletAdapter for legacy code compatibility
         javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
-        Logger LOG = new Logger(EmailFormController.class, javaxRequest, "POST", form.getResort(), Logger.INFO);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+        Logger LOG = new Logger(EmailFormController.class, javaxRequest, "POST", resort, Logger.INFO);
 
         // Validate resort
-        if (!PatrolData.isValidResort(form.getResort())) {
-            response.sendError(400, "Resort not found: " + form.getResort());
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
             return null;
         }
 
-        // Check Sample resort (disabled)
-        if ("Sample".equalsIgnoreCase(form.getResort())) {
-            bindingResult.rejectValue("subject", "error.sample",
-                "Email sending is disabled in the Sample resort");
-        }
-
-        // If validation errors, return to form
-        if (bindingResult.hasErrors()) {
-            return showEmailFormWithErrors(form, bindingResult, request, response, model, LOG);
-        }
-
-        // Initialize patrol data
         SessionData sessionData = new SessionData(javaxRequest, null, LOG);
-        PatrolData patrolData = new PatrolData(form.getResort(), sessionData, LOG);
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        // Validate credentials
+        ValidateCredentialsRedirectIfNeeded credentials =
+            new ValidateCredentialsRedirectIfNeeded(
+                sessionData, javaxRequest, javaxResponse,
+                "EmailForm", patrolData, LOG);
+
+        if (credentials.hasInvalidCredentials()) {
+            patrolData.close();
+            return null; // Redirect already sent
+        }
 
         try {
-            // Send emails async
-            EmailSendResult result = emailService.sendEmailsAsync(form, patrolData, LOG);
+            // Attachments are capped as a total, not per file
+            if (form.getAttachmentsTotalBytes() > EmailCompositionForm.MAX_ATTACHMENTS_TOTAL_BYTES) {
+                bindingResult.reject("error.attachmentsTooLarge", describeAttachmentOverage(form));
+            }
 
-            // Add result to model
-            model.addAttribute("trackingId", result.getTrackingId());
-            model.addAttribute("totalRecipients", result.getTotalRecipients());
-            model.addAttribute("patrollerId", form.getFromPatrollerId());
-            model.addAttribute("resort", form.getResort());
-            model.addAttribute("resortFullName", PatrolData.getResortFullName(form.getResort(), LOG));
+            // Sending is disabled in the demo resort; log what would have gone out instead
+            if ("Sample".equalsIgnoreCase(resort)) {
+                if (!bindingResult.hasErrors()) {
+                    LOG.info("Sample resort - email NOT sent. Would have sent:\n" +
+                             emailService.describeUnsentBatch(form, patrolData, LOG));
+                }
+                bindingResult.rejectValue("subject", "error.sample",
+                    "Email sending is disabled in the Sample resort");
+            }
+
+            if (bindingResult.hasErrors()) {
+                // The submitted form and its errors are already in the model; the filters the
+                // recipient list was built from are not posted back, so redisplay everybody.
+                populateForm(model, resort, form.getFromPatrollerId(),
+                             EmailFormRequest.everybody(), patrolData, LOG);
+                return FORM_VIEW;
+            }
+
+            int queuedCount = emailService.sendEmailsAsync(form, patrolData, LOG);
+
+            addPageChrome(model, resort, form.getFromPatrollerId(), LOG);
+            model.addAttribute("totalRecipients", queuedCount);
 
             return "email-confirmation";
 
@@ -256,72 +180,92 @@ public class EmailFormController {
     }
 
     /**
-     * Helper method to reconstruct GET request when validation errors occur.
+     * Build the recipient lists and page chrome shared by the initial GET and the
+     * redisplay after a validation error.
      */
-    private String showEmailFormWithErrors(EmailCompositionForm form, BindingResult bindingResult,
-                                          HttpServletRequest request, HttpServletResponse response,
-                                          Model model, Logger LOG) throws IOException {
-        // Add validation errors to model
-        model.addAttribute("org.springframework.validation.BindingResult.compositionForm", bindingResult);
-        model.addAttribute("compositionForm", form);
+    private void populateForm(Model model, String resort, String patrollerId,
+                              EmailFormRequest filter, PatrolData patrolData, Logger LOG) {
+        List<EmailRecipient> recipients = filterService.filterMembers(filter, patrolData);
+        if (filter.hasDateRange()) {
+            recipients = shiftAssignmentService.filterByMinimumShifts(recipients, filter, patrolData);
+        }
 
-        // Initialize patrol data to rebuild recipient lists
-        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
-        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
-        PatrolData patrolData = new PatrolData(form.getResort(), sessionData, LOG);
+        List<EmailRecipient> validRecipients = new ArrayList<>();
+        List<EmailRecipient> invalidRecipients = new ArrayList<>();
+        for (EmailRecipient recipient : recipients) {
+            (recipient.hasValidEmail() ? validRecipients : invalidRecipients).add(recipient);
+        }
+        validRecipients.sort(BY_LAST_NAME);
+        invalidRecipients.sort(BY_LAST_NAME);
 
-        try {
-            // Rebuild empty request to show all members (we don't preserve filter state on error)
-            EmailFormRequest emailRequest = new EmailFormRequest(
-                form.getResort(), form.getFromPatrollerId(),
-                true, false, // EveryBody=true
-                false, false, false, false, false, false, false, false, false, false, // classifications
-                false, false, false, false, false, // commitment flags
-                false, false, false, false, // instructor flags
-                false, false, false, false, false, false, // shift type flags
-                null, null, null, null, null, null, null, false // date range and MinDays
-            );
+        Roster fromMember = patrolData.getMemberByID(patrollerId);
 
-            List<EmailRecipient> recipients = filterService.filterMembers(emailRequest, patrolData);
+        addPageChrome(model, resort, patrollerId, LOG);
+        model.addAttribute("fromName", (fromMember != null) ? fromMember.getFullName() : "Unknown");
+        model.addAttribute("fromEmail", (fromMember != null) ? fromMember.getEmailAddress() : "");
+        model.addAttribute("validRecipients", validRecipients);
+        model.addAttribute("invalidRecipients", invalidRecipients);
+        model.addAttribute("attachmentLimit", asMegabytes(EmailCompositionForm.MAX_ATTACHMENTS_TOTAL_BYTES));
 
-            // Split into valid and invalid
-            List<EmailRecipient> validRecipients = new ArrayList<>();
-            List<EmailRecipient> invalidRecipients = new ArrayList<>();
-            for (EmailRecipient recipient : recipients) {
-                if (recipient.isHasValidEmail()) {
-                    validRecipients.add(recipient);
-                } else {
-                    invalidRecipients.add(recipient);
-                }
-            }
+        // On the initial GET, start with every valid recipient selected
+        if (!model.containsAttribute("compositionForm")) {
+            EmailCompositionForm compositionForm = new EmailCompositionForm();
+            compositionForm.setResort(resort);
+            compositionForm.setFromPatrollerId(patrollerId);
+            compositionForm.setPatrollerIds(validRecipients.stream().map(EmailRecipient::getId).toList());
+            model.addAttribute("compositionForm", compositionForm);
+        }
+    }
 
-            // Sort by last name
-            Comparator<EmailRecipient> byLastName = Comparator.comparing(EmailRecipient::getLastName)
-                .thenComparing(EmailRecipient::getFirstName);
-            validRecipients.sort(byLastName);
-            invalidRecipients.sort(byLastName);
+    /** "Attachments total 3.4 MB - the limit is 2 MB. Attached: notes.pdf (3.4 MB)" */
+    private String describeAttachmentOverage(EmailCompositionForm form) {
+        StringBuilder message = new StringBuilder();
+        message.append("Attachments total ").append(asMegabytes(form.getAttachmentsTotalBytes()))
+               .append(" - the limit is ")
+               .append(asMegabytes(EmailCompositionForm.MAX_ATTACHMENTS_TOTAL_BYTES))
+               .append(". Remove or shrink a file and attach them again. Attached: ");
 
-            // Get from member info
-            Roster fromMember = patrolData.getMemberByID(form.getFromPatrollerId());
-            String fromName = (fromMember != null) ? fromMember.getFullName() : "Unknown";
-            String fromEmail = (fromMember != null) ? fromMember.getEmailAddress() : "";
+        List<String> described = new ArrayList<>();
+        for (MultipartFile file : form.getAttachments()) {
+            described.add(StringUtils.getFilename(file.getOriginalFilename())
+                          + " (" + asMegabytes(file.getSize()) + ")");
+        }
+        return message.append(String.join(", ", described)).toString();
+    }
 
-            // Add to model
-            model.addAttribute("resort", form.getResort());
-            model.addAttribute("resortFullName", PatrolData.getResortFullName(form.getResort(), LOG));
-            model.addAttribute("patrollerId", form.getFromPatrollerId());
-            model.addAttribute("fromName", fromName);
-            model.addAttribute("fromEmail", fromEmail);
-            model.addAttribute("validRecipients", validRecipients);
-            model.addAttribute("invalidRecipients", invalidRecipients);
-            model.addAttribute("validCount", validRecipients.size());
-            model.addAttribute("invalidCount", invalidRecipients.size());
-            model.addAttribute("filterRequest", emailRequest);
+    private String asMegabytes(long bytes) {
+        return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+    }
 
-            return "email-form";
+    /**
+     * Backstop for uploads too large to even buffer (see spring.servlet.multipart.* limits).
+     * The multipart body is unreadable at this point, so send the user back to a clean form
+     * rather than trying to redisplay what they typed.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public String handleUploadTooLarge(HttpServletRequest request) {
+        // resort/fromPatrollerId ride in the form action's query string, so they survive
+        // even though the body was rejected
+        return "redirect:/EmailForm?resort=" + nullSafe(request.getParameter("resort"))
+             + "&ID=" + nullSafe(request.getParameter("fromPatrollerId"))
+             + "&attachmentsTooLarge=true";
+    }
 
-        } finally {
-            patrolData.close();
+    private String nullSafe(String value) {
+        return value != null ? value : "";
+    }
+
+    /** Everything the shared header fragment needs. */
+    private void addPageChrome(Model model, String resort, String patrollerId, Logger LOG) {
+        model.addAttribute("resort", resort);
+        model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+        model.addAttribute("patrollerId", patrollerId);
+
+        ResortData resortData = PatrolData.getResortInfo(resort);
+        if (resortData != null) {
+            model.addAttribute("resortUrl", resortData.getResortURL());
+            model.addAttribute("resortImage", resortData.getResortImage());
+            model.addAttribute("resortImgHeight", resortData.getImageHeight());
         }
     }
 }

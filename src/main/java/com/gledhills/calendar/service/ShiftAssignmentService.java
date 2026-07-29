@@ -7,126 +7,87 @@ import com.gledhills.calendar.utils.PatrolData;
 import org.springframework.stereotype.Service;
 
 import java.sql.ResultSet;
-import java.util.*;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Service for calculating shift counts and enriching recipient data.
+ * Service for counting shifts worked in a date range.
  */
 @Service
 public class ShiftAssignmentService {
 
     /**
-     * Enrich recipients with shift counts for the specified date range.
+     * Drop recipients who worked fewer than the requested number of shifts within the
+     * requested date range. Only the shift types flagged in the request are counted.
      *
-     * @param recipients List of recipients to enrich
-     * @param request Request containing date range and shift type flags
+     * @param recipients Recipients to filter
+     * @param request Request containing date range, shift type flags and the minimum
      * @param patrolData Patrol data accessor
-     * @return Enriched recipients with shift counts, filtered by MinDays if enabled
+     * @return Recipients meeting the minimum, in the order supplied
      */
-    public List<EmailRecipient> enrichWithShiftCounts(List<EmailRecipient> recipients,
+    public List<EmailRecipient> filterByMinimumShifts(List<EmailRecipient> recipients,
                                                       EmailFormRequest request,
                                                       PatrolData patrolData) {
-        // Create lookup map
-        Map<String, MutableRecipientData> recipientMap = new HashMap<>();
-        for (EmailRecipient recipient : recipients) {
-            recipientMap.put(recipient.getId(), new MutableRecipientData(recipient));
+        int minimumShifts = request.minShiftsThreshold();
+        if (minimumShifts <= 0) {
+            return recipients;
         }
 
-        // Calculate date range
-        int startDay = request.getStartDay() != null ? request.getStartDay() : 1;
-        int startMonth = request.getStartMonth() != null ? request.getStartMonth() : 0;
-        int startYear = request.getStartYear() != null ? request.getStartYear() : 2020;
-        int endDay = request.getEndDay() != null ? request.getEndDay() : 31;
-        int endMonth = request.getEndMonth() != null ? request.getEndMonth() : 11;
-        int endYear = request.getEndYear() != null ? request.getEndYear() : 2030;
+        Map<String, Integer> shiftsById = countShifts(recipients, request, patrolData);
+        return recipients.stream()
+            .filter(recipient -> shiftsById.getOrDefault(recipient.getId(), 0) >= minimumShifts)
+            .toList();
+    }
 
-        long startMillis = (new GregorianCalendar(startYear, startMonth, startDay)).getTimeInMillis();
-        long endMillis = (new GregorianCalendar(endYear, endMonth, endDay)).getTimeInMillis();
+    private Map<String, Integer> countShifts(List<EmailRecipient> recipients,
+                                             EmailFormRequest request,
+                                             PatrolData patrolData) {
+        Map<String, Integer> shiftsById = new HashMap<>();
+        for (EmailRecipient recipient : recipients) {
+            shiftsById.put(recipient.getId(), 0);
+        }
 
-        // Read assignments and count shifts
-        // Note: ResultSet lifecycle is managed by PatrolData; it should be closed via patrolData.close()
+        int startDay = request.StartDay() != null ? request.StartDay() : 1;
+        int startMonth = request.StartMonth() != null ? request.StartMonth() : 0;
+        int startYear = request.StartYear() != null ? request.StartYear() : 2020;
+        int endDay = request.EndDay() != null ? request.EndDay() : 31;
+        int endMonth = request.EndMonth() != null ? request.EndMonth() : 11;
+        int endYear = request.EndYear() != null ? request.EndYear() : 2030;
+
+        long startMillis = new GregorianCalendar(startYear, startMonth, startDay).getTimeInMillis();
+        long endMillis = new GregorianCalendar(endYear, endMonth, endDay).getTimeInMillis();
+
+        // Note: ResultSet lifecycle is managed by PatrolData; it is closed via patrolData.close()
         ResultSet assignmentResults = patrolData.resetAssignments();
         Assignments assignment;
         while ((assignment = patrolData.readNextAssignment(assignmentResults)) != null) {
-            long currMillis = (new GregorianCalendar(
-                assignment.getYear(),
-                assignment.getMonth(),
-                assignment.getDay()
-            )).getTimeInMillis();
+            long shiftMillis = new GregorianCalendar(
+                assignment.getYear(), assignment.getMonth(), assignment.getDay()).getTimeInMillis();
 
-            if (startMillis <= currMillis && currMillis <= endMillis) {
-                for (int i = 0; i < Assignments.MAX_ASSIGNMENT_SIZE; ++i) {
-                    String memberId = assignment.getPosID(i);
-                    MutableRecipientData recipientData = recipientMap.get(memberId);
+            if (shiftMillis < startMillis || endMillis < shiftMillis || !isCountedShift(assignment, request)) {
+                continue;
+            }
 
-                    if (recipientData != null) {
-                        countShift(assignment, recipientData, request);
-                    }
-                }
+            for (int position = 0; position < Assignments.MAX_ASSIGNMENT_SIZE; ++position) {
+                shiftsById.computeIfPresent(assignment.getPosID(position), (id, count) -> count + 1);
             }
         }
 
-        // Filter by MinDays and convert back to immutable
-        int minDays = (Boolean.TRUE.equals(request.getMIN_DAYS()) && request.getMinDays() != null)
-            ? request.getMinDays() : 0;
-
-        List<EmailRecipient> enriched = new ArrayList<>();
-        for (MutableRecipientData data : recipientMap.values()) {
-            if (data.getTotalShiftCount() >= minDays) {
-                enriched.add(data.toEmailRecipient());
-            }
-        }
-
-        return enriched;
+        return shiftsById;
     }
 
-    private void countShift(Assignments assignment, MutableRecipientData recipientData, EmailFormRequest request) {
-        if (Boolean.TRUE.equals(request.getDAY_CNT()) && assignment.isDayShift()) {
-            recipientData.incrementShiftCount("DAY");
-        } else if (Boolean.TRUE.equals(request.getSWING_CNT()) && assignment.isSwingShift()) {
-            recipientData.incrementShiftCount("SWING");
-        } else if (Boolean.TRUE.equals(request.getNIGHT_CNT()) && assignment.isNightShift()) {
-            recipientData.incrementShiftCount("NIGHT");
-        } else if (Boolean.TRUE.equals(request.getTRAINING_CNT()) && assignment.isTrainingShift()) {
-            recipientData.incrementShiftCount("TRAINING");
-        } else if (Boolean.TRUE.equals(request.getOTHER_CNT()) && assignment.isOtherShift()) {
-            recipientData.incrementShiftCount("OTHER");
-        } else if (Boolean.TRUE.equals(request.getHOLIDAY_CNT()) && assignment.isHolidayShift()) {
-            recipientData.incrementShiftCount("HOLIDAY");
-        }
+    private boolean isCountedShift(Assignments assignment, EmailFormRequest request) {
+        return (isSet(request.DAY_CNT()) && assignment.isDayShift())
+            || (isSet(request.SWING_CNT()) && assignment.isSwingShift())
+            || (isSet(request.NIGHT_CNT()) && assignment.isNightShift())
+            || (isSet(request.TRAINING_CNT()) && assignment.isTrainingShift())
+            || (isSet(request.OTHER_CNT()) && assignment.isOtherShift())
+            || (isSet(request.HOLIDAY_CNT()) && assignment.isHolidayShift());
     }
 
-    /**
-     * Mutable wrapper for accumulating shift counts during processing.
-     */
-    private static class MutableRecipientData {
-        private final EmailRecipient original;
-        private final Map<String, Integer> shiftCounts;
-
-        MutableRecipientData(EmailRecipient original) {
-            this.original = original;
-            this.shiftCounts = new HashMap<>();
-        }
-
-        void incrementShiftCount(String type) {
-            shiftCounts.merge(type, 1, Integer::sum);
-        }
-
-        int getTotalShiftCount() {
-            return shiftCounts.values().stream().mapToInt(Integer::intValue).sum();
-        }
-
-        EmailRecipient toEmailRecipient() {
-            return new EmailRecipient(
-                original.getId(),
-                original.getFirstName(),
-                original.getLastName(),
-                original.getEmailAddress(),
-                original.isHasValidEmail(),
-                shiftCounts,
-                original.getCarryOverCredits(),
-                original.getCreditsEarned()
-            );
-        }
+    private static boolean isSet(Boolean flag) {
+        return Boolean.TRUE.equals(flag);
     }
 }

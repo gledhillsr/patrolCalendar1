@@ -1,27 +1,28 @@
 package com.gledhills.calendar.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import com.gledhills.calendar.dto.EmailCompositionForm;
 import com.gledhills.calendar.dto.EmailRecipient;
-import com.gledhills.calendar.dto.EmailSendResult;
 import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
 import com.gledhills.calendar.utils.ResortData;
 import com.gledhills.calendar.utils.StaticUtils;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Service for composing and sending emails asynchronously.
@@ -41,24 +42,63 @@ public class EmailService {
     }
 
     /**
-     * Send emails asynchronously to selected patrol members.
+     * Hand the composed message to the background mailer.
      *
      * @param form Email composition form data
      * @param patrolData Patrol data accessor
      * @param logger Logger instance
-     * @return Email send result with tracking ID
+     * @return number of recipients queued for delivery
      */
-    public EmailSendResult sendEmailsAsync(EmailCompositionForm form, PatrolData patrolData, Logger logger) {
-        String trackingId = UUID.randomUUID().toString();
+    public int sendEmailsAsync(EmailCompositionForm form, PatrolData patrolData, Logger logger) {
+        List<EmailRecipient> recipients = resolveRecipients(form, patrolData);
 
-        // Load from member
-        Roster fromMember = patrolData.getMemberByID(form.getFromPatrollerId());
-        String fromEmail = getFromEmailAddress(fromMember, form.getResort(), logger);
-        boolean hasValidReturnEmail = fromMember != null &&
-            StaticUtils.isValidEmailAddress(fromMember.getEmailAddress());
+        // Call via self (the proxied instance) so @Async takes effect
+        self.sendBatch(recipients, buildBatch(form, patrolData), logger);
 
-        // Load recipients
+        return recipients.size();
+    }
+
+    /**
+     * Compose a batch exactly as {@link #sendBatch} would and describe it, without sending
+     * anything. Used by the demo resort, where delivery is disabled.
+     *
+     * @return a multi-line description: sender, recipients, subject and the finished body
+     */
+    public String describeUnsentBatch(EmailCompositionForm form, PatrolData patrolData, Logger logger) {
+        List<EmailRecipient> recipients = resolveRecipients(form, patrolData);
+        Batch batch = buildBatch(form, patrolData);
+        String footer = buildFooter(batch, PatrolData.getResortFullName(batch.resort(), logger));
+
+        StringBuilder description = new StringBuilder();
+        description.append("From: ").append(batch.fromEmail())
+                   .append("\nSubject: ").append(batch.subject())
+                   .append("\nTo (").append(recipients.size()).append(" recipients):");
+        for (EmailRecipient recipient : recipients) {
+            description.append("\n  ").append(recipient.getFullNameLastFirst())
+                       .append(" <").append(recipient.getEmailAddress()).append(">");
+        }
+
+        for (Attachment attachment : batch.attachments()) {
+            description.append("\nAttachment: ").append(attachment.filename())
+                       .append(" (").append(attachment.contentType())
+                       .append(", ").append(attachment.content().length).append(" bytes)");
+        }
+
+        if (recipients.isEmpty()) {
+            description.append("\nBody:\n").append(normalizeSmartPunctuation(batch.messageTemplate()));
+        } else {
+            EmailRecipient first = recipients.get(0);
+            description.append("\nBody, as ").append(first.getFullNameLastFirst()).append(" would receive it:\n")
+                       .append(personalize(batch.messageTemplate(), first));
+        }
+        return description.append(footer).toString();
+    }
+
+    private List<EmailRecipient> resolveRecipients(EmailCompositionForm form, PatrolData patrolData) {
         List<EmailRecipient> recipients = new ArrayList<>();
+        if (form.getPatrollerIds() == null) {
+            return recipients;
+        }
         for (String memberId : form.getPatrollerIds()) {
             Roster member = patrolData.getMemberByID(memberId);
             if (member != null && StaticUtils.isValidEmailAddress(member.getEmailAddress())) {
@@ -67,91 +107,102 @@ public class EmailService {
                     member.getFirst(),
                     member.getLast(),
                     member.getEmailAddress(),
-                    true,
-                    new java.util.HashMap<>(),
-                    member.getCarryOverCredits(),
-                    member.getCreditsEarned()
+                    true
                 ));
             }
         }
+        return recipients;
+    }
 
-        // Detect template variables
-        boolean hasTemplateVars = form.getMessage().contains("$first$") ||
-                                 form.getMessage().contains("$last$") ||
-                                 form.getMessage().contains("$id$") ||
-                                 form.getMessage().contains("$carryovercredits$") ||
-                                 form.getMessage().contains("$credit$");
+    private Batch buildBatch(EmailCompositionForm form, PatrolData patrolData) {
+        Roster fromMember = patrolData.getMemberByID(form.getFromPatrollerId());
+        boolean hasValidReturnEmail = fromMember != null &&
+            StaticUtils.isValidEmailAddress(fromMember.getEmailAddress());
 
-        // Send async — call via self (proxied instance) so @Async takes effect
-        self.sendBatch(recipients, form.getSubject(), form.getMessage(), fromEmail,
-                 fromMember, hasValidReturnEmail, form.getResort(), hasTemplateVars, logger);
+        return new Batch(
+            sanitizeEmailHeader(form.getSubject()),
+            form.getMessage(),
+            hasValidReturnEmail ? fromMember.getEmailAddress() : FALLBACK_FROM_ADDRESS,
+            fromMember,
+            hasValidReturnEmail,
+            form.getResort(),
+            readAttachments(form));
+    }
 
-        return new EmailSendResult(trackingId, recipients.size(), LocalDateTime.now());
+    /**
+     * Read the uploaded files into memory on the request thread. The temp files behind a
+     * MultipartFile are deleted once the request completes, which is before the @Async
+     * send runs, so the bytes have to be copied now.
+     */
+    private List<Attachment> readAttachments(EmailCompositionForm form) {
+        List<Attachment> attachments = new ArrayList<>();
+        for (MultipartFile file : form.getAttachments()) {
+            try {
+                attachments.add(new Attachment(
+                    sanitizeEmailHeader(StringUtils.getFilename(file.getOriginalFilename())),
+                    file.getContentType(),
+                    file.getBytes()));
+            } catch (IOException e) {
+                throw new IllegalStateException("Could not read attachment " + file.getOriginalFilename(), e);
+            }
+        }
+        return attachments;
+    }
+
+    /**
+     * Everything about a send that is the same for every recipient.
+     */
+    record Batch(String subject, String messageTemplate, String fromEmail, Roster fromMember,
+                 boolean hasValidReturnEmail, String resort, List<Attachment> attachments) {
+    }
+
+    /** An uploaded file, already read into memory so the async send can use it. */
+    record Attachment(String filename, String contentType, byte[] content) {
     }
 
     @Async("emailTaskExecutor")
-    void sendBatch(List<EmailRecipient> recipients, String subject, String messageTemplate,
-                   String fromEmail, Roster fromMember, boolean hasValidReturnEmail,
-                   String resort, boolean hasTemplateVars, Logger logger) {
+    void sendBatch(List<EmailRecipient> recipients, Batch batch, Logger logger) {
+        String footer = buildFooter(batch, PatrolData.getResortFullName(batch.resort(), logger));
 
-        String fullPatrolName = PatrolData.getResortFullName(resort, logger);
-        String sanitizedSubject = sanitizeEmailHeader(subject);
+        boolean multipart = !batch.attachments().isEmpty();
 
         for (EmailRecipient recipient : recipients) {
             try {
-                String message = buildMessage(messageTemplate, recipient, fromMember,
-                                            hasValidReturnEmail, fullPatrolName, resort, hasTemplateVars);
-
                 MimeMessage mimeMessage = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-                helper.setFrom(fromEmail);
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, multipart, "utf-8");
+                helper.setFrom(batch.fromEmail());
                 helper.setTo(recipient.getEmailAddress());
-                helper.setSubject(sanitizedSubject);
-                helper.setText(message, false);
+                helper.setSubject(batch.subject());
+                helper.setText(personalize(batch.messageTemplate(), recipient) + footer, false);
+
+                for (Attachment attachment : batch.attachments()) {
+                    helper.addAttachment(attachment.filename(),
+                                         new ByteArrayResource(attachment.content()),
+                                         attachment.contentType());
+                }
 
                 mailSender.send(mimeMessage);
 
                 logger.info("Email sent to " + recipient.getFullNameLastFirst() +
-                           " at " + recipient.getEmailAddress());
+                           " at " + recipient.getEmailAddress() +
+                           (multipart ? " with " + batch.attachments().size() + " attachment(s)" : ""));
             } catch (MessagingException | MailException e) {
                 logger.logException("Failed to send email to " + recipient.getEmailAddress(), e);
             }
         }
     }
 
-    private String getFromEmailAddress(Roster fromMember, String resort, Logger logger) {
-        if (fromMember == null) {
-            return FALLBACK_FROM_ADDRESS;
-        }
-
-        String memberEmail = fromMember.getEmailAddress();
-        if (StaticUtils.isValidEmailAddress(memberEmail)) {
-            return memberEmail;
-        }
-
-        return FALLBACK_FROM_ADDRESS;
-    }
-
-    private String buildMessage(String template, EmailRecipient recipient, Roster fromMember,
-                               boolean hasValidReturnEmail, String fullPatrolName, String resort,
-                               boolean hasTemplateVars) {
-        String message = fixMagicCharactersFromMicrosoftWordPaste(template);
-
-        if (hasTemplateVars) {
-            message = message.replaceAll("\\$first\\$", recipient.getFirstName());
-            message = message.replaceAll("\\$last\\$", recipient.getLastName());
-            message = message.replaceAll("\\$id\\$", recipient.getId());
-            message = message.replaceAll("\\$carryovercredits\\$", recipient.getCarryOverCredits());
-            message = message.replaceAll("\\$credit\\$", recipient.getCreditsEarned());
-        }
-
-        message += buildFooter(fromMember, hasValidReturnEmail, fullPatrolName, resort);
-
+    /** Substitute the $...$ replacement codes documented on the email form. */
+    String personalize(String template, EmailRecipient recipient) {
+        String message = normalizeSmartPunctuation(template);
+        message = message.replace("$first$", nullSafe(recipient.getFirstName()));
+        message = message.replace("$last$", nullSafe(recipient.getLastName()));
+        message = message.replace("$id$", nullSafe(recipient.getId()));
         return message;
     }
 
-    private String buildFooter(Roster fromMember, boolean hasValidReturnEmail,
-                              String fullPatrolName, String resort) {
+    private String buildFooter(Batch batch, String fullPatrolName) {
+        Roster fromMember = batch.fromMember();
         StringBuilder footer = new StringBuilder();
         footer.append("\n\n----------------------------------------------\n");
 
@@ -164,25 +215,16 @@ public class EmailService {
 
         footer.append("from ").append(fullPatrolName).append("'s online scheduling web site.\n\n");
 
-        if (!hasValidReturnEmail) {
+        if (!batch.hasValidReturnEmail()) {
             footer.append("Please Don't respond to this email. SEND any responses\n");
             if (fromMember != null) {
                 footer.append("to: ").append(fromMember.getFullName())
                       .append(", who had an invalid email address in the system.\n\n");
             }
-        } else {
-            ResortData resortInfo = PatrolData.getResortInfo(resort);
-            String directorsVerifiedEmail = (resortInfo != null &&
-                StaticUtils.isNotEmpty(resortInfo.getDirectorsVerifiedEmail())) ?
-                resortInfo.getDirectorsVerifiedEmail() : null;
-
-            if (directorsVerifiedEmail == null) {
-                footer.append("Please Don't respond to this email. SEND any responses\n");
-                if (fromMember != null) {
-                    footer.append("to: ").append(fromMember.getEmailAddress())
-                          .append(". I am working on setting this 'From' address to be specific to your patrol.\n\n");
-                }
-            }
+        } else if (!hasDirectorsVerifiedEmail(batch.resort())) {
+            footer.append("Please Don't respond to this email. SEND any responses\n");
+            footer.append("to: ").append(fromMember.getEmailAddress())
+                  .append(". I am working on setting this 'From' address to be specific to your patrol.\n\n");
         }
 
         footer.append("This was sent from the Ski Patrol Web Site Auto Mailer.\n");
@@ -191,29 +233,41 @@ public class EmailService {
         return footer.toString();
     }
 
-    private String fixMagicCharactersFromMicrosoftWordPaste(String message) {
-        char[] chars = message.toCharArray();
-        for (int i = 0; i < chars.length; i++) {
-            if (chars[i] >= 128) {
-                if (chars[i] == 146) chars[i] = '\'';
-                else if (chars[i] == 147) chars[i] = '"';
-                else if (chars[i] == 148) chars[i] = '"';
-            }
-        }
-        return new String(chars);
+    private boolean hasDirectorsVerifiedEmail(String resort) {
+        ResortData resortInfo = PatrolData.getResortInfo(resort);
+        return resortInfo != null && StaticUtils.isNotEmpty(resortInfo.getDirectorsVerifiedEmail());
     }
 
     /**
-     * Sanitize email header to prevent header injection attacks.
-     * Removes carriage return and newline characters.
-     *
-     * @param header Email header value (e.g., subject)
-     * @return Sanitized header with CR/LF removed
+     * Replace the curly quotes and dashes that arrive when a message is pasted from
+     * Microsoft Word with their plain ASCII equivalents.
      */
-    private String sanitizeEmailHeader(String header) {
+    String normalizeSmartPunctuation(String message) {
+        StringBuilder plain = new StringBuilder(message.length());
+        for (char c : message.toCharArray()) {
+            switch (c) {
+                // cp1252 bytes that survived a bad decode, plus the real Unicode punctuation
+                case '\u0091', '\u0092', '\u2018', '\u2019' -> plain.append('\'');
+                case '\u0093', '\u0094', '\u201C', '\u201D' -> plain.append('"');
+                case '\u0096', '\u0097', '\u2013', '\u2014' -> plain.append('-');
+                case '\u0085', '\u2026' -> plain.append("...");
+                default -> plain.append(c);
+            }
+        }
+        return plain.toString();
+    }
+
+    /**
+     * Strip CR/LF from an email header value to prevent header injection.
+     */
+    String sanitizeEmailHeader(String header) {
         if (header == null) {
             return "";
         }
         return header.replace("\r", " ").replace("\n", " ");
+    }
+
+    private String nullSafe(String value) {
+        return value != null ? value : "";
     }
 }
