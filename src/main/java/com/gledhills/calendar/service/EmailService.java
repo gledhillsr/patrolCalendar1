@@ -70,8 +70,11 @@ public class EmailService {
         String footer = buildFooter(batch, PatrolData.getResortFullName(batch.resort(), logger));
 
         StringBuilder description = new StringBuilder();
-        description.append("From: ").append(batch.fromEmail())
-                   .append("\nSubject: ").append(batch.subject())
+        description.append("From: ").append(batch.fromEmail());
+        if (batch.replyToEmail() != null) {
+            description.append("\nReply-To: ").append(batch.replyToEmail());
+        }
+        description.append("\nSubject: ").append(batch.subject())
                    .append("\nTo (").append(recipients.size()).append(" recipients):");
         for (EmailRecipient recipient : recipients) {
             description.append("\n  ").append(recipient.getFullNameLastFirst())
@@ -122,11 +125,25 @@ public class EmailService {
         return new Batch(
             sanitizeEmailHeader(form.getSubject()),
             form.getMessage(),
-            hasValidReturnEmail ? fromMember.getEmailAddress() : FALLBACK_FROM_ADDRESS,
+            verifiedFromAddress(form.getResort()),
+            hasValidReturnEmail ? fromMember.getEmailAddress() : null,
             fromMember,
             hasValidReturnEmail,
             form.getResort(),
             readAttachments(form));
+    }
+
+    /**
+     * The From address has to be one this server is authorised to send for, or the message
+     * fails SPF/DKIM alignment and the receiver scores it as spam — Verizon/AOL/Yahoo reject
+     * outright ("554 5.7.1 [VI-101]"), and an attachment is usually what tips it over. The
+     * member's own address goes in Reply-To instead, the same split MailMan has always used.
+     */
+    private String verifiedFromAddress(String resort) {
+        ResortData resortInfo = PatrolData.getResortInfo(resort);
+        return hasDirectorsVerifiedEmail(resort)
+            ? resortInfo.getDirectorsVerifiedEmail()
+            : FALLBACK_FROM_ADDRESS;
     }
 
     /**
@@ -140,7 +157,8 @@ public class EmailService {
             try {
                 attachments.add(new Attachment(
                     sanitizeEmailHeader(StringUtils.getFilename(file.getOriginalFilename())),
-                    file.getContentType(),
+                    // the browser does not always send one, and a null here blows up the DataSource
+                    file.getContentType() != null ? file.getContentType() : "application/octet-stream",
                     file.getBytes()));
             } catch (IOException e) {
                 throw new IllegalStateException("Could not read attachment " + file.getOriginalFilename(), e);
@@ -152,8 +170,9 @@ public class EmailService {
     /**
      * Everything about a send that is the same for every recipient.
      */
-    record Batch(String subject, String messageTemplate, String fromEmail, Roster fromMember,
-                 boolean hasValidReturnEmail, String resort, List<Attachment> attachments) {
+    record Batch(String subject, String messageTemplate, String fromEmail, String replyToEmail,
+                 Roster fromMember, boolean hasValidReturnEmail, String resort,
+                 List<Attachment> attachments) {
     }
 
     /** An uploaded file, already read into memory so the async send can use it. */
@@ -166,11 +185,21 @@ public class EmailService {
 
         boolean multipart = !batch.attachments().isEmpty();
 
+        // MULTIPART_MODE_MIXED, not the boolean overload's MIXED_RELATED: a multipart/related
+        // wrapping nothing but the plain-text body is the shape bulk mailers produce, and spam
+        // filters score it. Plain body + files is exactly what multipart/mixed is for.
+        int multipartMode = multipart
+            ? MimeMessageHelper.MULTIPART_MODE_MIXED
+            : MimeMessageHelper.MULTIPART_MODE_NO;
+
         for (EmailRecipient recipient : recipients) {
             try {
                 MimeMessage mimeMessage = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, multipart, "utf-8");
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, multipartMode, "utf-8");
                 helper.setFrom(batch.fromEmail());
+                if (batch.replyToEmail() != null) {
+                    helper.setReplyTo(batch.replyToEmail());
+                }
                 helper.setTo(recipient.getEmailAddress());
                 helper.setSubject(batch.subject());
                 helper.setText(personalize(batch.messageTemplate(), recipient) + footer, false);
