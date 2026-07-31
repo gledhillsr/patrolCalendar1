@@ -158,6 +158,8 @@ public class WebSitePreferencesController {
 
         // Initialize session and patrol data
         SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        // the posted form carries no "ID" field for the Logger to pick up
+        LOG.setId(sessionData.getLoggedInUserId());
         PatrolData patrolData = new PatrolData(form.getResort(), sessionData, LOG);
 
         try {

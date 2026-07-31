@@ -122,6 +122,8 @@ public class EmailFormController {
         javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
         javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
         Logger LOG = new Logger(EmailFormController.class, javaxRequest, "POST", resort, Logger.INFO);
+        // this form posts the sender as fromPatrollerId, not the "ID" the Logger looks for
+        LOG.setId(form.getFromPatrollerId());
 
         // Validate resort
         if (!PatrolData.isValidResort(resort)) {

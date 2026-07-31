@@ -214,7 +214,7 @@ public class EmailService {
 
                 logger.info("Email sent to " + recipient.getFullNameLastFirst() +
                            " at " + recipient.getEmailAddress() +
-                           (multipart ? " with " + batch.attachments().size() + " attachment(s)" : ""));
+                           (multipart ? " with " + batch.attachments().size() + " attachment(s)" : "") + " From: " + batch.fromEmail);
             } catch (MessagingException | MailException e) {
                 logger.logException("Failed to send email to " + recipient.getEmailAddress(), e);
             }

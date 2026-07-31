@@ -40,6 +40,8 @@ public class PurgeAssignmentsController {
     }
 
     SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+    // nothing here sends an "ID" request parameter for the Logger to find
+    LOG.setId(sessionData.getLoggedInUserId());
     PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
     ValidateCredentialsRedirectIfNeeded credentials =
@@ -92,6 +94,8 @@ public class PurgeAssignmentsController {
     }
 
     SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+    // nothing here sends an "ID" request parameter for the Logger to find
+    LOG.setId(sessionData.getLoggedInUserId());
     PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
     ValidateCredentialsRedirectIfNeeded credentials =

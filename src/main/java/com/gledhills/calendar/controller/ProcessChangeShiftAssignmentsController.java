@@ -49,6 +49,8 @@ public class ProcessChangeShiftAssignmentsController {
     }
 
     SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+    // this POST sends the acting user as submitterID, not the "ID" the Logger looks for
+    LOG.setId(sessionData.getLoggedInUserId());
     PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
     ValidateCredentialsRedirectIfNeeded credentials =

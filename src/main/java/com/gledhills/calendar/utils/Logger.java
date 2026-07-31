@@ -106,6 +106,17 @@ public class Logger {
     return resort == null ? "undefined" : resort;
   }
 
+  /**
+   * Name the member these log lines belong to. The constructor can only find them when the
+   * request carries an "ID" parameter, which POSTed forms generally do not - they name the
+   * field whatever suits the form. Call this once the member is known.
+   */
+  public void setId(String id) {
+    if (id != null && !id.isEmpty()) {
+      this.id = id;
+    }
+  }
+
   public void logRequestParameters() {
     boolean displayHeader = false;
     StringBuilder uriRequestMsg =

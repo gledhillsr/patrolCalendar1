@@ -44,9 +44,12 @@ public class DayShiftsController {
         javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
         Logger LOG = new Logger(DayShiftsController.class, javaxRequest, "GET", resort, Logger.INFO);
         SessionData sessionData = new SessionData(javaxRequest, null, LOG);
-        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
         String patrollerId = ID != null ? ID : sessionData.getLoggedInUserId();
+        // the Logger only picks up an "ID" request parameter, which is optional here
+        LOG.setId(patrollerId);
+
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
         if (patrollerId == null || patrollerId.trim().isEmpty()) {
             response.sendRedirect("/calendar-1/MemberLogin?resort=" + resort + "&NSPgoto=MonthCalendar");
             return null;
@@ -93,9 +96,12 @@ public class DayShiftsController {
         javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
         Logger LOG = new Logger(DayShiftsController.class, javaxRequest, "POST", resort, Logger.INFO);
         SessionData sessionData = new SessionData(javaxRequest, null, LOG);
-        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
         String patrollerId = ID != null ? ID : sessionData.getLoggedInUserId();
+        // the Logger only picks up an "ID" request parameter, which is optional here
+        LOG.setId(patrollerId);
+
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
         if (doAssignments != null) {
             // "Group Assignment of Patrollers to Shifts" button - just show the group
