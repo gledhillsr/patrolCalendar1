@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 @Controller
@@ -392,14 +394,27 @@ public class UpdateInfoController {
     }
 
     /**
-     * Convert instructor bit flags to certification list.
+     * Convert instructor bit flags to a plain-text certification list.
+     *
+     * Deliberately not Roster.getInstructorString: that one prefixes the literal "&nbsp;"
+     * for the legacy servlets, which wrote it straight into the HTML stream. Thymeleaf's
+     * th:text escapes its value, so the entity would show up on the page as text.
+     *
      * @param value Bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan
      */
     private String getInstructorLabel(String value) {
-        if (value == null) {
+        int bits;
+        try {
+            bits = Integer.parseInt(value);
+        } catch (NumberFormatException e) {
             return "";
         }
-        return Roster.getInstructorString(value);
+        List<String> certifications = new ArrayList<>();
+        if ((bits & 1) != 0) certifications.add("OEC");
+        if ((bits & 2) != 0) certifications.add("CPR");
+        if ((bits & 4) != 0) certifications.add("Ski");
+        if ((bits & 8) != 0) certifications.add("Toboggan");
+        return String.join(", ", certifications);
     }
 
     /**
@@ -460,6 +475,7 @@ public class UpdateInfoController {
             String purpose = request.getParameter("Purpose");
             boolean isSetNewID = "setNewID".equals(purpose);
             boolean isAddPatroller = "Add_Patroller".equals(purpose);
+            boolean isEditPatroller = "Edit_Patroller".equals(purpose);
             String oldMemberID = null;
 
             if (isAddPatroller) {
@@ -535,6 +551,8 @@ public class UpdateInfoController {
             model.addAttribute("memberForm", memberForm);
             model.addAttribute("isSetNewID", isSetNewID);
             model.addAttribute("isAddPatroller", false);
+            // the form posts this back so the save knows to return to the Directors page
+            model.addAttribute("isEditPatroller", isEditPatroller);
             model.addAttribute("oldMemberID", oldMemberID);
 
             // 11. Add read-only display attributes (converted to labels)
@@ -588,6 +606,10 @@ public class UpdateInfoController {
         if ("FinalDelete".equals(purpose)) {
             return handleFinalDelete(resort, patrollerId, request, response, model);
         }
+
+        // Posted back by the form when a director reached this page from the Directors menu;
+        // decides where the save returns to, and has to survive a redisplay after an error.
+        boolean isEditPatroller = "Edit_Patroller".equals(purpose);
 
         // 4. Check if this is a director action from Directors menu
         String editInfo = request.getParameter("EditInfo");
@@ -712,6 +734,7 @@ public class UpdateInfoController {
                 model.addAttribute("isBackdoorUser", false);
                 model.addAttribute("isAddPatroller", false);
                 model.addAttribute("isSetNewID", false);
+                model.addAttribute("isEditPatroller", isEditPatroller);
                 model.addAttribute("oldMemberID", null);
                 model.addAttribute("isDirector", isDirector);
 
@@ -799,6 +822,7 @@ public class UpdateInfoController {
                 model.addAttribute("isBackdoorUser", false);
                 model.addAttribute("isAddPatroller", false);
                 model.addAttribute("isSetNewID", false);
+                model.addAttribute("isEditPatroller", isEditPatroller);
                 model.addAttribute("oldMemberID", null);
                 model.addAttribute("isDirector", isDirector);
                 model.addAttribute("memberForm", memberForm);
@@ -831,76 +855,20 @@ public class UpdateInfoController {
                 return "update-info";
             }
 
-            // 12. Reload member to get updated timestamp
-            member = patrolData.getMemberByID(patrollerId);
-            if (member == null) {
-                // This shouldn't happen, but handle gracefully
-                model.addAttribute("resort", resort);
-                model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
-                model.addAttribute("patrollerId", patrollerId);
-                model.addAttribute("errorMessage", "Failed to reload updated member data");
-                model.addAttribute("isBackdoorUser", false);
-                model.addAttribute("isAddPatroller", false);
-                model.addAttribute("memberForm", memberForm);
-
-                // Add resort metadata for header
-                ResortData resortData = PatrolData.getResortInfo(resort);
-                if (resortData != null) {
-                    model.addAttribute("resortUrl", resortData.getResortURL());
-                    model.addAttribute("resortImage", resortData.getResortImage());
-                    model.addAttribute("resortImgHeight", resortData.getImageHeight());
-                }
-
-                return "update-info";
+            // 12. Saved. Return the user to wherever they started rather than redisplaying the
+            // form - a redirect also means a browser refresh will not repost the update.
+            // A director who came in from the Directors page goes back there; anyone who
+            // clicked "My Info" goes back to the calendar.
+            if (isEditPatroller) {
+                return "redirect:/Directors?resort=" + resort + "&ID=" + loggedInUserId;
             }
-
-            // 13. Populate form from reloaded member
-            MemberUpdateForm updatedForm = MemberUpdateForm.populateFromRoster(member);
-
-            // 14. Add all model attributes for success display
-            model.addAttribute("resort", resort);
-            model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
-            model.addAttribute("patrollerId", loggedInUserId);
-            model.addAttribute("editingPatrollerId", patrollerId);
-            model.addAttribute("memberName", member.getFullName());
-            model.addAttribute("isBackdoorUser", false);
-            model.addAttribute("isAddPatroller", false);
-            model.addAttribute("isSetNewID", false);
-            model.addAttribute("oldMemberID", null);
-            model.addAttribute("isDirector", isDirector);
-            model.addAttribute("memberForm", updatedForm);
-            model.addAttribute("updateSuccess", true);
-
-            // 15. Add read-only display attributes
-            model.addAttribute("idNumber", member.memberData[Roster.ID_NUM]);
-            model.addAttribute("classification", getClassificationLabel(member));
-            model.addAttribute("commitment", getCommitmentLabel(member.memberData[Roster.COMMITMENT]));
-            model.addAttribute("instructor", getInstructorLabel(member.memberData[Roster.INSTRUCTOR]));
-            model.addAttribute("lastUpdated", member.memberData[Roster.LAST_UPDATED]);
-
-            // 16. Add hidden field values
-            model.addAttribute("hiddenClassification", member.memberData[Roster.CLASSIFICATION]);
-            model.addAttribute("hiddenCommitment", member.memberData[Roster.COMMITMENT]);
-            model.addAttribute("hiddenInstructor", member.memberData[Roster.INSTRUCTOR]);
-            model.addAttribute("hiddenDirector", member.memberData[Roster.DIRECTOR]);
-            model.addAttribute("hiddenTeamLead", member.memberData[Roster.TEAM_LEAD]);
-            model.addAttribute("hiddenMentoring", member.memberData[Roster.MENTORING]);
-            model.addAttribute("hiddenComments", member.memberData[Roster.COMMENTS]);
-
-            // 17. Add resort metadata for header
-            ResortData resortData = PatrolData.getResortInfo(resort);
-            if (resortData != null) {
-                model.addAttribute("resortUrl", resortData.getResortURL());
-                model.addAttribute("resortImage", resortData.getResortImage());
-                model.addAttribute("resortImgHeight", resortData.getImageHeight());
-            }
-
-            return "update-info";
+            return "redirect:/MonthCalendar?resort=" + resort + "&ID=" + loggedInUserId;
 
         } finally {
             patrolData.close();
         }
     }
+
 
     /**
      * Find patroller ID by their name in "Last, First" format.

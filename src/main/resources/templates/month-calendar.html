@@ -10,15 +10,46 @@
             color: #000000;
             background-color: #ffffff;
         }
+        .print-bar {
+            margin: 8px 0 16px 4px;
+        }
+        .print-bar button {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            padding: 5px 14px;
+            cursor: pointer;
+        }
+
+        @media print {
+            /* The calendar is the only thing worth the paper - drop the site chrome,
+               the button itself, and the tiled background image. */
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-image: none !important;
+                margin: 0;
+            }
+        }
     </style>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <!-- Use the consistent Thymeleaf header fragment -->
-    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+    <div class="no-print">
+        <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+    </div>
 
     <!-- Render the calendar body HTML from legacy servlet -->
     <div th:utext="${calendarBodyHtml}"></div>
 
-    <div th:replace="~{fragments/footer :: footer}"></div>
+    <!-- Sits directly under the "As of:" line, which is the last thing the legacy
+         calendar body writes (MonthCalendar.printEndOfPage) -->
+    <div class="print-bar no-print">
+        <button type="button" onclick="window.print()">Print Calendar</button>
+    </div>
+
+    <div class="no-print">
+        <div th:replace="~{fragments/footer :: footer}"></div>
+    </div>
 </body>
 </html>

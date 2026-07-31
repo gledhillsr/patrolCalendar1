@@ -335,6 +335,7 @@
                         <input th:if="${isSetNewID}" type="hidden" name="Purpose" value="setNewID" />
                         <input th:if="${isSetNewID}" type="hidden" name="removeOldID" th:value="${oldMemberID}" />
                         <input th:if="${isAddPatroller}" type="hidden" name="Purpose" value="Add_Patroller" />
+                        <input th:if="${isEditPatroller}" type="hidden" name="Purpose" value="Edit_Patroller" />
                     </td>
                 </tr>
 
