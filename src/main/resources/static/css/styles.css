@@ -1,0 +1,255 @@
+/*
+ * Shared styles for the Patrol Calendar pages.
+ *
+ * Linked via templates/fragments/head.html. Rules here are the ones that repeat
+ * across pages; anything genuinely specific to one page stays in that template's
+ * own <style> block.
+ *
+ * The look comes from the directors menu: Arial, #003366 navy, white cards.
+ */
+
+/* ---------- base ---------- */
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+#main,
+.content {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 8px 40px;
+}
+
+h1, h2 {
+  color: #003366;
+}
+
+.page-head {
+  margin-bottom: 22px;
+}
+
+.page-head h1 {
+  font-size: 1.7em;
+  color: #003366;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.page-sub {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.95em;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #ececec;
+  margin: 16px 0;
+}
+
+/* ---------- cards ---------- */
+
+.card {
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e2e2e2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.card-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 20px;
+  font-weight: bold;
+  font-size: 1.05em;
+  border-bottom: 1px solid #ececec;
+}
+
+.card-hdr svg {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+
+.card-body {
+  padding: 18px 20px;
+}
+
+.card-desc {
+  margin: 0 0 14px;
+  color: #6b7280;
+  font-size: 0.88em;
+}
+
+.card-teal { border-top: 3px solid #0d9488; }
+.card-teal .card-hdr { color: #0f766e; background: #f7fdfc; }
+.card-violet { border-top: 3px solid #7c3aed; }
+.card-violet .card-hdr { color: #5b21b6; background: #fbfaff; }
+.card-orange { border-top: 3px solid #ea580c; }
+.card-orange .card-hdr { color: #9a3412; background: #fffcf9; }
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 18px;
+}
+
+.two-col .card {
+  margin-bottom: 0;
+}
+
+/* ---------- buttons ---------- */
+
+.btn {
+  display: inline-block;
+  padding: 8px 15px;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid #b9c2cc;
+  background: white;
+  color: #003366;
+  margin: 0;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.btn:hover { background: #003366; color: white; border-color: #003366; }
+.btn-primary { background: #003366; color: white; border-color: #003366; }
+.btn-primary:hover { background: #00509e; border-color: #00509e; }
+.btn-red { border-color: #e8a3a3; color: #b91c1c; }
+.btn-red:hover { background: #b91c1c; color: white; border-color: #b91c1c; }
+
+.btn:disabled,
+.btn[disabled] {
+  background: #cccccc;
+  color: #666666;
+  border-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.btn-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.button-section {
+  margin: 20px 0;
+  text-align: center;
+}
+
+/* ---------- forms ---------- */
+
+.form-section {
+  background: white;
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+  padding: 14px 18px;
+  margin: 14px 0;
+}
+
+.field-label {
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+  font-weight: bold;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="file"],
+select,
+textarea {
+  font-family: inherit;
+  font-size: 0.95em;
+  border: 1px solid #c6cdd4;
+  border-radius: 6px;
+  padding: 6px;
+  background: white;
+  max-width: 100%;
+}
+
+input[type="text"]:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #003366;
+  outline-offset: 1px;
+}
+
+.readonly-field {
+  background: #f5f5f5;
+  border: 1px solid #c6cdd4;
+  border-radius: 6px;
+  padding: 6px;
+  color: #4b5563;
+}
+
+.hint {
+  color: #6b7280;
+  font-size: 0.8em;
+}
+
+/* ---------- messages ---------- */
+
+.error-box {
+  background: #fef2f2;
+  border: 1px solid #e8a3a3;
+  border-left: 4px solid #b91c1c;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 14px 0;
+  color: #b91c1c;
+  font-weight: bold;
+}
+
+.error-list {
+  margin: 6px 0 0 20px;
+  font-weight: normal;
+}
+
+.not-authorized {
+  background: #fff8e1;
+  border: 1px solid #f0c74a;
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ---------- tables ---------- */
+
+table {
+  border-collapse: collapse;
+}
+
+.data-table {
+  width: 100%;
+  background: white;
+}
+
+.data-table th,
+.data-table td {
+  border: 1px solid #e2e2e2;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.data-table th {
+  background: #f3f5f7;
+  color: #003366;
+}

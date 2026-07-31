@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <!--
+      Common <head> contents: charset, viewport and the shared stylesheet.
+
+      Use it from a page like this, keeping any page-specific <script> or <style>
+      after the block:
+
+        <head>
+            <th:block th:replace="~{fragments/head :: pageHead('Email Composition - ' + ${resortFullName})}"></th:block>
+            <style> ...page-specific rules... </style>
+        </head>
+    -->
+    <th:block th:fragment="pageHead(pageTitle)">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="-1">
+        <title th:text="${pageTitle}">Patrol Calendar</title>
+        <link rel="stylesheet" th:href="@{/css/styles.css}"/>
+    </th:block>
+</head>
+<body>
+</body>
+</html>
