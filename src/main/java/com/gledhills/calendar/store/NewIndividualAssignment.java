@@ -160,8 +160,7 @@ public class NewIndividualAssignment {
       tag[LAST_MODIFIED_DATE_INDEX] + " = '" + szLastModDate + "', " +
       tag[LAST_MODIFIED_BY_INDEX] + " = '" + lastModifiedBy + "'";
     qryString += " WHERE " + tag[DATE_SHIFT_POS_INDEX] + " = '" + dateShiftPos + "'";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public String getInsertSQLString() {
@@ -171,14 +170,12 @@ public class NewIndividualAssignment {
       szScheduleDate + "\", \"" + shiftType + "\", \"" + flags + "\", \"" + patrollerId + "\", \"" +
       szLastModDate + "\", \"" + lastModifiedBy + "\")";
 
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public String getDeleteSQLString() {
     String qryString = "DELETE FROM " + tableName + " WHERE " + tag[DATE_SHIFT_POS_INDEX] + " = '" + dateShiftPos + "'";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public String toString() {

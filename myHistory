@@ -1,0 +1,191 @@
+    1  sudo yum list installed
+    2  sudo rpm --import https://yum.corretto.aws/corretto.key
+    3  		sudo curl -Lo /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo
+    4  		sudo yum install java-25-amazon-corretto-devel
+    5  		sudo dnf upgrade -y
+    6  		sudo dnf install -y httpd wget php-fpm php-mysqli php-json php php-devel
+    7  		sudo systemctl start httpd
+    8  		sudo systemctl enable httpd
+    9  		sudo dnf install -y mariadb105-server
+   10  		# Start the database service
+   11  		sudo systemctl start mariadb
+   12  		# Run the security script to set a root password and remove test defaults
+   13  		sudo mysql_secure_installation
+   14  		# Create a simple phpinfo file
+   15  		echo "<?php phpinfo(); ?>" | sudo tee /var/www/html/info.php
+   16  		# Adjust ownership so you can manage web files
+   17  		sudo chown -R ec2-user:ec2-user /var/www/html
+   18  		# Install mbstring and xml dependencies
+   19  		sudo dnf install php-mbstring php-xml -y
+   20  		# Restart Apache to apply changes
+   21  		sudo systemctl restart httpd
+   22  		# Restart PHP-FPM execution service
+   23  		sudo systemctl restart php-fpm
+   24  		# Change to the web directory
+   25  		cd /var/www/html
+   26  wget https://phpmyadmin.net
+   27  ll -strl
+   28  		mkdir phpMyAdmin
+   29  		phpMyAdmin/
+   30  		wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.tar.gz
+   31  ll
+   32  ll phpMyAdmin
+   33  mv *.gz phpMyAdmin
+   34  cd phpMyAdmin/
+   35  tar xvf phpMyAdmin-latest-all-languages.tar.gz
+   36  ll
+   37  rm -rf phpMyAdmin-5.2.3-all-languages/
+   38  ll
+   39  mv phpMyAdmin-latest-all-languages.tar.gz ..
+   40  cd ..
+   41  ll
+   42  		tar -xvzf phpMyAdmin-latest-all-languages.tar.gz -C phpMyAdmin --strip-components 1
+   43  ll
+   44  rm *.gz
+   45  cd phpMyAdmin
+   46  		vi config.inc.php
+   47  ll
+   48  ll config*
+   49  		cp config.sample.inc.php config.inc.php
+   50  vi config.inc.php
+   51  sudo chown -R ec2-user:ec2-user /var/www/html
+   52  exit
+   53  ll
+   54  ll /var/www/html/
+   55  cp ~/*.jar .
+   56  pwd
+   57  cp ~/*.jar /var/www/html/
+   58  cd /var/www/html/
+   59  ll
+   60  exit
+   61  ll
+   62  wget http://localhost
+   63  wget -k -p http://localhost
+   64  wget -k -p http://localhost:8080/calendar-1/MonthCalendar?resort=Brighton&ID=192443&month=3&year=2026
+   65  git
+   66  sudo dnf install git
+   67  git
+   68  pwd
+   69  ll
+   70  cat README.md 
+   71  cd /var/www/html/
+   72  ll
+   73  git clone https://github.com/gledhillsr/html.git
+   74  ll
+   75  ll html/index.*
+   76  mv index.html index_old.html
+   77  pwd
+   78  cd html/
+   79  ll
+   80  cd ..
+   81  ll
+   82  pwd
+   83  cd html
+   84  pwd
+   85  find /var/www/html -mindepth 2 -type f
+   86  pwd
+   87  ll | grep screen
+   88  pwd
+   89  find . -mindepth 2 -type f -exec mv {} /var/www/html \;
+   90  ll
+   91  cd ..
+   92  ll
+   93  ll html
+   94  pwd
+   95  ll
+   96  ll html
+   97  ll html/images
+   98  ll html/nspImages/
+   99  pwd
+  100  cd html
+  101  cd git
+  102  cd .git/
+  103  cat config
+  104  ll
+  105  cd ..
+  106  cd 
+  107  cd /var/www/html/
+  108  ll
+  109  rm *.jpg
+  110  pwd
+  111  rm -rf html
+  112  rm *.js
+  113  rm *.png
+  114  rm *.php
+  115  ll
+  116  rm *.sql
+  117  rm *.pdf
+  118  rm *.html
+  119  rm *.txt
+  120  ll
+  121  rm *.twig
+  122  rm *.htm'
+  123  rm *.htm
+  124  rm y*
+  125  ll
+  126  rm s*
+  127  rm *.gif
+  128  ll
+  129  rm p*
+  130  rm *
+  131  ll
+  132  history | grep clone
+  133  cd ..
+  134  pwd
+  135  git clone https://github.com/gledhillsr/html.git
+  136  cd html
+  137  git clone https://github.com/gledhillsr/html.git
+  138  ll
+  139  mv -v html/* .
+  140  ll
+  141  cd html
+  142  ll
+  143  ls -al
+  144  mv .git ../
+  145  mv .gitignore ../
+  146  cd ..
+  147  rm -rf html
+  148  git pull
+  149  ll *.php
+  150  exit
+  151  ll
+  152  ls -al
+  153  java -version
+  154  ps aux | grep -i sql
+  155  ll
+  156  sudo systemctl status httpd
+  157  history
+  158  vi README.md
+  159  cat README.md 
+  160  ll
+  161  xs /var/www/html
+  162  cd /var/www/html
+  163  ll
+  164  vi credentials.properties
+  165  cat credentials.properties 
+  166  vim credentials.properties
+  167  java -jar calendar-1.jar
+  168  wget
+  169  java -jar calendar-1.jar
+  170  cd phpMyAdmin/
+  171  ll config.inc.php 
+  172  cat config.inc.php 
+  173  grep blow config.inc.php 
+  174  sudo chown -R ec2-user:ec2-user /var/www/html
+  175  		sudo systemctl status mariadb
+  176  		sudo mysql_secure_installation
+  177  ll 
+  178  cd ..
+  179  ll
+  180  java -jar calendar-1.jar
+  181  ps aux | grep java
+  182  java -jar calendar-1.jar
+  183  exit
+  184  java -jar calendar-1.jar
+  185  history
+  186  ps aux | grep java
+  187  pwd
+  188  ll
+  189  java -jar calendar-1.jar
+  190  history
+  191  history >myHistory

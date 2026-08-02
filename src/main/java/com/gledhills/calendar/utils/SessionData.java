@@ -38,6 +38,7 @@ public class SessionData {
   private static final String AWS_ACCESS_KEY_ID_TAG = "AWSAccessKeyId";
   private static final String AWS_SECRET_KEY_TAG = "AWSSecretKey";
   private static final String SALT_TAG = "salt";
+  private static final String COOKIE_SIGNING_KEY_TAG = "cookieSigningKey";
 
   //don't store in session.  Afraid user may be able to see session data
   private String dbUser;
@@ -238,6 +239,36 @@ public class SessionData {
 
   public HttpServletRequest getRequest() {
     return request;
+  }
+
+  /**
+   * Key used to sign the long lived login cookie (see {@link AuthCookie}).
+   * <p>
+   * Prefers a dedicated 'cookieSigningKey' entry in credentials.properties; falls back to the existing
+   * 'salt' entry so that no deployment change is needed to close the cookie forgery hole.  Returns null
+   * when neither is present, which makes cookie login fail closed rather than accept unsigned values.
+   */
+  public byte[] readCookieSigningKey() {
+    Properties properties = new Properties();
+    if (!loadPropertiesFile(properties, null)) {
+      LOG.error("could not read properties file, cookie signing key unavailable");
+      return null;
+    }
+    String hexKey = properties.getProperty(COOKIE_SIGNING_KEY_TAG, "");
+    if (hexKey.isEmpty()) {
+      hexKey = properties.getProperty(SALT_TAG, "");
+    }
+    if (hexKey.isEmpty()) {
+      LOG.error("neither '" + COOKIE_SIGNING_KEY_TAG + "' nor '" + SALT_TAG + "' is set, cookie login disabled");
+      return null;
+    }
+    try {
+      return Hex.decodeHex(hexKey);
+    }
+    catch (DecoderException e) {
+      LOG.error("could not decode '" + COOKIE_SIGNING_KEY_TAG + "', cookie login disabled");
+      return null;
+    }
   }
 
   public byte[] readSalt() {

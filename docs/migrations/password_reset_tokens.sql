@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS Sample_password_reset_tokens (
     token VARCHAR(64) PRIMARY KEY COMMENT 'UUID-based secure random token',
     member_id VARCHAR(20) NOT NULL COMMENT 'Foreign key to Sample_roster.IDNumber',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Token creation time',
-    expires_at TIMESTAMP NOT NULL COMMENT 'Token expiration time (created_at + 1 hour)',
+    expires_at TIMESTAMP NOT NULL COMMENT 'Token expiration time (created_at + PasswordResetToken.LIFETIME_MINUTES)',
     used BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'True if token has been used for reset',
     INDEX idx_member_id (member_id),
     INDEX idx_expires (expires_at)
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS Sample_password_reset_tokens (
 --     token VARCHAR(64) PRIMARY KEY COMMENT 'UUID-based secure random token',
 --     member_id VARCHAR(20) NOT NULL COMMENT 'Foreign key to BreckenridgeNSP_roster.IDNumber',
 --     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Token creation time',
---     expires_at TIMESTAMP NOT NULL COMMENT 'Token expiration time (created_at + 1 hour)',
+--     expires_at TIMESTAMP NOT NULL COMMENT 'Token expiration time (created_at + PasswordResetToken.LIFETIME_MINUTES)',
 --     used BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'True if token has been used for reset',
 --     INDEX idx_member_id (member_id),
 --     INDEX idx_expires (expires_at)
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS Sample_password_reset_tokens (
 --     token VARCHAR(64) PRIMARY KEY COMMENT 'UUID-based secure random token',
 --     member_id VARCHAR(20) NOT NULL COMMENT 'Foreign key to Vail_roster.IDNumber',
 --     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Token creation time',
---     expires_at TIMESTAMP NOT NULL COMMENT 'Token expiration time (created_at + 1 hour)',
+--     expires_at TIMESTAMP NOT NULL COMMENT 'Token expiration time (created_at + PasswordResetToken.LIFETIME_MINUTES)',
 --     used BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'True if token has been used for reset',
 --     INDEX idx_member_id (member_id),
 --     INDEX idx_expires (expires_at)

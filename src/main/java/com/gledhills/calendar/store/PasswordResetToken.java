@@ -3,15 +3,27 @@ package com.gledhills.calendar.store;
 import java.sql.*;
 import java.util.UUID;
 
+import com.gledhills.calendar.utils.Logger;
+import com.gledhills.calendar.utils.SqlWriter;
+
 /**
  * Store class for password reset tokens.
  *
- * Manages secure password reset tokens with 1-hour expiration.
+ * Manages secure password reset tokens with a short expiration ({@link #LIFETIME_MINUTES} minutes).
  * Tokens are UUID-based (32 hex characters) and single-use.
  *
  * @author Steve Gledhill
  */
 public class PasswordResetToken {
+
+  /**
+   * How long a reset link stays usable.  Also quoted to the member in the reset email, so read it
+   * from here rather than writing the number out again.
+   */
+  public static final int LIFETIME_MINUTES = 15;
+
+  private static final long LIFETIME_MILLIS = LIFETIME_MINUTES * 60 * 1000L;
+
   private final String token;
   private final String memberId;
   private final Timestamp createdAt;
@@ -50,7 +62,7 @@ public class PasswordResetToken {
 
   /**
    * Factory method to create a new password reset token.
-   * Token expires in 1 hour.
+   * Token expires after {@link #LIFETIME_MINUTES} minutes.
    *
    * @param memberId The member ID for whom the token is created
    * @return A new PasswordResetToken instance
@@ -58,7 +70,7 @@ public class PasswordResetToken {
   public static PasswordResetToken createToken(String memberId) {
     String token = UUID.randomUUID().toString().replace("-", "");
     Timestamp now = new Timestamp(System.currentTimeMillis());
-    Timestamp expires = new Timestamp(now.getTime() + 3600000); // +1 hour
+    Timestamp expires = new Timestamp(now.getTime() + LIFETIME_MILLIS);
     return new PasswordResetToken(token, memberId, now, expires, false);
   }
 
@@ -78,11 +90,12 @@ public class PasswordResetToken {
    * (see docs/migrations/password_reset_tokens.sql), which is easy to miss
    * when adding a resort — so the code guarantees it here.
    *
+   * @param LOG logger the write is audited to
    * @param connection Database connection
    * @param resort Resort identifier for table prefix
    * @throws SQLException if database operation fails
    */
-  private static void ensureTableExists(Connection connection, String resort) throws SQLException {
+  private static void ensureTableExists(Logger LOG, Connection connection, String resort) throws SQLException {
     String sql = "CREATE TABLE IF NOT EXISTS " + resort + "_password_reset_tokens (" +
       "token VARCHAR(64) PRIMARY KEY, " +
       "member_id VARCHAR(20) NOT NULL, " +
@@ -93,33 +106,32 @@ public class PasswordResetToken {
       "INDEX idx_expires (expires_at)" +
       ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
-    try (Statement stmt = connection.createStatement()) {
-      stmt.executeUpdate(sql);
-    }
+    SqlWriter.executeUpdate(LOG, connection, "ensureTokenTableExists", sql);
   }
 
   /**
    * Save this token to the database.
    *
+   * @param LOG logger the write is audited to
    * @param connection Database connection
    * @param resort Resort identifier for table prefix
    * @throws SQLException if database operation fails
    */
-  public void save(Connection connection, String resort) throws SQLException {
-    ensureTableExists(connection, resort);
+  public void save(Logger LOG, Connection connection, String resort) throws SQLException {
+    ensureTableExists(LOG, connection, resort);
 
     String sql = "INSERT INTO " + resort + "_password_reset_tokens " +
       "(token, member_id, created_at, expires_at, used) " +
       "VALUES (?, ?, ?, ?, ?)";
 
-    try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+    //the token itself is a bearer secret - it stays in a bind parameter so it is never logged
+    SqlWriter.executeUpdate(LOG, connection, "savePasswordResetToken", sql, stmt -> {
       stmt.setString(1, token);
       stmt.setString(2, memberId);
       stmt.setTimestamp(3, createdAt);
       stmt.setTimestamp(4, expiresAt);
       stmt.setBoolean(5, used);
-      stmt.executeUpdate();
-    }
+    });
   }
 
   /**
@@ -131,9 +143,9 @@ public class PasswordResetToken {
    * @return PasswordResetToken if found, null otherwise
    * @throws SQLException if database operation fails
    */
-  public static PasswordResetToken findByToken(Connection connection, String resort,
+  public static PasswordResetToken findByToken(Logger LOG, Connection connection, String resort,
                                                String token) throws SQLException {
-    ensureTableExists(connection, resort);
+    ensureTableExists(LOG, connection, resort);
 
     String sql = "SELECT * FROM " + resort + "_password_reset_tokens WHERE token = ?";
 
@@ -157,17 +169,15 @@ public class PasswordResetToken {
   /**
    * Mark this token as used (after successful password reset).
    *
+   * @param LOG logger the write is audited to
    * @param connection Database connection
    * @param resort Resort identifier for table prefix
    * @throws SQLException if database operation fails
    */
-  public void markAsUsed(Connection connection, String resort) throws SQLException {
+  public void markAsUsed(Logger LOG, Connection connection, String resort) throws SQLException {
     String sql = "UPDATE " + resort + "_password_reset_tokens SET used = TRUE WHERE token = ?";
 
-    try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-      stmt.setString(1, token);
-      stmt.executeUpdate();
-    }
+    SqlWriter.executeUpdate(LOG, connection, "markPasswordResetTokenUsed", sql, stmt -> stmt.setString(1, token));
     this.used = true;
   }
 
@@ -175,17 +185,15 @@ public class PasswordResetToken {
    * Delete all expired tokens for a resort.
    * This is a cleanup method that should be run periodically.
    *
+   * @param LOG logger the write is audited to
    * @param connection Database connection
    * @param resort Resort identifier for table prefix
    * @throws SQLException if database operation fails
    */
-  public static void deleteExpired(Connection connection, String resort) throws SQLException {
+  public static void deleteExpired(Logger LOG, Connection connection, String resort) throws SQLException {
     String sql = "DELETE FROM " + resort + "_password_reset_tokens WHERE expires_at < ?";
 
-    try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-      stmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-      int deleted = stmt.executeUpdate();
-      System.out.println("Deleted " + deleted + " expired tokens for " + resort);
-    }
+    SqlWriter.executeUpdate(LOG, connection, "deleteExpiredPasswordResetTokens", sql,
+                            stmt -> stmt.setTimestamp(1, new Timestamp(System.currentTimeMillis())));
   }
 }

@@ -19,6 +19,36 @@ import java.sql.Connection;
 @Controller
 public class MemberLoginController {
 
+  /**
+   * Shared across requests on purpose - the counters only mean anything if every attempt lands on the
+   * same instance.  The controller is a singleton, so static fields are enough.
+   * <p>
+   * Login and reset get separate limiters so a member locked out of one is not locked out of the
+   * other - somebody who mistyped their password five times still needs the reset link to work.
+   */
+  private static final AttemptRateLimiter RATE_LIMITER = AttemptRateLimiter.forFailedLogins();
+  private static final AttemptRateLimiter RESET_RATE_LIMITER = AttemptRateLimiter.forPasswordResets();
+
+  /**
+   * Populate the model the login page needs and return its view name.  The caller sets the
+   * errorMessage itself, so the same page can be re-shown for different reasons.
+   */
+  private String renderLoginFormWithError(Model model, String resort, String gotoPage, Logger LOG) {
+    model.addAttribute("resort", resort);
+    model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
+    model.addAttribute("gotoPage", gotoPage);
+    model.addAttribute("showSampleCredentials", resort != null && resort.equalsIgnoreCase("Sample"));
+    model.addAttribute("logoutLink", "");
+
+    ResortData resortData = PatrolData.getResortInfo(resort);
+    if (resortData != null) {
+      model.addAttribute("resortUrl", resortData.getResortURL());
+      model.addAttribute("resortImage", resortData.getResortImage());
+      model.addAttribute("resortImgHeight", resortData.getImageHeight());
+    }
+    return "member-login";
+  }
+
   @GetMapping("/MemberLogin")
   public String showLoginForm(HttpServletRequest request, HttpServletResponse response,
                               Model model) throws IOException {
@@ -105,6 +135,16 @@ public class MemberLoginController {
     // 4. Use ServletAdapter for legacy code
     javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
     Logger LOG = new Logger(MemberLoginController.class, javaxRequest, "GET", resort, Logger.INFO);
+
+    // 4b. Throttle token guessing.  There is no member identity to key on until the token resolves,
+    //     so this rides on the source address counter alone.
+    String remoteAddress = request.getRemoteAddr();
+    if (RESET_RATE_LIMITER.isBlocked(resort, null, remoteAddress)) {
+      LOG.error("reset token lookup blocked by rate limit: resort=" + resort + ", from=" + remoteAddress);
+      response.sendError(429, "Too many attempts, please try again later");
+      return null;
+    }
+
     SessionData sessionData = new SessionData(javaxRequest, null, LOG);
     PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
@@ -112,9 +152,11 @@ public class MemberLoginController {
       Connection conn = patrolData.getConnection();
 
       // 5. Validate token
-      PasswordResetToken resetToken = PasswordResetToken.findByToken(conn, resort, token);
+      PasswordResetToken resetToken = PasswordResetToken.findByToken(LOG, conn, resort, token);
 
       if (resetToken == null || !resetToken.isValid()) {
+        //only bad tokens are counted, so following a real reset link never eats into the budget
+        RESET_RATE_LIMITER.recordAttempt(resort, null, remoteAddress);
         model.addAttribute("errorMessage",
                            "This reset link has expired or is invalid. Please request a new password reset.");
         return "redirect:/MemberLogin?resort=" + resort;
@@ -158,6 +200,15 @@ public class MemberLoginController {
     // 3. Use ServletAdapter
     javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
     Logger LOG = new Logger(MemberLoginController.class, javaxRequest, "POST", resort, Logger.INFO);
+
+    // 3b. Throttle token guessing on the submit side too, otherwise the GET limit is trivially skipped
+    String remoteAddress = request.getRemoteAddr();
+    if (RESET_RATE_LIMITER.isBlocked(resort, null, remoteAddress)) {
+      LOG.error("password reset submit blocked by rate limit: resort=" + resort + ", from=" + remoteAddress);
+      response.sendError(429, "Too many attempts, please try again later");
+      return null;
+    }
+
     SessionData sessionData = new SessionData(javaxRequest, null, LOG);
     PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
@@ -165,9 +216,10 @@ public class MemberLoginController {
       Connection conn = patrolData.getConnection();
 
       // 4. Validate token
-      PasswordResetToken resetToken = PasswordResetToken.findByToken(conn, resort, token);
+      PasswordResetToken resetToken = PasswordResetToken.findByToken(LOG, conn, resort, token);
 
       if (resetToken == null || !resetToken.isValid()) {
+        RESET_RATE_LIMITER.recordAttempt(resort, null, remoteAddress);
         model.addAttribute("errorMessage", "Invalid or expired reset token");
         return "redirect:/MemberLogin?resort=" + resort;
       }
@@ -185,7 +237,7 @@ public class MemberLoginController {
       member.updatePassword(conn, resort, newPassword);
 
       // 7. Mark token as used
-      resetToken.markAsUsed(conn, resort);
+      resetToken.markAsUsed(LOG, conn, resort);
 
       LOG.info("Password reset successful for member " + memberId);
 
@@ -225,15 +277,29 @@ public class MemberLoginController {
     Logger LOG = new Logger(MemberLoginController.class, javaxRequest, "POST", resort, Logger.INFO);
     SessionData sessionData = new SessionData(javaxRequest, null, LOG);
     PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+    String remoteAddress = request.getRemoteAddr();
 
     try {
       // 3. Clear any existing session
       sessionData.clearLoggedInResort();
       sessionData.clearLoggedInUserId();
 
+      // 3b. Refuse to even check the password once this member id or source address has failed
+      //     too often, so the weak password hashing cannot be brute forced online
+      if (RATE_LIMITER.isBlocked(resort, id, remoteAddress)) {
+        long waitSeconds = RATE_LIMITER.secondsUntilUnblocked(resort, id, remoteAddress);
+        LOG.error("login blocked by rate limit: resort=" + resort + ", ID=[" + id + "], from=" + remoteAddress +
+                    ", retry in " + waitSeconds + "s");
+        model.addAttribute("errorMessage",
+                           "Too many failed sign-in attempts. Please try again in " +
+                             ((waitSeconds + 59) / 60) + " minute(s).");
+        return renderLoginFormWithError(model, resort, gotoPage, LOG);
+      }
+
       // 4. Validate credentials
       if (patrolData.isValidLogin(null, resort, id, password, sessionData)) {
         // Success - set session and redirect
+        RATE_LIMITER.recordSuccess(resort, id);
         sessionData.setLoggedInUserId(id);
         sessionData.setLoggedInResort(resort);
 
@@ -244,6 +310,7 @@ public class MemberLoginController {
 
       }
       else {
+        RATE_LIMITER.recordAttempt(resort, id, remoteAddress);
         // Failure - show error on login form, and offer the password reset section
         model.addAttribute("showPasswordReset", true);
         model.addAttribute("errorMessage",
@@ -277,7 +344,7 @@ public class MemberLoginController {
       "You requested a password reset for your " + resortName + " patrol account.\n\n" +
       "Click the link below to reset your password:\n" +
       resetUrl + "\n\n" +
-      "This link will expire in 1 hour.\n\n" +
+      "This link will expire in " + PasswordResetToken.LIFETIME_MINUTES + " minutes.\n\n" +
       "If you didn't request this reset, please ignore this email. " +
       "Your password will remain unchanged.\n\n" +
       "For assistance, contact your patrol director.\n\n" +
@@ -318,6 +385,25 @@ public class MemberLoginController {
 
       return "member-login";
     }
+
+    // Throttle before the lookup: an accepted request sends real email to the member, and the
+    // not-found message differs from the sent message, so an unthrottled endpoint is both an inbox
+    // flooder and a way to enumerate which ids and addresses belong to this resort.
+    String remoteAddress = request.getRemoteAddr();
+    String resetSubject = !StaticUtils.isEmpty(id) ? id : email;
+    if (RESET_RATE_LIMITER.isBlocked(resort, resetSubject, remoteAddress)) {
+      long waitSeconds = RESET_RATE_LIMITER.secondsUntilUnblocked(resort, resetSubject, remoteAddress);
+      LOG.error("password reset blocked by rate limit: resort=" + resort + ", subject=[" + resetSubject +
+                  "], from=" + remoteAddress + ", retry in " + waitSeconds + "s");
+      String throttledMessage = "Too many password reset requests. Please try again in " +
+        ((waitSeconds + 59) / 60) + " minute(s).";
+      model.addAttribute("errorMessage", throttledMessage);
+      model.addAttribute("popupMessage", throttledMessage);
+      model.addAttribute("showPasswordReset", true);
+      return renderLoginFormWithError(model, resort, gotoPage, LOG);
+    }
+    //counted whether or not the member turns out to exist, so a miss is as expensive as a hit
+    RESET_RATE_LIMITER.recordAttempt(resort, resetSubject, remoteAddress);
 
     SessionData sessionData = new SessionData(javaxRequest, null, LOG);
     PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
@@ -387,7 +473,7 @@ public class MemberLoginController {
 
       // 6. Generate reset token
       PasswordResetToken resetToken = PasswordResetToken.createToken(member.getID());
-      resetToken.save(conn, resort);
+      resetToken.save(LOG, conn, resort);
 
       // 7. Build reset URL
       String baseUrl = request.getRequestURL().toString().replace("/LoginHelp", "");

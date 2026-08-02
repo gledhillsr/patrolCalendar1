@@ -223,6 +223,22 @@ public class Logger {
     }
   }
 
+  /**
+   * Audit entry for a completed database write.  Called by {@link SqlWriter} once the statement has run,
+   * so the entry always reflects a write that really happened.  The statement has already been redacted -
+   * never pass raw SQL here.
+   */
+  public void logSqlWrite(String operation, String redactedSql, int rowsAffected) {
+    info("sqlWrite=\"" + redactedSql + "\" operation=\"" + operation + "\" rowsAffected=" + rowsAffected);
+  }
+
+  /**
+   * Audit entry for a database write that threw.  The statement has already been redacted.
+   */
+  public void logSqlWriteFailure(String operation, String redactedSql, Exception e) {
+    error("sqlWrite=\"" + redactedSql + "\" operation=\"" + operation + "\" FAILED, reason=\"" + e.getMessage() + "\"");
+  }
+
   private void writeToLogFile(HttpServletRequest request, String msg) {
     _printCommonHeader(request, resort);
     System.out.println(msg);

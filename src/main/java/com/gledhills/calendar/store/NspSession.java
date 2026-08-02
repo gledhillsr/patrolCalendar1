@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Date;
 
 import com.gledhills.calendar.utils.Logger;
+import com.gledhills.calendar.utils.SqlWriter;
 
 /**
  * @author Steve Gledhill
@@ -97,15 +98,12 @@ public class NspSession {
       "\", \"" +
       sessionIpAddress + "\", \"" + (isDirector ? 1 : 0) + "\")";
 
-    LOG.logSqlStatement(qryString);
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();
+      SqlWriter.executeUpdate(LOG, connection, "insertSession", qryString);
       return true;
     }
     catch (SQLException e) {
-      LOG.logException("Cannot insert session", e);
-      return false;
+      return false; //already logged by SqlWriter
     }
     //    String str = "insert into session (sessionId, authenticatedUserId, resort, sessionCreateTime, lastSessionAccessTime, sessionIpAddress, isDirector) values (?, ?, ?, ?, ?, ?, ?)";
     //    PreparedStatement insertStatement = null;
@@ -149,15 +147,12 @@ public class NspSession {
   public boolean deleteRow(Connection connection) {
     @SuppressWarnings("SqlNoDataSourceInspection")
     String qryString = "DELETE FROM session WHERE " + SESSION_ID + " = '" + sessionId + "'";
-    LOG.logSqlStatement(qryString);
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();
+      SqlWriter.executeUpdate(LOG, connection, "deleteSession", qryString);
       return true;
     }
     catch (SQLException e) {
-      LOG.logException("Cannot insert session, reason ", e);
-      return false;
+      return false; //already logged by SqlWriter
     }
   }
 

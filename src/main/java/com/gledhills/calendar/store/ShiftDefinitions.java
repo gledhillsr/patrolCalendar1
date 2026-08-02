@@ -135,22 +135,19 @@ public class ShiftDefinitions {
       "', " + tags[COUNT_INDEX] + "='" + count +
       "', " + tags[TYPE_INDEX] + "='" + type +
       "' WHERE " + tags[EVENT_NAME_INDEX] + "= '" + eventName + "'";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public String getInsertShiftDefinitionsQueryString(String resort) {
     String qryString = "INSERT INTO shiftdefinitions " +
       " Values('" + eventName + "','" + startTime + "','" + endTime + "','" + count + "'," + type + ")";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public String getDeleteSQLString(String resort) {
     int i;
     String qryString = "DELETE FROM shiftdefinitions WHERE " + tags[EVENT_NAME_INDEX] + " = '" + eventName + "'";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public String toString() {

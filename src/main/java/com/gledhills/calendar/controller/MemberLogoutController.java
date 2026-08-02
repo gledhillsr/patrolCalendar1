@@ -3,16 +3,15 @@ package com.gledhills.calendar.controller;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
 import com.gledhills.calendar.utils.SessionData;
+import com.gledhills.calendar.utils.ValidateCredentialsRedirectIfNeeded;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
-import static com.gledhills.calendar.utils.ValidateCredentialsRedirectIfNeeded.NSP_TOKEN_NAME;
 
 /**
  * Spring Boot controller for member logout.
@@ -28,10 +27,10 @@ public class MemberLogoutController {
     // 1. Read resort parameter
     String resort = request.getParameter("resort");
 
-    // 2. Clear NSP_TOKEN_NAME cookie
-    Cookie cookie = new Cookie(NSP_TOKEN_NAME, "");
-    cookie.setMaxAge(0);
-    response.addCookie(cookie);
+    // 2. Clear NSP_TOKEN_NAME cookie - must match the Path the signed cookie was issued on,
+    //    otherwise the browser keeps the original and logout does not actually log out
+    response.addHeader("Set-Cookie",
+                       ValidateCredentialsRedirectIfNeeded.buildSetCookieHeader(request.isSecure(), "", 0));
 
     // 3. Use ServletAdapter for legacy code compatibility
     javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);

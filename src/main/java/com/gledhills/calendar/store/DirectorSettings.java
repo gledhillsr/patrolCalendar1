@@ -2,6 +2,7 @@ package com.gledhills.calendar.store;
 
 import tools.jackson.databind.node.ObjectNode;
 import com.gledhills.calendar.utils.Logger;
+import com.gledhills.calendar.utils.SqlWriter;
 import com.gledhills.calendar.utils.StaticUtils;
 
 import java.lang.*;
@@ -390,22 +391,17 @@ public class DirectorSettings {
       "', " + END_BLACKOUT_FIELD + "='" + szEndBlackout +
       "', " + REMOVE_ACCESS_FIELD + "='" + nRemoveAccess +
       "' WHERE " + PATROL_NAME_FIELD + "= '" + szPatrolName + "'";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public boolean write(Connection connection) {
     String qryString;
     qryString = getUpdateQueryString();
-    LOG.info(qryString);
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();
+      SqlWriter.executeUpdate(LOG, connection, "writeDirectorSettings", qryString);
     }
     catch (Exception e) {
-      LOG.logException("Cannot load the driver: ", e);
-      //      Logger.logStatic("Most likely the Java class path is incorrect.");
-      return true;
+      return true; //already logged by SqlWriter
     }
     return false;
   }

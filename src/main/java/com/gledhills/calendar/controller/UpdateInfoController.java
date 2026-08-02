@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -430,6 +429,35 @@ public class UpdateInfoController {
         return fullClassification != null ? fullClassification : "";
     }
 
+    /**
+     * True when the logged-in member holds the director flag.
+     * <p>
+     * Being authenticated is not enough to act on someone else's record: every page here takes the
+     * member to operate on from a request parameter, so without this check any member could edit,
+     * rename, re-ID or delete any other member simply by changing that parameter.
+     */
+    private static boolean isLoggedInUserADirector(PatrolData patrolData, String loggedInUserId) {
+        if (loggedInUserId == null) {
+            return false;
+        }
+        Roster loggedInMember = patrolData.getMemberByID(loggedInUserId);
+        return loggedInMember != null && loggedInMember.isDirector();
+    }
+
+    /**
+     * Refuse the request unless the logged-in member is a director.  Returns true when the caller
+     * should stop - the 403 has already been sent.
+     */
+    private static boolean rejectIfNotDirector(HttpServletResponse response, PatrolData patrolData,
+                                               String loggedInUserId, String action, Logger LOG) throws IOException {
+        if (isLoggedInUserADirector(patrolData, loggedInUserId)) {
+            return false;
+        }
+        LOG.error("DENIED " + action + ": member " + loggedInUserId + " is not a director");
+        response.sendError(403, "Directors only");
+        return true;
+    }
+
     @GetMapping("/UpdateInfo")
     public String showUpdateForm(HttpServletRequest request, HttpServletResponse response,
                                  Model model) throws IOException {
@@ -480,9 +508,18 @@ public class UpdateInfoController {
 
             if (isAddPatroller) {
                 // Director is adding a new patroller - show empty form
+                if (rejectIfNotDirector(response, patrolData, loggedInUserId, "Add_Patroller form", LOG)) {
+                    return null;
+                }
                 return showAddPatrollerForm(resort, loggedInUserId, patrolData, model, LOG);
             } else if (editID != null && ("Edit_Patroller".equals(purpose) || isSetNewID)) {
-                // Director is editing another patroller or changing ID
+                // Director is editing another patroller or changing ID.
+                // Without this check any member could read another member's full record - including
+                // home address, phone numbers and director-only private comments - via EditID.
+                if (!editID.equals(loggedInUserId) &&
+                    rejectIfNotDirector(response, patrolData, loggedInUserId, "view member " + editID, LOG)) {
+                    return null;
+                }
                 patrollerId = editID;
                 if (isSetNewID) {
                     oldMemberID = editID; // Store for later use
@@ -702,6 +739,17 @@ public class UpdateInfoController {
                 return null;
             }
 
+            // 7b. The record this POST acts on is whatever ID the form submitted, so confirm the
+            //     logged-in member is allowed to touch it before going any further.  The form carries a
+            //     password field, so without this check any member could set any other member's password
+            //     and take over their account.  Checked ahead of validation because the validation-error
+            //     path re-renders the target member's record back into the form.
+            if (!isDirector && patrollerId != null && !patrollerId.equals(loggedInUserId)) {
+                LOG.error("DENIED update of member " + patrollerId + " by non-director " + loggedInUserId);
+                response.sendError(403, "You may only edit your own record");
+                return null;
+            }
+
             // 8. Check for validation errors
             if (bindingResult.hasErrors()) {
                 // Load member data to re-populate page
@@ -769,11 +817,17 @@ public class UpdateInfoController {
             String postPurpose = request.getParameter("Purpose");
             String removeOldID = request.getParameter("removeOldID");
             if ("setNewID".equals(postPurpose) && removeOldID != null) {
+                if (rejectIfNotDirector(response, patrolData, loggedInUserId, "setNewID " + removeOldID, LOG)) {
+                    return null;
+                }
                 return handleSetNewID(resort, loggedInUserId, removeOldID, memberForm, request, response, model, sessionData, patrolData, LOG);
             }
 
             // 9b. Check for Add_Patroller purpose (Adding new member)
             if ("Add_Patroller".equals(postPurpose)) {
+                if (rejectIfNotDirector(response, patrolData, loggedInUserId, "Add_Patroller", LOG)) {
+                    return null;
+                }
                 return handleAddPatroller(resort, loggedInUserId, memberForm, bindingResult, request, response, model, sessionData, patrolData, LOG);
             }
 
@@ -806,8 +860,7 @@ public class UpdateInfoController {
             try {
                 Connection connection = patrolData.getConnection(resort, sessionData, LOG);
                 String sql = member.getUpdateSQLString(resort, sessionData);
-                PreparedStatement statement = connection.prepareStatement(sql);
-                statement.executeUpdate();
+                SqlWriter.executeUpdate(LOG, connection, "updateMember", sql);
                 connection.close();
                 LOG.info("Successfully updated member: " + patrollerId);
             } catch (Exception e) {
@@ -975,6 +1028,11 @@ public class UpdateInfoController {
         }
 
         try {
+            // The confirmation page shows another member's record, and posts back to FinalDelete
+            if (rejectIfNotDirector(response, patrolData, sessionData.getLoggedInUserId(), "delete confirmation", LOG)) {
+                return null;
+            }
+
             // Find the member to delete
             Roster member = patrolData.getMemberByLastNameFirstName(nameToEdit);
             if (member == null) {
@@ -1039,6 +1097,12 @@ public class UpdateInfoController {
         }
 
         try {
+            // Deleting a member removes their roster row and rewrites every assignment that
+            // referenced them, so this is directors only.
+            if (rejectIfNotDirector(response, patrolData, sessionData.getLoggedInUserId(), "FinalDelete", LOG)) {
+                return null;
+            }
+
             String nameToEdit = request.getParameter("NameToEdit");
             if (nameToEdit == null) {
                 LOG.error("NameToEdit parameter missing for FinalDelete");
@@ -1060,11 +1124,10 @@ public class UpdateInfoController {
             // Delete from database
             Connection connection = patrolData.getConnection(resort, sessionData, LOG);
             String sql = member.getDeleteSQLString(resort);
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.executeUpdate();
+            SqlWriter.executeUpdate(LOG, connection, "deleteMember", sql);
 
             // Replace member ID with "0" in assignments table
-            updateAssignmentsAfterDelete(memberIdToDelete, connection);
+            updateAssignmentsAfterDelete(memberIdToDelete, connection, LOG);
 
             LOG.info("Successfully deleted member: " + memberName + " (ID: " + memberIdToDelete + ")");
 
@@ -1098,13 +1161,12 @@ public class UpdateInfoController {
      * Update assignments table after deleting a patroller.
      * Replace the deleted member's ID with "0" in all assignments.
      */
-    private void updateAssignmentsAfterDelete(String deletedId, Connection connection) throws Exception {
+    private void updateAssignmentsAfterDelete(String deletedId, Connection connection, Logger LOG) throws Exception {
         // Update all assignment patroller fields (P0 through P9)
         for (int i = 0; i < 10; i++) {
             String sql = "UPDATE assignments SET P" + i + " = '0' WHERE P" + i + " = ?";
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, deletedId);
-            statement.executeUpdate();
+            SqlWriter.executeUpdate(LOG, connection, "clearDeletedMemberFromAssignments",
+                                    sql, statement -> statement.setString(1, deletedId));
         }
     }
 
@@ -1187,21 +1249,18 @@ public class UpdateInfoController {
             if (newMemberID.equals(oldMemberID)) {
                 // ID unchanged - just update the record
                 String sql = oldMember.getUpdateSQLString(resort, sessionData);
-                PreparedStatement statement = connection.prepareStatement(sql);
-                statement.executeUpdate();
+                SqlWriter.executeUpdate(LOG, connection, "updateMember", sql);
                 LOG.info("Updated member without ID change: " + oldMemberID);
             } else {
                 // ID changed - update assignments, insert new, delete old
-                updateAssignmentsForIDChange(oldMemberID, newMemberID, connection);
+                updateAssignmentsForIDChange(oldMemberID, newMemberID, connection, LOG);
 
                 String insertSql = oldMember.getInsertSQLString(resort, sessionData);
-                PreparedStatement insertStatement = connection.prepareStatement(insertSql);
-                insertStatement.executeUpdate();
+                SqlWriter.executeUpdate(LOG, connection, "insertMemberWithNewId", insertSql);
 
                 String deleteSql = "DELETE FROM roster WHERE IDNumber = ?";
-                PreparedStatement deleteStatement = connection.prepareStatement(deleteSql);
-                deleteStatement.setString(1, oldMemberID);
-                deleteStatement.executeUpdate();
+                SqlWriter.executeUpdate(LOG, connection, "deleteMemberOldId", deleteSql,
+                                        statement -> statement.setString(1, oldMemberID));
 
                 LOG.info("Changed member ID from " + oldMemberID + " to " + newMemberID + ".  Done by " + loggedInUserId);
             }
@@ -1221,14 +1280,15 @@ public class UpdateInfoController {
      * Update assignments table when changing a patroller's ID.
      * Replace old ID with new ID in all assignment slots.
      */
-    private void updateAssignmentsForIDChange(String oldId, String newId, Connection connection) throws Exception {
+    private void updateAssignmentsForIDChange(String oldId, String newId, Connection connection, Logger LOG)
+            throws Exception {
         // Update all assignment patroller fields (P0 through P9)
         for (int i = 0; i < 10; i++) {
             String sql = "UPDATE assignments SET P" + i + " = ? WHERE P" + i + " = ?";
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, newId);
-            statement.setString(2, oldId);
-            statement.executeUpdate();
+            SqlWriter.executeUpdate(LOG, connection, "remapMemberIdInAssignments", sql, statement -> {
+                statement.setString(1, newId);
+                statement.setString(2, oldId);
+            });
         }
     }
 
@@ -1310,8 +1370,7 @@ public class UpdateInfoController {
         try {
             Connection connection = patrolData.getConnection(resort, sessionData, LOG);
             String sql = newMember.getInsertSQLString(resort, sessionData);
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.executeUpdate();
+            SqlWriter.executeUpdate(LOG, connection, "addMember", sql);
             connection.close();
             LOG.info("Successfully added new member: " + newIdNumber);
         } catch (Exception e) {

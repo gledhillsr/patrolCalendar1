@@ -3,7 +3,6 @@ package com.gledhills.calendar.store;
 import java.io.PrintWriter;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -17,6 +16,7 @@ import org.apache.commons.lang3.StringEscapeUtils;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.SaltUtils;
 import com.gledhills.calendar.utils.SessionData;
+import com.gledhills.calendar.utils.SqlWriter;
 import com.gledhills.calendar.utils.StaticUtils;
 
 /**
@@ -640,8 +640,7 @@ public class Roster {
 
     qryString += buildValuesForInsertQuery(sessionData);
     qryString += " )";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   private String buildFieldsForInsertQuery() {
@@ -665,8 +664,7 @@ public class Roster {
     String qryString = "UPDATE roster SET ";
     qryString += buildBodyForUpdateQuery(sessionData);
     qryString += " WHERE " + dbData[ID_NUM][DB_NAME] + " =" + memberData[ID_NUM];
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   private void setLastUpdatedFieldToNow() {
@@ -770,8 +768,7 @@ public class Roster {
 
   public String getDeleteSQLString(String resort) {
     String qryString = "DELETE FROM roster WHERE " + dbData[ID_NUM][DB_NAME] + " = '" + memberData[ID_NUM] + "'";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public boolean isDirector() {
@@ -1043,11 +1040,10 @@ public class Roster {
   public void updatePassword(Connection connection, String resort, String newPassword) throws SQLException {
     String sql = "UPDATE roster SET Password = ? WHERE IDNumber = ?";
 
-    try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+    SqlWriter.executeUpdate(LOG, connection, "updatePassword", sql, stmt -> {
       stmt.setString(1, newPassword);
       stmt.setString(2, this.getID());
-      stmt.executeUpdate();
-    }
+    });
 
     // Update in-memory password field
     memberData[PASSWORD] = newPassword;

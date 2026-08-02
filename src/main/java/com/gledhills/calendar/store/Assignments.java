@@ -339,8 +339,7 @@ public class Assignments {
       qryString += ", " + tag[P0_INDEX + i] + "='" + getPosID(i) + "'"; //fixes bug where string starts with 0 zero
     }
     qryString += " WHERE Date='" + szDate + "'";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public String getInsertQueryString() {
@@ -356,14 +355,12 @@ public class Assignments {
     }
     qryString += ")";
 
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public String getDeleteSQLString(SessionData sessionData) {
     String qryString = "DELETE FROM assignments WHERE " + tag[DATE_INDEX] + " ='" + szDate + "'";
-    LOG.logSqlStatement(qryString);
-    return qryString;
+    return qryString; //logged by SqlWriter when it is executed
   }
 
   public static String getSelectAllAssignmentsByDateSQLString(Logger LOG) {

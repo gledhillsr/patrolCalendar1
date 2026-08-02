@@ -370,14 +370,12 @@ public class PatrolData {
 
   public void deleteShift(ShiftDefinitions ns) {
     String qryString = ns.getDeleteSQLString(localResort);
-    LOG.logSqlStatement(qryString + "  deleteShift");
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();
+      SqlWriter.executeUpdate(LOG, connection, "deleteShift", qryString);
       ns.setExists(false);
     }
     catch (Exception e) {
-      LOG.logException("Cannot delete Shift, reason: ", e);
+      //already logged by SqlWriter
     }
   }
 
@@ -389,15 +387,12 @@ public class PatrolData {
     else {
       qryString = ns.getInsertShiftDefinitionsQueryString(localResort);
     }
-    LOG.logSqlStatement(qryString + "  writeShift");
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();
+      SqlWriter.executeUpdate(LOG, connection, "writeShift", qryString);
       ns.setExists(true);
     }
     catch (SQLException e) {
-      logError(" failed writeShift, exception=" + e.getMessage());
-      return true;
+      return true; //already logged by SqlWriter
     }
     return false;
   }
@@ -471,10 +466,12 @@ public class PatrolData {
 
   public Roster getMemberByEmail(String szEmail) {
     Roster member;
-    String str = "SELECT * FROM roster WHERE email =\"" + szEmail + "\"";
+    //reachable from the unauthenticated password reset form, so the address is bound, never concatenated
+    String str = "SELECT * FROM roster WHERE email = ?";
     LOG.logSqlStatement(str);
     try {
       PreparedStatement rosterStatement = connection.prepareStatement(str);
+      rosterStatement.setString(1, szEmail);
       ResultSet rosterResults = rosterStatement.executeQuery();
       if (rosterResults.next()) {
         member = new Roster(LOG);  //"&nbsp;" is the default
@@ -576,12 +573,10 @@ public class PatrolData {
       qryString = ns.getInsertQueryString();
     }
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();
+      SqlWriter.executeUpdate(LOG, connection, "writeAssignment", qryString);
     }
     catch (SQLException e) {
-      logError("(" + localResort + ") failed writeAssignment, reason:" + e.getMessage());
-      return true;
+      return true; //already logged by SqlWriter
     }
     return false;
   }
@@ -610,14 +605,12 @@ public class PatrolData {
   //---------------------------------------------------------------------
   public void deleteAssignment(Assignments ns) {
     String qryString = ns.getDeleteSQLString(sessionData);
-    //    LOG.info("deleteAssignment" + qryString);
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();
+      SqlWriter.executeUpdate(LOG, connection, "deleteAssignment", qryString);
       ns.setExisted(false);
     }
     catch (SQLException e) {
-      logError("(" + localResort + ") failed deleteAssignment, reason:" + e.getMessage());
+      //already logged by SqlWriter
     }
   }
 
@@ -789,26 +782,21 @@ public class PatrolData {
   public boolean insertNewIndividualAssignment(NewIndividualAssignment newIndividualAssignment) {
     String qryString = newIndividualAssignment.getInsertSQLString();
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();
+      SqlWriter.executeUpdate(LOG, connection, "insertNewIndividualAssignment", qryString);
     }
     catch (SQLException e) {
-      LOG.logException("Cannot insert newIndividualAssignment", e);
-      return false;
+      return false; //already logged by SqlWriter
     }
     return true;
   }
 
   public boolean updateNewIndividualAssignment(NewIndividualAssignment newIndividualAssignment) {
     String qryString = newIndividualAssignment.getUpdateSQLString();
-    LOG.info("updateNewIndividualAssignment: " + qryString);
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();
+      SqlWriter.executeUpdate(LOG, connection, "updateNewIndividualAssignment", qryString);
     }
     catch (SQLException e) {
-      logError("(" + localResort + ") Cannot update newIndividualAssignment, reason:" + e.getMessage());
-      return false;
+      return false; //already logged by SqlWriter
     }
     return true;
   }
@@ -841,12 +829,11 @@ public class PatrolData {
   public void deleteNewIndividualAssignment(NewIndividualAssignment newIndividualAssignment) {
     String qryString = newIndividualAssignment.getDeleteSQLString();
     try {
-      PreparedStatement sAssign = connection.prepareStatement(qryString);
-      sAssign.executeUpdate();  //can throw exception
+      SqlWriter.executeUpdate(LOG, connection, "deleteNewIndividualAssignment", qryString);
       newIndividualAssignment.setExisted(false);
     }
     catch (Exception e) {
-      LOG.error("(" + localResort + ") Cannot delete Shift, reason:" + e);
+      //already logged by SqlWriter
     }
   }
 
@@ -939,6 +926,48 @@ public class PatrolData {
     LOG.error(msg);
   }
 
+  /** Which credential, if any, let a login through.  Kept distinct so the caller can log accordingly. */
+  enum LoginOutcome {
+    REJECTED,
+    HASHED_PASSWORD,
+    PLAINTEXT_PASSWORD,
+    LAST_NAME_NO_PASSWORD_SET
+  }
+
+  /**
+   * Decide whether a supplied password is accepted for an account.  Pure, so the precedence between
+   * the three accepted credentials is visible and testable in one place.
+   * <p>
+   * The last-name fallback exists for members migrated in without any password at all.  It applies
+   * <b>only</b> to accounts that have neither a plaintext password nor a hash: last names appear on the
+   * member list and the calendar, so allowing it on an account that does have a password would let
+   * anyone take that account over in one step.
+   *
+   * @param storedPlaintextPassword the legacy plaintext 'Password' column
+   * @param storedHashedPassword    the salted 'newPassword' hash, when the account has one
+   * @param hashOfIncomingPassword  the supplied password hashed the same way, or null if no stored hash
+   * @param lastName                the member's last name
+   * @param incomingPassword        the password supplied on the login form
+   */
+  static LoginOutcome judgeCredentials(String storedPlaintextPassword, String storedHashedPassword,
+                                       String hashOfIncomingPassword, String lastName, String incomingPassword) {
+    boolean hasPlaintextPassword = storedPlaintextPassword != null && !storedPlaintextPassword.trim().isEmpty();
+    boolean hasHashedPassword = storedHashedPassword != null && !storedHashedPassword.trim().isEmpty();
+
+    if (hasHashedPassword && hashOfIncomingPassword != null &&
+      storedHashedPassword.equals(hashOfIncomingPassword)) {
+      return LoginOutcome.HASHED_PASSWORD;
+    }
+    if (hasPlaintextPassword && storedPlaintextPassword.equalsIgnoreCase(incomingPassword)) {
+      return LoginOutcome.PLAINTEXT_PASSWORD;
+    }
+    if (!hasPlaintextPassword && !hasHashedPassword &&
+      lastName != null && !lastName.trim().isEmpty() && lastName.equalsIgnoreCase(incomingPassword)) {
+      return LoginOutcome.LAST_NAME_NO_PASSWORD_SET;
+    }
+    return LoginOutcome.REJECTED;
+  }
+
   public boolean isValidLogin(PrintWriter out, String resort, String ID, String incomingPass, SessionData sessionData) {
     boolean validLogin = false;
     ResultSet rs;
@@ -964,13 +993,16 @@ public class PatrolData {
     try {
       // Change MyDSN, myUsername and myPassword to your specific DSN
       Connection c = PatrolData.getConnection(resort, sessionData, LOG);
+      //the supplied ID is untrusted and reaches this method before any authentication,
+      //so it is bound as a parameter and never concatenated into the statement
       @SuppressWarnings("SqlNoDataSourceInspection")
-      String szQuery = "SELECT * FROM roster WHERE IDNumber = \"" + ID + "\"";
+      String szQuery = "SELECT * FROM roster WHERE IDNumber = ?";
       LOG.info("(login) " + szQuery);
       PreparedStatement sRost = c.prepareStatement(szQuery);
       if (sRost == null) {
         return false;
       }
+      sRost.setString(1, ID);
 
       rs = sRost.executeQuery();
 
@@ -985,46 +1017,27 @@ public class PatrolData {
         originalPassword = originalPassword.trim();
         lastName = lastName.trim();
         incomingPass = incomingPass.trim();
-        String newHash = "noInitialHash"; //used for debugging
-        boolean hasPassword = (originalPassword.length() > 0);
+
+        String hashOfIncomingPassword = null;
         if (hashedPassword != null && !hashedPassword.isEmpty()) {
-          SaltUtils saltShaker = new SaltUtils();
-          newHash = saltShaker.hashPassword(sessionData, incomingPass);
-          validLogin = hashedPassword.equals(newHash);
-          if (!validLogin) {
-            LOG.error(
-              "DEBUG login failed: resort=" + resort + ", id=" + ID + ", newHash=" + newHash + ", hashedPassword=" +
-                hashedPassword + ", originalPass=" + originalPassword + ", incomingPass=" + incomingPass);
-          }
+          hashOfIncomingPassword = new SaltUtils().hashPassword(sessionData, incomingPass);
         }
-        if (!validLogin && hasPassword) {
-          if (originalPassword.equalsIgnoreCase(incomingPass)) {
-            validLogin = true;
-            if (!validLogin) {
-              LOG.error("DEBUG login failed: resort=" + resort + ", id=" + ID + ", originalPass=" + originalPassword +
-                          ", incomingPass=" + incomingPass);
-            }
-          }
-        }
-        if (!validLogin) { //this did have && hasPassword, but but I found cases where the password was empty
-          if (lastName.equalsIgnoreCase(incomingPass)) {
-            validLogin = true;
-            LOG.error(
-              "DEBUG using Last name as password  GET RID OF THIS hack! resort=" + resort + ", id=" + ID + "  (" +
-                firstName + " " + lastName + ")");
-          }
+        LoginOutcome outcome =
+          judgeCredentials(originalPassword, hashedPassword, hashOfIncomingPassword, lastName, incomingPass);
+        validLogin = outcome != LoginOutcome.REJECTED;
+
+        if (outcome == LoginOutcome.LAST_NAME_NO_PASSWORD_SET) {
+          LOG.warn("login with last name, account has no password set. resort=" + resort + ", id=" + ID + "  (" +
+                     firstName + " " + lastName + ") - this member should set a password");
         }
 
         if (validLogin) {
           LOG.warn("Login Sucessful: " + firstName + " " + lastName + ", " + ID + " (" + resort + ") " + emailAddress);
         }
         else {
-          LOG.error(
-            "DEBUG login failed: resort=" + resort + ", id=" + ID + ", newHash=" + newHash + ", hashedPassword=" +
-              hashedPassword + ", originalPass=" + originalPassword + ", incomingPass=" + incomingPass);
-          LOG.error(
-            "sleep(500).  Login Failed: ID=[" + ID + "] LastName=[" + lastName + "] suppliedPass=[" + incomingPass +
-              "]");
+          //never log the supplied or stored password - a failed attempt is very often a
+          //legitimate member's real password, mistyped by one character
+          LOG.error("sleep(500).  Login Failed: resort=" + resort + ", ID=[" + ID + "] LastName=[" + lastName + "]");
           Thread.sleep(500);
         }
       }

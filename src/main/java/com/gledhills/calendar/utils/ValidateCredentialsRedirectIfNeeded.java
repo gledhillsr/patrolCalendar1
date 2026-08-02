@@ -90,12 +90,15 @@ public class ValidateCredentialsRedirectIfNeeded {
           try {
             // Decode URL-encoded cookie value
             String decodedValue = URLDecoder.decode(cookieValue, StandardCharsets.UTF_8.name());
-            String[] values = decodedValue.split(",");
-            if (values.length == 2 && PatrolData.isValidResort(values[0]) && patrolData.getMemberByID(values[1]) != null) {
-              cookieResort = values[0];
-              cookiePatrollerId = values[1];
+            //the signature proves this server issued the cookie; without this check anyone could
+            //type a member id into their browser and be logged in as that member
+            AuthCookie.Verified verified = AuthCookie.verify(sessionData, LOG, decodedValue);
+            if (verified != null && PatrolData.isValidResort(verified.resort()) &&
+              patrolData.getMemberByID(verified.memberId()) != null) {
+              cookieResort = verified.resort();
+              cookiePatrollerId = verified.memberId();
             }
-            LOG.debug("cookie FOUND, value=" + decodedValue);
+            LOG.debug("cookie FOUND, accepted=" + (cookiePatrollerId != null));
           } catch (Exception e) {
             LOG.warn("Failed to decode cookie value: " + e.getMessage());
           }
@@ -104,46 +107,22 @@ public class ValidateCredentialsRedirectIfNeeded {
 
       if (!hasInvalidCredentials) {
         //user had good credentials, so just update the cookie TTL
-        try {
-          String rawValue = resort + "," + idLoggedIn;
-          cookieValue = URLEncoder.encode(rawValue, StandardCharsets.UTF_8.name());
-          Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, cookieValue);
-          uiColorCookie.setMaxAge(COOKIE_MAX_AGE_IN_SECONDS);
-          response.addCookie(uiColorCookie);
-          LOG.debug("update/add cookie TTL) " + rawValue);
-        }
-        catch (Exception e) {
-          LOG.error("failed to add cookie, message=" + e.getMessage());
-        }
+        writeLoginCookie(sessionData, request, response, resort, idLoggedIn);
       }
       else if (cookiePatrollerId != null) {
         //not logged in, but good cookie, so use VALID cookie to login
         sessionData.setLoggedInResort(cookieResort);
         sessionData.setLoggedInUserId(cookiePatrollerId);
         hasInvalidCredentials = false;
-        try {
-          String rawValue = cookieResort + "," + cookiePatrollerId;
-          String encodedValue = URLEncoder.encode(rawValue, StandardCharsets.UTF_8.name());
-          Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, encodedValue);
-          uiColorCookie.setMaxAge(COOKIE_MAX_AGE_IN_SECONDS);
-          response.addCookie(uiColorCookie);
-          LOG.warn("using cookie for login to resort=" + cookieResort + ", as user=" + cookiePatrollerId);
-        }
-        catch (Exception e) {
-          LOG.error("failed to add cookie, message=" + e.getMessage());
-        }
+        writeLoginCookie(sessionData, request, response, cookieResort, cookiePatrollerId);
+        LOG.warn("using cookie for login to resort=" + cookieResort + ", as user=" + cookiePatrollerId);
       }
-      else if (cookieValue != null) { //to make this true, did not find either resort or patrollerId within resort
+      else if (cookieValue != null) { //signature, expiry, resort or patrollerId did not check out
         //not logged in, but bad cookie, so delete cookie
         try {
-          Cookie uiColorCookie = new Cookie(NSP_TOKEN_NAME, "");
-          uiColorCookie.setMaxAge(0);
-          response.addCookie(uiColorCookie);
-          String decodedValue = URLDecoder.decode(cookieValue, StandardCharsets.UTF_8.name());
-          String cookieResortFromValue = decodedValue.contains(",") ? decodedValue.split(",")[0] : decodedValue;
-          LOG.warn(
-            "deleting cookie because resort or patrollerId was invalid.  newResort=" + resort + ", cookieResort=" +
-              cookieResortFromValue);
+          response.addHeader("Set-Cookie", buildSetCookieHeader(request.isSecure(), "", 0));
+          //never echo the rejected value back into the log
+          LOG.warn("deleting cookie because it was unsigned, expired or named an unknown member.  resort=" + resort);
         }
         catch (Exception e) {
           LOG.error("failed to delete cookie, message=" + e.getMessage());
@@ -152,6 +131,50 @@ public class ValidateCredentialsRedirectIfNeeded {
       //else no credentials, and no 'nspToken' cookie
     }
     //else no cookies exist
+  }
+
+  /**
+   * Issue (or refresh) the signed login cookie.  Silently issues nothing when no signing key is
+   * configured - an unsigned cookie would be worse than no cookie at all.
+   */
+  private void writeLoginCookie(SessionData sessionData, HttpServletRequest request, HttpServletResponse response,
+                                String cookieResort, String patrollerId) {
+    try {
+      if (StaticUtils.isEmpty(cookieResort) || StaticUtils.isEmpty(patrollerId)) {
+        return;
+      }
+      String signedValue = AuthCookie.create(sessionData, LOG, cookieResort, patrollerId, COOKIE_MAX_AGE_IN_SECONDS);
+      if (signedValue == null) {
+        return; //already logged
+      }
+      String encodedValue = URLEncoder.encode(signedValue, StandardCharsets.UTF_8.name());
+      response.addHeader("Set-Cookie", buildSetCookieHeader(request.isSecure(), encodedValue, COOKIE_MAX_AGE_IN_SECONDS));
+      LOG.debug("update/add cookie TTL for resort=" + cookieResort + ", user=" + patrollerId);
+    }
+    catch (Exception e) {
+      LOG.error("failed to add cookie, message=" + e.getMessage());
+    }
+  }
+
+  /**
+   * Build the Set-Cookie header by hand.  The javax.servlet 2.5 Cookie class this legacy code compiles
+   * against predates HttpOnly and SameSite, and ServletAdapter cannot carry flags it cannot express -
+   * so the header is written directly to keep the protective attributes.
+   * <p>
+   * HttpOnly keeps the cookie away from JavaScript, SameSite=Lax stops it riding along on cross site
+   * requests, and Secure is set whenever the request itself arrived over HTTPS.
+   */
+  public static String buildSetCookieHeader(boolean isSecureRequest, String encodedValue, int maxAgeInSeconds) {
+    StringBuilder header = new StringBuilder();
+    header.append(NSP_TOKEN_NAME).append('=').append(encodedValue);
+    header.append("; Max-Age=").append(maxAgeInSeconds);
+    header.append("; Path=/");
+    header.append("; HttpOnly");
+    header.append("; SameSite=Lax");
+    if (isSecureRequest) {
+      header.append("; Secure");
+    }
+    return header.toString();
   }
 
   private void init(SessionData sessionData, String parent, String idParameter) {
