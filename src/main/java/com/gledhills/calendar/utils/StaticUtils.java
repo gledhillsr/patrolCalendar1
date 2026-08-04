@@ -1,7 +1,5 @@
 package com.gledhills.calendar.utils;
 
-import tools.jackson.databind.node.JsonNodeFactory;
-import tools.jackson.databind.node.ObjectNode;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -25,7 +23,6 @@ public final class StaticUtils {
   };
   public static final String[] szDays =
     { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "error" };
-  public static JsonNodeFactory nodeFactory = JsonNodeFactory.instance;
 
 
   public static boolean isEmpty(String str) {
@@ -42,19 +39,6 @@ public final class StaticUtils {
     return matcher.matches();
   }
 
-  public static void build204Response(HttpServletResponse response, Logger LOG) {
-    LOG.info("Response OK (204):");
-    response.setStatus(204);
-  }
-
-  public static void buildOkResponse(HttpServletResponse response, ObjectNode returnNode, Logger LOG)
-    throws IOException {
-    LOG.info("Response OK: " + returnNode.toString());
-    response.setStatus(200);
-    response.setContentType("application/json");
-    LOG.info(returnNode.toString());
-    response.getWriter().write(returnNode.toString());
-  }
 
   //lowercase substrings found in crawler/scraper/scanner user agents but never in real browsers
   private static final String[] BOT_SIGNATURES = {

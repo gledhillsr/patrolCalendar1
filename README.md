@@ -159,15 +159,10 @@ patrolCalendar1/
 │   │   │   │   ├── DirectorsController.java
 │   │   │   │   ├── MonthCalendarController.java
 │   │   │   │   └── ServletAdapter.java
-│   │   │   ├── resources/        # Legacy servlet classes
-│   │   │   │   ├── Inner*.java   # Authenticated pages (legacy)
-│   │   │   │   ├── Outer*.java   # Public pages (legacy)
-│   │   │   │   └── ApiResources.java # REST API endpoints (legacy)
 │   │   │   ├── store/            # Data models & database access
 │   │   │   │   ├── Roster.java
 │   │   │   │   ├── Assignments.java
 │   │   │   │   ├── ShiftDefinitions.java
-│   │   │   │   ├── NspSession.java
 │   │   │   │   ├── PasswordResetToken.java
 │   │   │   │   └── DirectorSettings.java
 │   │   │   ├── utils/            # Utilities and helpers
@@ -220,14 +215,11 @@ Valid resort names are configured in `PatrolData.resortMap`.
 - `/MonthCalendar` - Monthly shift calendar (Spring MVC + Thymeleaf)
 - `/Directors` - Director administration panel (Spring MVC + Thymeleaf)
 
-**Legacy Servlet Endpoints:**
-- `/login` - Authenticate and receive session token (REST API)
-- `/user/assignments` - Get user's shift assignments (REST API)
-- `/patrol/assignments` - Get all patrol assignments (REST API)
-- `/resort/list` - List all configured resorts (REST API)
-- Various Inner* endpoints for authenticated functionality
+- `/DownloadRoster` - Roster listing as an .xlsx workbook, directors only (Apache POI)
 
-API endpoints require an `Authorization` header with a valid session token.
+Every served endpoint is a Spring Boot controller; see `CLAUDE.md` for the full list. There is no
+JSON/REST API — the legacy `ApiResources` servlets (`/login`, `/user/assignments`,
+`/patrol/assignments`, `/resort/list`) were never served under Spring Boot and have been removed.
 
 ## Adding a New Resort
 
@@ -251,7 +243,7 @@ To add a new ski patrol to the system:
 
 ## Spring Boot Migration
 
-The application has been migrated from traditional Servlet API 2.5 to Spring Boot 4.0.6:
+The migration from Servlet API 2.5 to Spring Boot 4 is complete - no legacy servlets remain:
 
 ### Completed Migrations
 

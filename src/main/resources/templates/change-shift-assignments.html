@@ -98,11 +98,13 @@
                 </td>
             </tr>
 
-            <!-- Missed shift (director only, position occupied) -->
+            <!-- Missed shift (director only, position occupied). The transaction toggles, so the
+                 label reads "Remove Missed Shift" once the slot is already flagged. -->
             <tr th:if="${!posWasEmpty and isDirector}">
                 <td width="100%" colspan="2">
                     <input type="radio" name="transaction" value="missedShift">
-                    <b>Missed Shift</b> (<span th:text="${newName1}">Name</span>)
+                    <b th:text="${wasMarkedAsMissed} ? 'Remove Missed Shift' : 'Missed Shift'">Missed Shift</b>
+                    (<span th:text="${newName1}">Name</span>)
                 </td>
             </tr>
 

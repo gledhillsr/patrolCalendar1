@@ -4,11 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${resortFullName} + ' Ski Patrol - Monthly Schedule'">Monthly Shift Schedule</title>
-    <style type="text/css">
+    <style type="text/css" th:inline="css">
         body {
             font-size: 10pt;
             color: #000000;
             background-color: #ffffff;
+        }
+        .calendar td {
+            /* [(...)] not [[...]]: CSS inlining escapes [[...]] as an identifier, which turned
+               "10pt" into "\31 0pt". And the unit matters - without "pt" the declaration is
+               invalid and the cells fall back to the browser default, noticeably bigger. */
+            font-size: /*[(${calendar.textFontSize} + 'pt')]*/10pt;
+            /* no font-family here on purpose - the legacy stylesheet wrote "face:Verdana,..",
+               which is not a CSS property, so the calendar has always inherited the default */
+            padding: 1px;
+        }
+        .shift-list {
+            table-layout: auto;
+        }
+        .shift-name {
+            display: block;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            min-width: 16ch;
+            max-width: 20ch;
+        }
+        .day-number {
+            font-family: arial, helvetica, sans-serif;
+            font-weight: bold;
+            color: #0000FF;
+            font-size: large;
+        }
+        .closed-label {
+            color: #FF0000;
+            font-size: large;
+        }
+        .event-name {
+            font-size: small;
+        }
+        .needs-replacement {
+            background: #FFFF00;
+        }
+        .not-editable {
+            color: #000000;
+            font-family: arial, helvetica, sans-serif;
+        }
+        .testing-warning {
+            color: #FF0000;
+            font-weight: bold;
         }
         .print-bar {
             margin: 8px 0 16px 4px;
@@ -39,11 +83,109 @@
         <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
     </div>
 
-    <!-- Render the calendar body HTML from legacy servlet -->
-    <div th:utext="${calendarBodyHtml}"></div>
+    <!-- Heading, plus month navigation on the right -->
+    <table border="0" cellspacing="0" cellpadding="0" width="100%">
+        <tr>
+            <td align="left" valign="bottom">
+                <br>
+                <font face="Arial, Helvetica" color="000000" size="4"><b>
+                    <span th:if="${!#strings.isEmpty(calendar.testingMessage)}" class="testing-warning"
+                          th:text="${calendar.testingMessage}">testing database warning</span>
+                    <span th:text="${calendar.resortFullName} + ' - Shift Schedule for ' + ${calendar.monthName} + ' ' + ${calendar.year}">
+                        Resort - Shift Schedule for Month Year</span>
+                </b></font>
+            </td>
+            <td valign="bottom" align="right" class="no-print" nowrap>
+                <a target="_self" th:href="${calendar.nav.previousUrl}"><img
+                        src="/calendar-1/images/ncvwprev.gif" border="0" alt="Previous month"
+                        align="middle" width="32" height="23"></a>
+                <a target="_self" th:href="${calendar.nav.nextUrl}"><img
+                        src="/calendar-1/images/ncvwnext.gif" border="0" alt="Next month"
+                        align="middle" width="32" height="23"></a>
+                <a target="_self" th:href="${calendar.nav.todayUrl}"><img
+                        src="/calendar-1/images/ncgohome.gif" border="0" th:alt="${calendar.nav.todayLabel}"
+                        align="middle" width="32" height="32"></a>
+            </td>
+        </tr>
+    </table>
 
-    <!-- Sits directly under the "As of:" line, which is the last thing the legacy
-         calendar body writes (MonthCalendar.printEndOfPage) -->
+    <table border="0" cellspacing="0" cellpadding="0" width="100%">
+        <tr><td><img src="/calendar-1/images/ncclear.gif" width="3" height="3"></td></tr>
+    </table>
+
+    <!-- The calendar grid -->
+    <table class="calendar" border="3" cellspacing="0" cellpadding="1" width="100%">
+        <tr>
+            <th:block th:each="dayName, dayStat : ${ {'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'} }"
+                      th:with="weekend=${dayStat.index == 0 or dayStat.index == 6}">
+                <td th:width="${(weekend ? calendar.weekendWidth : calendar.dayWidth) + '%'}"
+                    valign="top" height="15" th:bgcolor="${weekend ? '#800000' : '#000080'}">
+                    <center><b><font face="arial,helvetica" size="2" color="#FFFFFF"
+                                     th:text="${dayName}">Sunday</font></b></center>
+                </td>
+            </th:block>
+        </tr>
+
+        <tr th:each="week : ${calendar.weeks}">
+            <th:block th:each="day : ${week.days}"
+                      th:with="width=${(day.weekend ? calendar.weekendWidth : calendar.dayWidth) + '%'}">
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                <td th:if="${day.blank}" th:width="${width}" bgcolor="#e1e1e1" valign="top"
+                    height="64">&nbsp;</td>
+
+                <td th:unless="${day.blank}" th:width="${width}" valign="top" height="64"
+                    th:bgcolor="${day.highlighted ? '#00e1e1' : '#FFFFFF'}">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    <a th:if="${day.dateLink != null}" target="_self" th:href="${day.dateLink}"
+                       title="Shift Details.."><span class="day-number"
+                                                     th:text="${day.dayNumber}">1</span></a>
+                    <span th:if="${day.dateLink == null}" class="day-number"
+                          th:text="${day.dayNumber}">1</span>
+
+                    <span th:if="${day.closed}" class="closed-label"
+                          th:text="'&nbsp;&nbsp;' + ${day.closedLabel}">CLOSED</span>
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    <th:block th:if="${day.hasEventName}">
+                        <br><span class="event-name" th:utext="${day.eventNameHtml}">comment</span>
+                    </th:block>
+
+                    <table th:if="${!#lists.isEmpty(day.shiftRows)}" width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr th:each="row : ${day.shiftRows}">
+                            <td th:each="slot : ${row}">
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a th:if="${slot.editable}" target="_self" th:href="${slot.editLink}"
+                                   th:title="${slot.tooltip}"><span class="shift-name"
+                                        th:classappend="${slot.needsReplacement} ? 'needs-replacement' : ''"><th:block
+                                        th:text="${slot.time}">08:00 </th:block><strike
+                                        th:if="${slot.missed}" th:text="${slot.memberName}">Name</strike><th:block
+                                        th:unless="${slot.missed}" th:text="${slot.memberName}">Name</th:block></span></a>
+
+                                <!-- Read-only slot -->
+                                <span th:unless="${slot.editable}"
+                                      class="shift-name not-editable"><th:block
+                                        th:text="${slot.time}">08:00 </th:block><strike
+                                        th:if="${slot.missed}" th:text="${slot.memberName}">Name</strike><th:block
+                                        th:unless="${slot.missed}" th:text="${slot.memberName}">Name</th:block></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </th:block>
+        </tr>
+    </table>
+
+    <table border="0" cellspacing="0" cellpadding="0" width="100%">
+        <tr><td><img src="/calendar-1/images/ncclear.gif" width="3" height="4"></td></tr>
+    </table>
+    <font size="1">As of: <span
+            th:text="${#dates.format(asOf, 'EEE MMM dd HH:mm:ss zzz yyyy')}">timestamp</span></font>
+
     <div class="print-bar no-print">
         <button type="button" onclick="window.print()">Print Calendar</button>
     </div>

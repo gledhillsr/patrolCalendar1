@@ -1,7 +1,5 @@
 package com.gledhills.calendar.store;
 
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
 import com.gledhills.calendar.utils.SessionData;
@@ -397,26 +395,4 @@ public class Assignments {
     }
   }
 
-  public ObjectNode toNode() {
-    ObjectNode returnNode = StaticUtils.nodeFactory.objectNode();
-
-    returnNode.put("Date", szDate);
-    returnNode.put("StartTime", szStartTime);
-    returnNode.put("EndTime", szEndTime);
-    setIfNotEmpty(returnNode, "EventName", szEventName);
-    returnNode.put("ShiftType", String.valueOf(type));
-    returnNode.put("Count", String.valueOf(count));
-    ArrayNode patrollerIds = StaticUtils.nodeFactory.arrayNode();
-    for (int i = 0; i < count; ++i) {
-      patrollerIds.add(patrollerID[i]);
-    }
-    returnNode.set("patrollerIds", patrollerIds);
-    return returnNode;
-  }
-
-  private void setIfNotEmpty(ObjectNode returnNode, String key, String value) {
-    if (StaticUtils.isNotEmpty(value)) {
-      returnNode.put(key, value);
-    }
-  }
 }

@@ -35,33 +35,37 @@ All requests require a `?resort=<name>` parameter identifying the ski patrol org
 ### Package Layout
 
 ```
-org.nsponline.calendar/
+com.gledhills.calendar/
   CalendarApplication.java       Spring Boot entry point
-  controller/                    Spring MVC controllers (migrated, active endpoints)
-  service/                       Business logic (EmailService, ShiftAssignmentService, etc.)
+  controller/                    Spring MVC controllers — every served endpoint
+  service/                       Business logic (EmailService, RosterQueryService, etc.)
   dto/                           Form/request/response data objects for controllers
-  config/                        Spring config (AsyncConfig: email thread pool + SMTP bean)
+  config/                        Spring config (AsyncConfig: email thread pool + SMTP bean;
+                                 BotBlockingFilter: rejects crawlers/scanners with 403)
   store/                         Data access objects (Roster, Assignments, ShiftDefinitions,
-                                 NspSession, DirectorSettings, PasswordResetToken)
-  utils/                         Shared utilities (PatrolData, SessionData, Logger, MailMan)
-  resources/                     LEGACY servlet classes — migration source; not registered
-                                 anywhere, not currently served; migrate each to controller/
+                                 DirectorSettings, PasswordResetToken)
+  utils/                         Shared utilities (PatrolData, SessionData, Logger, MailMan,
+                                 AuthCookie, ValidateCredentialsRedirectIfNeeded,
+                                 EventNameSanitizer)
 ```
+
+There is no longer a `resources/` package: the servlet migration is complete.
 
 ### Migration Status
 
-**Migrated to Spring Boot controllers** (in `controller/`):
-`/ChangeShiftAssignments`, `/Directors`, `/DayShifts`, `/DownloadRoster`, `/EditShiftTemplates`,
-`/EmailForm`, `/ListAssignments`, `/ListPatrollers`, `/MemberList`, `/MemberLogin`, `/MemberLogout`,
-`/MonthCalendar`, `/ProcessChangeShiftAssignments`, `/PurgeAssignments`, `/RefresherTraining`,
-`/SetupListPatrollers`, `/SubList`, `/UpdateInfo`, `/VolunteerForm`, `/WebSitePreferences`
+**The servlet migration is finished.** Every endpoint is a Spring Boot controller in `controller/`,
+rendering Thymeleaf templates:
+`/ChangeShiftAssignments`, `/DayShifts`, `/Directors`, `/DownloadRoster`, `/EditShiftTemplates`,
+`/EmailForm`, `/ListAssignments`, `/ListPatrollers`, `/LoginHelp`, `/MemberList`, `/MemberLogin`,
+`/MemberLogout`, `/MonthCalendar`, `/ProcessChangeShiftAssignments`, `/PurgeAssignments`,
+`/RefresherTraining`, `/ResetPassword`, `/SetupListPatrollers`, `/SubList`, `/UpdateInfo`,
+`/VolunteerForm`, `/WebSitePreferences`
 
-**Still need migration** (in `resources/`, currently not served):
-- `ApiResources.java` — REST JSON endpoints requiring `Authorization` header
-- `InnerWebResource.java` / `WebResource.java`
-- `LoginHelp.java`
-
-`ResourceBase.java` is the legacy base class that the unmigrated servlets extend — it won't be needed once migration is complete.
+Gone, and recoverable from git history if ever needed: the `resources/` package (the legacy
+servlets, `ResourceBase`, the `WebResource`/`InnerWebResource` registries and the `ApiResources`
+JSON API), `utils/OuterPage` with its `resortHeader1.html`/`resortFooter1.html` chrome, and
+`NspSession`. `ServletAdapter` is still needed because `store/` and `utils/` remain on the old
+`javax.servlet` API — that is the next cleanup if you want one.
 
 ### javax/jakarta Bridge
 
@@ -76,14 +80,39 @@ PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
 ### Authentication & Session Flow
 
-- **Web sessions**: Cookie-based; `SessionData` reads the session cookie and validates via `NspSession.read(connection, sessionId)`
-- **API sessions**: Token in `Authorization` header
-- Invalid sessions redirect to `MemberLogin?resort=<name>` for web pages, or return 401 for API
+- **Logged-in identity** lives in the HTTP session (`loggedInUserId` / `loggedInResort`), read and
+  written through `SessionData`
+- **Remember-me**: a signed `nspToken` cookie. `ValidateCredentialsRedirectIfNeeded` verifies the
+  signature with `AuthCookie.verify` and, if the session is empty, logs the member back in from it.
+  The signature is what stops someone typing another member's id into their browser
+- Controllers gate access by constructing `ValidateCredentialsRedirectIfNeeded`, which redirects to
+  `MemberLogin?resort=<name>&NSPgoto=<parent>` when credentials do not check out
 - Director-only pages check `Roster.isDirector` after loading the logged-in user's record
+- `BotBlockingFilter` rejects crawler/scanner user agents with 403 before any controller runs — note
+  a request with **no** User-Agent counts as a bot, which matters when writing MockMvc tests
 
 ### Data Layer
 
 Store classes manage SQL directly (no ORM). Each method receives a `PatrolData` (holds the live `Connection`) and uses the resort name as a table prefix. `PatrolData` connects to MySQL at `MYSQL_ADDRESS` (default `127.0.0.1`).
+
+### Month Calendar
+
+`MonthCalendarService` builds a `CalendarMonth` view model (weeks → days → shift rows) and
+`month-calendar.html` draws it. The service owns every decision the old servlet baked into
+markup: which days are closed (season, blackout, the "patroller id 1" closed flag), whether the
+date links to DayShifts (directors only), whether a slot links to signup, and the dense
+two-column weekend layout (`textLen` override, Brighton, or more than 12 slots on a day).
+
+**Day comments are sanitized, not escaped.** The Event Name/Comment field deliberately accepts
+basic HTML, and the calendar renders it with `th:utext`, so `MonthCalendarService` runs it through
+`EventNameSanitizer` first: `b/i/u/em/strong/small/sub/sup/br` survive, everything else is
+escaped, and no attribute ever survives. **Anything else that renders a comment unescaped must
+sanitize it the same way.**
+
+Tests: `MonthCalendarServiceTest` covers the day-cell branches with a mocked `PatrolData`
+(including the XSS case), `MonthCalendarRenderTest` covers page behavior, and
+`MonthCalendarGoldenTest` pins the exact HTML — re-record with
+`mvn test -Dtest=MonthCalendarGoldenTest -Dgolden.update=true` and read the diff before committing.
 
 ### Roster Listing & Download
 

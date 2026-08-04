@@ -12,7 +12,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import tools.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringEscapeUtils;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.SaltUtils;
@@ -1206,40 +1205,6 @@ public class Roster {
     return memberData[ID_NUM] + "  " + memberData[FIRST] + " " + memberData[LAST];
   }
 
-  public ObjectNode toNode() {
-    ObjectNode returnNode = StaticUtils.nodeFactory.objectNode();
-    returnNode.put("IDNumber", getID());
-    setIfNotEmpty(returnNode, "ClassificationCode", getClassification());
-    setIfNotEmpty(returnNode, "ClassificationCode", getClassification());
-    setIfNotEmpty(returnNode, "LastName", getLast());
-    setIfNotEmpty(returnNode, "FirstName", getFirst());
-    setIfNotEmpty(returnNode, "Spouse", getSpouse());
-    setIfNotEmpty(returnNode, "Address", getAddress());
-    setIfNotEmpty(returnNode, "City", getCity());
-    setIfNotEmpty(returnNode, "State", getState());
-    setIfNotEmpty(returnNode, "ZipCode", getZipCode());
-    setIfNotEmpty(returnNode, "HomePhone", getHomePhone());
-    setIfNotEmpty(returnNode, "WorkPhone", getWorkPhone());
-    setIfNotEmpty(returnNode, "CellPhone", getCellPhone());
-    setIfNotEmpty(returnNode, "Pager", getPager());
-    setIfNotEmpty(returnNode, "email", getEmailAddress());
-    setIfNotEmpty(returnNode, "EmergencyCallUp", getEmergency());
-    setIfNotEmpty(returnNode, "NightSubsitute", getSub());
-    setIfNotEmpty(returnNode, "Commitment", getCommitment());
-    setIfNotEmpty(returnNode, "Instructor", getInstructor());
-    setIfNotEmpty(returnNode, "Director", getDirector());
-    setIfNotEmpty(returnNode, "teamLead", getTeamLead());
-    setIfNotEmpty(returnNode, "mentoring", getMentoring());
-    setIfNotEmpty(returnNode, "lastUpdated", getLastUpdated());
-
-    return returnNode;
-  }
-
-  private void setIfNotEmpty(ObjectNode returnNode, String key, String value) {
-    if (StaticUtils.isNotEmpty(value)) {
-      returnNode.put(key, value);
-    }
-  }
 
 } //end MemberData class
 

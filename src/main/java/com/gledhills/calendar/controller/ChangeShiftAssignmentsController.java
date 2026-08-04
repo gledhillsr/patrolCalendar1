@@ -85,15 +85,18 @@ public class ChangeShiftAssignmentsController {
     String newName1 = "";
     String newIdNumber = "0";
     boolean posWasEmpty = true;
+    boolean wasMarkedAsMissed = false;
 
     for (int ag = 0; ag < assignmentGroups.size(); ag++) {
       Assignments shift = assignmentGroups.get(ag);
       for (int ow = 0; ow < shift.getCount(); ow++) {
         String id = shift.getPosID(ow);
-        if (!id.isEmpty() && id.charAt(0) == '-') {
+        boolean missed = !id.isEmpty() && id.charAt(0) == '-';
+        if (missed) {
           id = id.substring(1); // strip missed-shift marker
         }
         if ((ag + 1) == pos && ow == index) {
+          wasMarkedAsMissed = missed;
           newIdNumber = id;
           newName = numToName.getOrDefault(id, "");
           if ("0".equals(id)) {
@@ -164,6 +167,8 @@ public class ChangeShiftAssignmentsController {
     model.addAttribute("validRemoveRange", validRemoveRange);
     model.addAttribute("isDirector", isDirector);
     model.addAttribute("wasMarkedAsNeedingReplacement", wasMarkedAsNeedingReplacement);
+    //the missedShift transaction toggles, so the label has to say which way it will go
+    model.addAttribute("wasMarkedAsMissed", wasMarkedAsMissed);
     model.addAttribute("date1", date1);
     model.addAttribute("maxLimitedShiftsThisMonth", MAX_DAY_SHIFTS_PER_MONTH);
     model.addAttribute("replaceWithSomeoneElseRadioIndex", replaceWithSomeoneElseRadioIndex);

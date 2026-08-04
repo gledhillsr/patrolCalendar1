@@ -1,6 +1,5 @@
 package com.gledhills.calendar.store;
 
-import tools.jackson.databind.node.ObjectNode;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.SqlWriter;
 import com.gledhills.calendar.utils.StaticUtils;
@@ -438,13 +437,4 @@ public class DirectorSettings {
       " " + REMOVE_ACCESS_FIELD + "=" + nRemoveAccess;
   }
 
-  public ObjectNode toNode() {
-    ObjectNode returnNode = StaticUtils.nodeFactory.objectNode();
-
-    returnNode.put("formalName", szPatrolName);
-    returnNode.put("changesByDirectorsOnly", "1".equals(szDirectorsOnlyChange));
-    returnNode.put("whenCanUserDelete", (nRemoveAccess == 127) ? (-1) : nRemoveAccess);
-    returnNode.put("patrollersCanSendMail", "1".equals(szEMailAll));
-    return returnNode;
-  }
 }

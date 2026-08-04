@@ -1,0 +1,2961 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Resort Ski Patrol - Monthly Schedule</title>
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        .calendar td {
+            /* ... not \.\.\.: CSS inlining escapes \.\.\. as an identifier, which turned
+               "10pt" into "\31 0pt". And the unit matters - without "pt" the declaration is
+               invalid and the cells fall back to the browser default, noticeably bigger. */
+            font-size: 10pt;
+            /* no font-family here on purpose - the legacy stylesheet wrote "face:Verdana,..",
+               which is not a CSS property, so the calendar has always inherited the default */
+            padding: 1px;
+        }
+        .shift-list {
+            table-layout: auto;
+        }
+        .shift-name {
+            display: block;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            min-width: 16ch;
+            max-width: 20ch;
+        }
+        .day-number {
+            font-family: arial, helvetica, sans-serif;
+            font-weight: bold;
+            color: #0000FF;
+            font-size: large;
+        }
+        .closed-label {
+            color: #FF0000;
+            font-size: large;
+        }
+        .event-name {
+            font-size: small;
+        }
+        .needs-replacement {
+            background: #FFFF00;
+        }
+        .not-editable {
+            color: #000000;
+            font-family: arial, helvetica, sans-serif;
+        }
+        .testing-warning {
+            color: #FF0000;
+            font-weight: bold;
+        }
+        .print-bar {
+            margin: 8px 0 16px 4px;
+        }
+        .print-bar button {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            padding: 5px 14px;
+            cursor: pointer;
+        }
+
+        @media print {
+            /* The calendar is the only thing worth the paper - drop the site chrome,
+               the button itself, and the tiled background image. */
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-image: none !important;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <!-- Use the consistent Thymeleaf header fragment -->
+    <div class="no-print">
+        <div>
+        <link rel="stylesheet" href="/css/header.css"/>
+        
+        
+            
+        <div id="banner">
+            <div class="banner-top">
+                <a href="http://www.gledhills.com">
+                    <img border="0" src="/calendar-1/images/Coldbarnstar.png" height="80" alt="Sample Resort"/>
+                </a>
+                <h1 class="banner-title"><span class="banner-title-text"><span>Sample Resort Ski Patrol</span></span></h1>
+                <img class="banner-icon" src="/calendar-1/images/cadeuc4.gif" width="56" height="56" border="0" alt="NSP"/>
+            </div>
+
+            <div class="nav-members">
+                <a class="nav-btn" target="_self" href="/MonthCalendar?resort=Sample&amp;ID=200401">Calendar</a>
+                <a class="nav-btn" target="_self" href="/ListAssignments?resort=Sample&amp;ID=200401">My Assignments</a>
+                <a class="nav-btn" target="_self" href="/SubList?resort=Sample&amp;ID=200401">Sub List</a>
+                <a class="nav-btn" target="_self" href="/UpdateInfo?resort=Sample&amp;ID=200401">My Info</a>
+                <a class="nav-btn" target="_self" href="/MemberList?resort=Sample&amp;ID=200401">Patrollers</a>
+                <a class="nav-btn" target="_self" href="/Directors?resort=Sample&amp;ID=200401">Directors</a>
+                <a class="nav-btn nav-btn-logout"
+                   target="_self" href="/MemberLogout?resort=Sample">Logout</a>
+            </div>
+        </div>
+    
+        
+    </div>
+    </div>
+
+    <!-- Heading, plus month navigation on the right -->
+    <table border="0" cellspacing="0" cellpadding="0" width="100%">
+        <tr>
+            <td align="left" valign="bottom">
+                <br>
+                <font face="Arial, Helvetica" color="000000" size="4"><b>
+                    
+                    <span>Sample Resort - Shift Schedule for January 2026</span>
+                </b></font>
+            </td>
+            <td valign="bottom" align="right" class="no-print" nowrap>
+                <a target="_self" href="MonthCalendar?resort=Sample&amp;ID=200401&amp;month=11&amp;year=2025"><img
+                        src="/calendar-1/images/ncvwprev.gif" border="0" alt="Previous month"
+                        align="middle" width="32" height="23"></a>
+                <a target="_self" href="MonthCalendar?resort=Sample&amp;ID=200401&amp;month=1&amp;year=2026"><img
+                        src="/calendar-1/images/ncvwnext.gif" border="0" alt="Next month"
+                        align="middle" width="32" height="23"></a>
+                <a target="_self" href="MonthCalendar?resort=Sample&amp;ID=200401&amp;month=7&amp;year=2026"><img
+[HOME BUTTON SCRUBBED]
+                        align="middle" width="32" height="32"></a>
+            </td>
+        </tr>
+    </table>
+
+    <table border="0" cellspacing="0" cellpadding="0" width="100%">
+        <tr><td><img src="/calendar-1/images/ncclear.gif" width="3" height="3"></td></tr>
+    </table>
+
+    <!-- The calendar grid -->
+    <table class="calendar" border="3" cellspacing="0" cellpadding="1" width="100%">
+        <tr>
+            
+                <td width="14%"
+                    valign="top" height="15" bgcolor="#800000">
+                    <center><b><font face="arial,helvetica" size="2" color="#FFFFFF">Sunday</font></b></center>
+                </td>
+            
+                <td width="14%"
+                    valign="top" height="15" bgcolor="#000080">
+                    <center><b><font face="arial,helvetica" size="2" color="#FFFFFF">Monday</font></b></center>
+                </td>
+            
+                <td width="14%"
+                    valign="top" height="15" bgcolor="#000080">
+                    <center><b><font face="arial,helvetica" size="2" color="#FFFFFF">Tuesday</font></b></center>
+                </td>
+            
+                <td width="14%"
+                    valign="top" height="15" bgcolor="#000080">
+                    <center><b><font face="arial,helvetica" size="2" color="#FFFFFF">Wednesday</font></b></center>
+                </td>
+            
+                <td width="14%"
+                    valign="top" height="15" bgcolor="#000080">
+                    <center><b><font face="arial,helvetica" size="2" color="#FFFFFF">Thursday</font></b></center>
+                </td>
+            
+                <td width="14%"
+                    valign="top" height="15" bgcolor="#000080">
+                    <center><b><font face="arial,helvetica" size="2" color="#FFFFFF">Friday</font></b></center>
+                </td>
+            
+                <td width="14%"
+                    valign="top" height="15" bgcolor="#800000">
+                    <center><b><font face="arial,helvetica" size="2" color="#FFFFFF">Saturday</font></b></center>
+                </td>
+            
+        </tr>
+
+        <tr>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                <td width="14%" bgcolor="#e1e1e1" valign="top"
+                    height="64">&nbsp;</td>
+
+                
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                <td width="14%" bgcolor="#e1e1e1" valign="top"
+                    height="64">&nbsp;</td>
+
+                
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                <td width="14%" bgcolor="#e1e1e1" valign="top"
+                    height="64">&nbsp;</td>
+
+                
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                <td width="14%" bgcolor="#e1e1e1" valign="top"
+                    height="64">&nbsp;</td>
+
+                
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">1</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=1&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=1&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=1&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=1&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=1&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=1&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">2</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=2&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=2&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">3</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=4"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=5"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=6"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=7"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=3&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+        </tr>
+
+        <tr>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">4</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=4&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=4&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=4&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=4&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=4&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=4"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=4&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=5"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=4&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=6"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=4&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=7"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">5</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">6</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=3"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=0"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=1"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=0"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=1"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=6&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=2"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">7</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=3"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=4"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=5"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=6"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=0"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=7&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=1"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">8</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=8&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=8&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=8&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=8&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=8&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=8&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">9</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=9&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=9&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">10</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=4"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=5"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=6"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=7"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=10&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+        </tr>
+
+        <tr>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">11</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=11&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=11&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=11&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=11&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=11&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=4"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=11&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=5"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=11&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=6"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=11&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=7"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">12</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">13</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=3"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=0"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=1"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=0"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=1"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=13&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=2"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">14</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=3"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=4"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=5"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=6"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=0"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=14&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=1"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">15</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=15&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=15&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=15&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=15&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=15&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=15&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">16</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=16&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=16&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">17</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=4"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=5"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=6"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=7"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=17&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+        </tr>
+
+        <tr>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">18</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=18&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=18&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=18&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=18&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=18&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=4"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=18&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=5"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=18&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=6"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=18&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=7"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">19</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">20</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=3"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=0"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=1"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=0"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=1"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=20&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=2"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">21</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=3"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=4"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=5"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=6"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=0"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=21&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=1"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">22</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=22&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=22&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=22&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=22&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=22&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=22&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">23</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=23&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=23&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">24</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=4"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=5"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=6"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=7"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=24&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+        </tr>
+
+        <tr>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">25</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=25&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=25&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=25&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=25&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=25&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=4"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=25&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=5"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=25&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=6"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=0&amp;date=25&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=7"><span class="shift-name">8:00am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">26</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">27</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=3"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=0"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=1"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=0"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=1"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=2&amp;date=27&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=4&amp;index=2"><span class="shift-name">18:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">28</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">10:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=3"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=4"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=5"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=6"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=0"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=3&amp;date=28&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=3&amp;index=1"><span class="shift-name">15:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">29</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=29&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=29&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=29&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">0700</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=29&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=29&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=4&amp;date=29&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">1900</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">30</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=30&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=5&amp;date=30&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8am</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+
+                <!-- Padding cell, before the 1st or after the last of the month -->
+                
+
+                <td width="14%" valign="top" height="64"
+                    bgcolor="#FFFFFF">
+
+                    <!-- The date opens DayShifts for directors; everyone else sees plain text -->
+                    
+                    <span class="day-number">31</span>
+
+                    
+
+                    <!-- Director-entered comment. MonthCalendarService ran it through
+                         EventNameSanitizer, which keeps basic formatting tags and escapes the
+                         rest, so utext here cannot inject markup. -->
+                    
+
+                    <table width="100%" class="shift-list"
+                           border="0" cellpadding="0" cellspacing="0">
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=0"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=1"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=2"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=3"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=4"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=5"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=6"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=1&amp;index=7"><span class="shift-name">8:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=0"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=1"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <!-- Editable slot: the whole line links to the signup screen -->
+                                <a target="_self" href="ChangeShiftAssignments?resort=Sample&amp;dayOfWeek=6&amp;date=31&amp;month=0&amp;year=2026&amp;ID=200401&amp;pos=2&amp;index=2"><span class="shift-name">13:00</span></a>
+
+                                <!-- Read-only slot -->
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            
+        </tr>
+    </table>
+
+    <table border="0" cellspacing="0" cellpadding="0" width="100%">
+        <tr><td><img src="/calendar-1/images/ncclear.gif" width="3" height="4"></td></tr>
+    </table>
+[AS OF LINE SCRUBBED]
+
+    <div class="print-bar no-print">
+        <button type="button" onclick="window.print()">Print Calendar</button>
+    </div>
+
+    <div class="no-print">
+        <div>
+        <footer>
+            <p>Please report bugs or suggest improvements at <a href="mailto:steve@gledhills.com">steve@gledhills.com</a></p>
+            <p>&copy; Patrol Calendar</p>
+        </footer>
+    </div>
+    </div>
+</body>
+</html>
