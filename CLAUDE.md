@@ -51,14 +51,13 @@ org.nsponline.calendar/
 ### Migration Status
 
 **Migrated to Spring Boot controllers** (in `controller/`):
-`/ChangeShiftAssignments`, `/Directors`, `/DayShifts`, `/EditShiftTemplates`, `/EmailForm`,
-`/ListAssignments`, `/ListPatrollers`, `/MemberList`, `/MemberLogin`, `/MemberLogout`,
+`/ChangeShiftAssignments`, `/Directors`, `/DayShifts`, `/DownloadRoster`, `/EditShiftTemplates`,
+`/EmailForm`, `/ListAssignments`, `/ListPatrollers`, `/MemberList`, `/MemberLogin`, `/MemberLogout`,
 `/MonthCalendar`, `/ProcessChangeShiftAssignments`, `/PurgeAssignments`, `/RefresherTraining`,
 `/SetupListPatrollers`, `/SubList`, `/UpdateInfo`, `/VolunteerForm`, `/WebSitePreferences`
 
 **Still need migration** (in `resources/`, currently not served):
 - `ApiResources.java` — REST JSON endpoints requiring `Authorization` header
-- `InnerDownloadRoster.java`
 - `InnerWebResource.java` / `WebResource.java`
 - `LoginHelp.java`
 
@@ -85,6 +84,16 @@ PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 ### Data Layer
 
 Store classes manage SQL directly (no ORM). Each method receives a `PatrolData` (holds the live `Connection`) and uses the resort name as a table prefix. `PatrolData` connects to MySQL at `MYSQL_ADDRESS` (default `127.0.0.1`).
+
+### Roster Listing & Download
+
+`RosterQueryService` turns the ListPatrollers query parameters (filters, column choices, sort) into
+the list of members to show. Both `ListPatrollersController` and `DownloadRosterController` call it,
+so the `.xlsx` a director downloads holds exactly the rows and columns the page displayed —
+the download button echoes the page's parameters through in its URL.
+
+`RosterExcelExporter` writes the workbook with Apache POI (`poi-ooxml`). Its column list mirrors
+`templates/list-patrollers.html`: **a column added to the page must be added there too.**
 
 ### Email
 

@@ -402,18 +402,7 @@ public class UpdateInfoController {
      * @param value Bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan
      */
     private String getInstructorLabel(String value) {
-        int bits;
-        try {
-            bits = Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            return "";
-        }
-        List<String> certifications = new ArrayList<>();
-        if ((bits & 1) != 0) certifications.add("OEC");
-        if ((bits & 2) != 0) certifications.add("CPR");
-        if ((bits & 4) != 0) certifications.add("Ski");
-        if ((bits & 8) != 0) certifications.add("Toboggan");
-        return String.join(", ", certifications);
+        return Roster.getInstructorLabel(value);
     }
 
     /**

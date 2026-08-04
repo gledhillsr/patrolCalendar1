@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Hashtable;
 import java.util.List;
@@ -510,6 +511,59 @@ public class Roster {
     return "Full Time";
   }
 
+  /**
+   * This member's commitment as the label the Update Info dropdown shows
+   * ("Inactive"/"Part Time"/"Full Time"), or blank when the field was never set.
+   */
+  public String getCommitmentLabel() {
+    String value = stripPlaceholder(getCommitment());
+    return value.isEmpty() ? "" : getCommitmentString(value);
+  }
+
+  /** This member's instructor certifications as plain text, e.g. "OEC, Ski". */
+  public String getInstructorLabel() {
+    return getInstructorLabel(stripPlaceholder(getInstructor()));
+  }
+
+  /** Reads use "&nbsp;" for an empty field; callers outside raw HTML want a blank string. */
+  private static String stripPlaceholder(String value) {
+    if (value == null) {
+      return "";
+    }
+    return value.replace(HARD_SPACE_NBSP, "").trim();
+  }
+
+  /**
+   * The instructor certifications as plain text, e.g. "OEC, Ski" - the same labels the
+   * Update Info checkboxes use. Empty when nothing is set or the field cannot be parsed.
+   * Unlike getInstructorString this adds no "&nbsp;" prefix, so it is safe outside raw HTML.
+   *
+   * @param value bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan
+   */
+  public static String getInstructorLabel(String value) {
+    int bits;
+    try {
+      bits = Integer.parseInt(value.trim());
+    }
+    catch (Exception e) {
+      return "";
+    }
+    List<String> certifications = new ArrayList<>();
+    if ((bits & 1) != 0) {
+      certifications.add("OEC");
+    }
+    if ((bits & 2) != 0) {
+      certifications.add("CPR");
+    }
+    if ((bits & 4) != 0) {
+      certifications.add("Ski");
+    }
+    if ((bits & 8) != 0) {
+      certifications.add("Toboggan");
+    }
+    return String.join(", ", certifications);
+  }
+
   public static String getInstructorString(String szTmp) {
     String str = Roster.HARD_SPACE_NBSP;
     try {
@@ -908,6 +962,27 @@ public class Roster {
 
   public String getCarryOverCredits() {
     return "0"; /* memberData[CARRY_OVER_CREDITS]; */
+  }
+
+  public boolean isTeamLead() {
+    return isSetToYes(getTeamLead());
+  }
+
+  public boolean isMentoring() {
+    return isSetToYes(getMentoring());
+  }
+
+  public boolean canEarnCredits() {
+    return isSetToYes(getCanEarnCredits());
+  }
+
+  /** These flags are stored as "1"/"0" in some resorts and "Y"/"N" in others. */
+  private boolean isSetToYes(String value) {
+    if (!testIfValid(value)) {
+      return false;
+    }
+    String trimmed = value.trim();
+    return trimmed.startsWith("1") || trimmed.substring(0, 1).equalsIgnoreCase("Y");
   }
 
   public String getLastCreditDate() {

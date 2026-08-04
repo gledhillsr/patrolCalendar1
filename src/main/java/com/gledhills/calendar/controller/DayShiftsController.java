@@ -261,6 +261,8 @@ public class DayShiftsController {
         model.addAttribute("isDirector", true);
         model.addAttribute("doAssignments", doAssignments);
         model.addAttribute("maxShiftsReached", assignments.size() >= ShiftDefinitions.MAX);
+        model.addAttribute("countOptions", buildCountOptions());
+        model.addAttribute("maxAssignmentSize", Assignments.MAX_ASSIGNMENT_SIZE);
 
         addResortMetadata(resort, model);
         patrolData.close();
@@ -316,6 +318,15 @@ public class DayShiftsController {
 
             parameterShifts.add(new ShiftDefinitions(newName, startTime, endTime, count, typeId, LOG));
         }
+    }
+
+    /** Patroller-count choices for each shift row: 0 through the max slots a shift can hold. */
+    private List<Integer> buildCountOptions() {
+        List<Integer> options = new ArrayList<>(Assignments.MAX_ASSIGNMENT_SIZE + 1);
+        for (int count = 0; count <= Assignments.MAX_ASSIGNMENT_SIZE; count++) {
+            options.add(count);
+        }
+        return options;
     }
 
     private Hashtable<String, String> buildRosterLookup(PatrolData patrolData) {

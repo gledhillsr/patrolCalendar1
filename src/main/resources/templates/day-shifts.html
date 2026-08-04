@@ -160,7 +160,6 @@
                                 <input type="hidden" name="shiftCount" th:value="${#lists.size(assignments)}">
 
                                 <h2 align="center">Change Today's Shift</h2>
-                                <h4>Please report any bugs to steve@gledhills.com</h4>
 
                                 <div align="center">
                                     <table border="3" cellpadding="0" cellspacing="0" width="700" height="192">
@@ -188,7 +187,20 @@
                                                                     <input type="text" name="newName"
                                                                            onkeydown="javascript:return captureEnter(event.keyCode)"
                                                                            th:value="${originalName}" size="39">
+                                                                    <br>
+                                                                    <font size="2">Basic HTML tags are accepted here, for
+                                                                        example &lt;b&gt;bold&lt;/b&gt; or
+                                                                        &lt;br&gt; for a line break.</font>
                                                                 </td>
+                                                            </tr>
+
+                                                            <!-- Column labels for the shift definition rows below -->
+                                                            <tr>
+                                                                <td width="90">&nbsp;</td>
+                                                                <td width="113"><b>Start time/label</b></td>
+                                                                <td width="111"><b>End time/label</b></td>
+                                                                <td width="166"><b>Shift type</b></td>
+                                                                <td width="130"><b>Patroller count</b></td>
                                                             </tr>
 
                                                             <!-- Display existing assignments or template shifts -->
@@ -223,11 +235,15 @@
                                                                                 <option value="Holiday Shift" th:selected="${assignment.getType() == T(com.gledhills.calendar.store.Assignments).HOLIDAY_TYPE}">Holiday</option>
                                                                             </select>
                                                                         </td>
-                                                                        <td width="130">
-                                                                            <input type="text"
-                                                                                   th:name="'count_' + ${iterStat.index}"
-                                                                                   th:value="${assignment.count}"
-                                                                                   size="3">
+                                                                        <td width="130"
+                                                                            th:with="selectedCount=${assignment.count ge 0 and assignment.count le maxAssignmentSize ? assignment.count : 1}">
+                                                                            <select th:name="'count_' + ${iterStat.index}">
+                                                                                <option th:each="option : ${countOptions}"
+                                                                                        th:value="${option}"
+                                                                                        th:text="${option}"
+                                                                                        th:selected="${option == selectedCount}">0
+                                                                                </option>
+                                                                            </select>
                                                                         </td>
                                                                     </tr>
                                                                 </th:block>
@@ -261,7 +277,7 @@
                                         </center>
                                     </table>
                                 </div>
-                                <font size="3">NOTE: pressing <b>Add</b> or <b>Delete</b> does a <b>Save Shift Changes</b> (<b>Cancel</b> won't undo change)</font>
+                                <font size="3">NOTE: pressing <b>New</b> or <b>Delete</b> does a <b>Save Shift Changes</b> (<b>Cancel</b> won't undo change)</font>
                             </form>
                         </td>
                     </tr>

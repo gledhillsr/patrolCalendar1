@@ -59,10 +59,10 @@
                    onclick="window.location=this.getAttribute('data-url')"/>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
-            <input th:if="${isDirector and userId == '192443'}"
+            <input th:if="${isDirector}"
                    type="button"
-                   value="Steve, Download table (under construction)"
-                   th:attr="data-url=|DownloadRoster?resort=${resort}&ID=${userId}&format=Excel|"
+                   value="Download this table (.xlsx format)"
+                   th:attr="data-url=${downloadRosterUrl}"
                    onclick="window.location=this.getAttribute('data-url')"/>
         </bold></font></p>
     </div>
@@ -135,16 +135,16 @@
                    th:href="'mailto:' + ${member.getEmailAddress()}"
                    th:text="${member.getEmailAddress()}">Email</a>
             </td>
-            <td th:if="${showEmergency}" th:text="${#strings.replace(member.getEmergencyCallUp(), '&amp;nbsp;', '')}">Emergency</td>
-            <td th:if="${showSubstitute}" th:text="${#strings.replace(member.getNightSubstitute(), '&amp;nbsp;', '')}">Sub</td>
-            <td th:if="${showCommit}" th:text="${#strings.replace(member.getCommitment(), '&amp;nbsp;', '')}">Commitment</td>
-            <td th:if="${showInstructor}" th:text="${#strings.replace(member.getInstructor(), '&amp;nbsp;', '')}">Instructor</td>
+            <td th:if="${showEmergency}" th:text="${#strings.replace(member.getEmergency(), '&amp;nbsp;', '')}">Emergency</td>
+            <td th:if="${showSubstitute}" th:text="${#strings.replace(member.getSub(), '&amp;nbsp;', '')}">Sub</td>
+            <td th:if="${showCommit}" th:text="${member.getCommitmentLabel()}">Commitment</td>
+            <td th:if="${showInstructor}" th:text="${member.getInstructorLabel()}">Instructor</td>
             <td th:if="${showDirector}" th:text="${member.isDirector() ? 'Yes' : 'No'}">Director</td>
             <td th:if="${showLastUpdated}" th:text="${#strings.replace(member.getLastUpdated(), '&amp;nbsp;', '')}">Updated</td>
             <td th:if="${showComments}" th:text="${#strings.replace(member.getComments(), '&amp;nbsp;', '')}">Comments</td>
             <td th:if="${showCanEarnCredits}" th:text="${member.canEarnCredits() ? 'Yes' : 'No'}">Credits</td>
             <td th:if="${showCreditsEarned}" th:text="${#strings.replace(member.getCreditsEarned(), '&amp;nbsp;', '')}">Earned</td>
-            <td th:if="${showCreditDate}" th:text="${#strings.replace(member.getLastCreditUpdate(), '&amp;nbsp;', '')}">Credit Date</td>
+            <td th:if="${showCreditDate}" th:text="${#strings.replace(member.getLastCreditDateStr(), '&amp;nbsp;', '')}">Credit Date</td>
             <td th:if="${showTeamLead}" th:text="${member.isTeamLead() ? 'Yes' : 'No'}">Team Lead</td>
             <td th:if="${showMentoring}" th:text="${member.isMentoring() ? 'Yes' : 'No'}">Mentoring</td>
 

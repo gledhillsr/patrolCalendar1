@@ -597,7 +597,8 @@ public class MonthCalendar extends ResourceBase {
       "&date=" + day + "&month=" + currMonth + "&year=" + currYear + patrollerIdTag +
       "' Title='Shift Details..'><B><font face='arial,helvetica' color='#0000FF' size=4>" +
       day + "</font></B></a>";
-    if (notLoggedIn) {
+    if (notLoggedIn || !isDirector) {
+      //only directors get to click the date and open DayShifts; everyone else sees a plain date
       htmDisplayData =
         "<B><font face='arial,helvetica' color='#0000FF' size=4>" + day + "</font></B>";
     }
