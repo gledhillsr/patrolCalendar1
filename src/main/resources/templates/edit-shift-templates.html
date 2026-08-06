@@ -151,9 +151,10 @@
                                                     </td>
                                                     <td>
                                                         Patroller&nbsp;Count:&nbsp;
-                                                        <select th:name="|count_${shiftWithIndex.index}|">
+                                                        <select th:name="|count_${shiftWithIndex.index}|"
+                                                                th:with="selectedCount=${shiftWithIndex.shift.count ge 0 and shiftWithIndex.shift.count le maxAssignmentSize ? shiftWithIndex.shift.count : 1}">
                                                             <option th:each="count : ${countOptions}"
-                                                                    th:selected="${count == shiftWithIndex.shift.count}"
+                                                                    th:selected="${count == selectedCount}"
                                                                     th:value="${count}"
                                                                     th:text="${count}"></option>
                                                         </select>

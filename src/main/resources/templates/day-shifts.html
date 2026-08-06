@@ -129,18 +129,14 @@
 
     <!-- Director View - Edit Shifts -->
     <div th:if="${isDirector}">
-        <!-- Group Assignment Option -->
-        <div th:if="${!doAssignments and (!#lists.isEmpty(assignments) or true)}">
-            <form th:action="@{/DayShifts}" method="post">
-                <input type="hidden" name="ID" th:value="${patrollerId}">
-                <input type="hidden" name="dayOfWeek" th:value="${dayOfWeek}">
-                <input type="hidden" name="date" th:value="${date}">
-                <input type="hidden" name="month" th:value="${month}">
-                <input type="hidden" name="year" th:value="${year}">
-                <input type="hidden" name="resort" th:value="${resort}">
-                <input type="submit" name="doAssignments" value="Group Assignment of Patrollers to Shifts">
-                &nbsp;&nbsp;&nbsp;(Fast if assigning a large number of patrollers at one time)
-            </form>
+        <!-- Group Assignment Option.
+             The button belongs to the shift edit form below (form="editShiftForm"), so any
+             pending row edits are submitted with it and saved before the assignment grid
+             opens. It stays up here visually, where it has always been. -->
+        <div th:if="${!doAssignments}">
+            <input type="submit" name="doAssignments" value="Assign Patrollers to Today's Shifts"
+                   form="editShiftForm">
+            &nbsp;&nbsp;&nbsp;(Fast if assigning a large number of patrollers at one time)
         </div>
 
         <!-- Edit Shift Form -->
@@ -150,7 +146,8 @@
                 <table border="3" cellpadding="0" cellspacing="0" width="375" height="281">
                     <tr>
                         <td width="554" bgcolor="#C0C0C0" height="279">
-                            <form th:action="@{/DayShifts}" onsubmit="return CheckEventName()" method="post">
+                            <form id="editShiftForm" th:action="@{/DayShifts}"
+                                  onsubmit="return CheckEventName()" method="post">
                                 <input type="hidden" name="ID" th:value="${patrollerId}">
                                 <input type="hidden" name="dayOfWeek" th:value="${dayOfWeek}">
                                 <input type="hidden" name="date" th:value="${date}">
@@ -189,8 +186,10 @@
                                                                            th:value="${originalName}" size="39">
                                                                     <br>
                                                                     <font size="2">Basic HTML tags are accepted here, for
-                                                                        example &lt;b&gt;bold&lt;/b&gt; or
-                                                                        &lt;br&gt; for a line break.</font>
+                                                                        example &lt;b&gt;bold&lt;/b&gt;,
+                                                                        &lt;br&gt; for a line break, or a link:
+                                                                        &lt;a href=https://example.com&gt;click
+                                                                        here&lt;/a&gt; (links open in a new tab).</font>
                                                                 </td>
                                                             </tr>
 

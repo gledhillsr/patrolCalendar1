@@ -104,8 +104,22 @@ public class DayShiftsController {
         PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
         if (doAssignments != null) {
-            // "Group Assignment of Patrollers to Shifts" button - just show the group
-            // assignment grid, nothing to save yet.
+            // "Assign Patrollers to Today's Shifts" button. The button submits the shift edit
+            // form, so save any pending row edits first - otherwise the grid would be built from
+            // the saved shifts and the director's unsaved times/counts would be silently lost.
+            // shiftCount is only absent if the row fields were not submitted at all (a stale
+            // cached page); saving then would risk writing a comment-only row over real data.
+            if (shiftCount != null) {
+                ArrayList<Assignments> pendingFromDisk = new ArrayList<>();
+                ArrayList<ShiftDefinitions> pendingShifts = new ArrayList<>();
+
+                readAssignmentsAndShifts(resort, dayOfWeek, date, month, year,
+                        patrolData, sessionData, pendingFromDisk, javaxRequest);
+                readParameterShifts(javaxRequest, shiftCount, newName, pendingShifts, LOG);
+                processSaveShiftChanges(patrolData, pendingFromDisk, pendingShifts,
+                        newName, date, month, year, LOG);
+            }
+
             return showEditShiftView(resort, dayOfWeek, date, month, year, patrollerId,
                     null, null, true, patrolData, sessionData, model, LOG);
         }

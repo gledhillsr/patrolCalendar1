@@ -353,10 +353,11 @@ public class EditShiftTemplatesController {
     }
 
     /**
-     * Build count options (1 to MAX_ASSIGNMENT_SIZE).
+     * Patroller-count choices: 0 through the most slots a shift can hold. 0 is offered so a
+     * template row can be kept but staffed by nobody; a shift added with "New" stores 1.
      */
     private List<Integer> buildCountOptions() {
-        return IntStream.rangeClosed(1, Assignments.MAX_ASSIGNMENT_SIZE)
+        return IntStream.rangeClosed(0, Assignments.MAX_ASSIGNMENT_SIZE)
             .boxed()
             .collect(Collectors.toList());
     }

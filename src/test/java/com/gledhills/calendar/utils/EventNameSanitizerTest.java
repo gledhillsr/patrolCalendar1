@@ -2,6 +2,8 @@ package com.gledhills.calendar.utils;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,7 +47,97 @@ class EventNameSanitizerTest {
   void escapesImageAndIframePayloads() {
     assertFalse(EventNameSanitizer.sanitize("<img src=x onerror=alert(1)>").contains("<img"));
     assertFalse(EventNameSanitizer.sanitize("<iframe src='//evil'></iframe>").contains("<iframe"));
-    assertFalse(EventNameSanitizer.sanitize("<a href='//evil'>click</a>").contains("<a href"));
+  }
+
+  @Test
+  void keepsOrdinaryLinks() {
+    assertEquals("<a href=\"https://example.com/rules\" target=\"_blank\" "
+                   + "rel=\"noopener noreferrer\">Rules</a>",
+                 EventNameSanitizer.sanitize("<a href=\"https://example.com/rules\">Rules</a>"));
+  }
+
+  @Test
+  void acceptsTheUrlFormsDirectorsActuallyType() {
+    //single quoted, unquoted, uppercase tag, http, mailto and a link to another page on this site
+    assertTrue(EventNameSanitizer.sanitize("<a href='http://example.com'>x</a>").contains("href=\"http://example.com\""));
+    assertTrue(EventNameSanitizer.sanitize("<a href=http://example.com>x</a>").contains("href=\"http://example.com\""));
+    assertTrue(EventNameSanitizer.sanitize("<A HREF=\"https://example.com\">x</A>").contains("href=\"https://example.com\""));
+    assertTrue(EventNameSanitizer.sanitize("<a href=\"mailto:patrol@example.com\">mail</a>").contains("href=\"mailto:"));
+    assertTrue(EventNameSanitizer.sanitize("<a href=\"/calendar-1/MonthCalendar?resort=Sample\">cal</a>")
+                 .contains("href=\"/calendar-1/MonthCalendar?resort=Sample\""));
+  }
+
+  /** A real comment a director wrote, with an unquoted href. */
+  @Test
+  void keepsARealWorldMeetingLink() {
+    String sanitized = EventNameSanitizer.sanitize(
+      "Patrol Meeting 7PM - <a href=https://youtu.be/u2KdzOcvk24>Watch Patrol Meeting</a>");
+
+    assertEquals("Patrol Meeting 7PM - <a href=\"https://youtu.be/u2KdzOcvk24\" target=\"_blank\" "
+                   + "rel=\"noopener noreferrer\">Watch Patrol Meeting</a>", sanitized);
+  }
+
+  @Test
+  void keepsQueryStringsIntactAndEscapedForAnAttribute() {
+    String sanitized = EventNameSanitizer.sanitize(
+      "<a href=\"https://example.com/p?a=1&b=2\">two params</a>");
+
+    assertTrue(sanitized.contains("href=\"https://example.com/p?a=1&amp;b=2\""),
+               "the ampersand must be escaped for attribute context: " + sanitized);
+    assertTrue(sanitized.contains(">two params</a>"));
+  }
+
+  @Test
+  void refusesScriptSchemes() {
+    for (String url : List.of("javascript:alert(1)", "JaVaScRiPt:alert(1)",
+                              "data:text/html;base64,PHNjcmlwdD4=", "vbscript:msgbox(1)",
+                              "  javascript:alert(1)")) {
+      String sanitized = EventNameSanitizer.sanitize("<a href=\"" + url + "\">click</a>");
+      assertFalse(sanitized.contains("<a href"),
+                  "must not become a link: " + url + " -> " + sanitized);
+      assertTrue(sanitized.contains("&lt;a href"), "it should show as text: " + sanitized);
+    }
+  }
+
+  /** The scheme has to be there literally; the browser would decode entities in an href. */
+  @Test
+  void refusesAnEntityObfuscatedScheme() {
+    String sanitized = EventNameSanitizer.sanitize("<a href=\"java&#115;cript:alert(1)\">click</a>");
+
+    assertFalse(sanitized.contains("<a href"), "must not become a link: " + sanitized);
+  }
+
+  @Test
+  void refusesAProtocolRelativeJumpToAnotherHost() {
+    assertFalse(EventNameSanitizer.sanitize("<a href='//evil.example'>click</a>").contains("<a href"));
+  }
+
+  @Test
+  void refusesAnAnchorCarryingAnythingBesidesHref() {
+    for (String tag : List.of("<a href=\"https://ok.example\" onclick=\"alert(1)\">x</a>",
+                              "<a onmouseover=\"alert(1)\" href=\"https://ok.example\">x</a>",
+                              "<a href=\"https://ok.example\" style=\"position:fixed;inset:0\">x</a>",
+                              "<a name=\"anchor\">x</a>")) {
+      String sanitized = EventNameSanitizer.sanitize(tag);
+      assertFalse(sanitized.contains("<a href"), "must not be partially trusted: " + sanitized);
+      assertFalse(sanitized.contains("onclick=\"alert(1)\"") && sanitized.contains("<a"),
+                  "an event handler must never reach the page live: " + sanitized);
+    }
+  }
+
+  @Test
+  void cannotForgeThePlaceholderMarkers() {
+    //the markers used internally are control characters; stored text containing them must not
+    //be able to conjure a link that was never validated
+    String sanitized = EventNameSanitizer.sanitize("\u00010\u0002 <a href=\"https://ok.example\">x</a>");
+
+    assertEquals(1, sanitized.split("<a href", -1).length - 1,
+                 "exactly one real link should survive: " + sanitized);
+  }
+
+  @Test
+  void closingAnchorTagsSurviveOnTheirOwn() {
+    assertEquals("plain</a>", EventNameSanitizer.sanitize("plain</a>"));
   }
 
   @Test

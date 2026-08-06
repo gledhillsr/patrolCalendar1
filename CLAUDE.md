@@ -105,9 +105,16 @@ two-column weekend layout (`textLen` override, Brighton, or more than 12 slots o
 
 **Day comments are sanitized, not escaped.** The Event Name/Comment field deliberately accepts
 basic HTML, and the calendar renders it with `th:utext`, so `MonthCalendarService` runs it through
-`EventNameSanitizer` first: `b/i/u/em/strong/small/sub/sup/br` survive, everything else is
-escaped, and no attribute ever survives. **Anything else that renders a comment unescaped must
-sanitize it the same way.**
+`EventNameSanitizer` first. It escapes everything, then restores:
+
+- `b/i/u/em/strong/small/sub/sup/br` — bare tags only, so no attribute can ride along
+- `<a href=...>` — the one attribute allowed, and only when the anchor carries *nothing* else and
+  the href starts literally with `http://`, `https://`, `mailto:` or a site-relative `/`. Rebuilt
+  links get `target="_blank" rel="noopener noreferrer"`. `javascript:`, `data:`, an
+  entity-obfuscated scheme (`java&#115;cript:`), `//host`, or an extra `onclick` all fail the
+  check and stay visible as text.
+
+**Anything else that renders a comment unescaped must sanitize it the same way.**
 
 Tests: `MonthCalendarServiceTest` covers the day-cell branches with a mocked `PatrolData`
 (including the XSS case), `MonthCalendarRenderTest` covers page behavior, and
