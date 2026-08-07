@@ -146,6 +146,8 @@ public class DayShiftsController {
             assignmentsFromDisk.clear();
             selectedShift = dropdownShift2;
         } else if (newShift != null) {
+            ensureDisplayedRowsAreSaved(resort, dayOfWeek, date, month, year, patrolData,
+                    sessionData, javaxRequest, assignmentsFromDisk, parameterShifts, newName, LOG);
             processAddNewShift(patrolData, assignmentsFromDisk, parameterShifts, newName,
                     date, month, year, LOG);
         } else if (saveShiftBtn != null) {
@@ -154,10 +156,23 @@ public class DayShiftsController {
             return redirectToCalendar(response, resort, month, year, patrollerId);
         }
 
+        // Check for a row reorder (the up/down arrows on the far right of each row)
+        int rowToMove = findRequestedMove(javaxRequest, shiftCount);
+        if (rowToMove >= 0) {
+            int moveTo = javaxRequest.getParameter("moveUp_" + rowToMove) != null
+                    ? rowToMove - 1 : rowToMove + 1;
+            processMoveShift(resort, dayOfWeek, date, month, year, patrolData, sessionData,
+                    javaxRequest, assignmentsFromDisk, parameterShifts, newName,
+                    rowToMove, moveTo, LOG);
+        }
+
         // Check for delete action
         if (shiftCount != null) {
             for (int i = 0; i < shiftCount; i++) {
                 if (javaxRequest.getParameter("delete_" + i) != null) {
+                    ensureDisplayedRowsAreSaved(resort, dayOfWeek, date, month, year, patrolData,
+                            sessionData, javaxRequest, assignmentsFromDisk, parameterShifts,
+                            newName, LOG);
                     processDeleteShift(patrolData, assignmentsFromDisk, i, newName,
                             date, month, year, LOG);
                     break;
@@ -437,6 +452,106 @@ public class DayShiftsController {
         assignment.setEventName(name);
         assignments.add(assignment);
         patrolData.writeAssignment(assignment);
+    }
+
+    /**
+     * A date nobody has saved yet still shows rows: the day-of-week template is rendered so the
+     * director has something to edit. Those rows are not in the database, and New and Delete both
+     * work on saved rows - Delete would find nothing to remove, and New would build its row at a
+     * position the template rows are about to occupy. So persist what is on screen and re-read
+     * before touching it.
+     *
+     * @param assignmentsFromDisk saved rows; replaced with the re-read rows when a save happens
+     */
+    private void ensureDisplayedRowsAreSaved(String resort, int dayOfWeek, int date, int month,
+            int year, PatrolData patrolData, SessionData sessionData,
+            javax.servlet.http.HttpServletRequest javaxRequest,
+            ArrayList<Assignments> assignmentsFromDisk,
+            ArrayList<ShiftDefinitions> parameterShifts, String newName, Logger LOG) {
+
+        if (!assignmentsFromDisk.isEmpty() || parameterShifts.isEmpty()) {
+            return; //already saved, or there is nothing on screen to save
+        }
+
+        LOG.info("saving the " + parameterShifts.size() + " template row(s) shown for "
+                   + year + "-" + (month + 1) + "-" + date + " before editing them");
+        saveShiftInfo(patrolData, assignmentsFromDisk, parameterShifts, newName,
+                date, month, year, LOG);
+
+        assignmentsFromDisk.clear();
+        readAssignmentsAndShifts(resort, dayOfWeek, date, month, year,
+                patrolData, sessionData, assignmentsFromDisk, javaxRequest);
+    }
+
+    /**
+     * Which row's up/down arrow was clicked, or -1 when none was.
+     * The arrows are named moveUp_&lt;row&gt; / moveDown_&lt;row&gt;.
+     */
+    private int findRequestedMove(javax.servlet.http.HttpServletRequest request, Integer shiftCount) {
+        if (shiftCount == null) {
+            return -1;
+        }
+        for (int i = 0; i < shiftCount; i++) {
+            if (request.getParameter("moveUp_" + i) != null
+                    || request.getParameter("moveDown_" + i) != null) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Swap a shift row with its neighbour, carrying that shift's assigned patrollers along with
+     * its times, type and count - the patrollers belong to the shift, not to the row position.
+     *
+     * The director's pending edits are saved first, so clicking an arrow does not quietly discard
+     * whatever they had just typed (the same thing New, Delete and the assignment grid do).
+     */
+    private void processMoveShift(String resort, int dayOfWeek, int date, int month, int year,
+            PatrolData patrolData, SessionData sessionData,
+            javax.servlet.http.HttpServletRequest javaxRequest,
+            ArrayList<Assignments> assignmentsFromDisk, ArrayList<ShiftDefinitions> parameterShifts,
+            String newName, int from, int to, Logger LOG) {
+
+        processSaveShiftChanges(patrolData, assignmentsFromDisk, parameterShifts,
+                newName, date, month, year, LOG);
+
+        // saveShiftInfo rewrote every row, so re-read before touching positions
+        ArrayList<Assignments> rows = new ArrayList<>();
+        readAssignmentsAndShifts(resort, dayOfWeek, date, month, year,
+                patrolData, sessionData, rows, javaxRequest);
+
+        if (from < 0 || to < 0 || from >= rows.size() || to >= rows.size()) {
+            LOG.info("ignoring move of row " + from + " to " + to + ", only " + rows.size()
+                       + " row(s) exist");
+            return;
+        }
+
+        Assignments fromRow = rows.get(from);
+        Assignments toRow = rows.get(to);
+        String eventName = newName != null ? newName : "";
+
+        // The date key carries the row position, so the rows keep their keys and exchange payloads
+        Assignments movedDown = buildSwappedRow(fromRow.getDate(), toRow, eventName, LOG);
+        Assignments movedUp = buildSwappedRow(toRow.getDate(), fromRow, eventName, LOG);
+
+        patrolData.deleteAssignment(fromRow);
+        patrolData.deleteAssignment(toRow);
+        patrolData.writeAssignment(movedDown);
+        patrolData.writeAssignment(movedUp);
+    }
+
+    /** A row at {@code date} holding {@code source}'s definition and assigned patrollers. */
+    private Assignments buildSwappedRow(String date, Assignments source, String eventName, Logger LOG) {
+        ShiftDefinitions definition = new ShiftDefinitions(eventName,
+                source.getStartingTimeString(), source.getEndingTimeString(),
+                source.getCount(), source.getType(), LOG);
+
+        Assignments row = new Assignments(date, definition, LOG);
+        row.setEventName(eventName);
+        row.copyAssignedPatrollers(source);
+        row.setExisted(false); //the old row was deleted, so this is an insert
+        return row;
     }
 
     private void processDeleteShift(PatrolData patrolData, ArrayList<Assignments> assignments,

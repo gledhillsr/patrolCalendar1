@@ -18,11 +18,13 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -121,6 +123,103 @@ class DayShiftsControllerTest {
   }
 
   /**
+   * A date nobody has saved shows the day-of-week template rows, which are not in the database.
+   * New used to build its row at a position the template rows were about to take, so nothing
+   * appeared to be added.
+   */
+  @Test
+  void newAddsARowOnADateWithNoSavedData() throws Exception {
+    assertEquals(0, rowSummaries().size(), "the scratch date must start with nothing saved");
+
+    String page = editPage();
+    int templateRows = hiddenInt(page, "shiftCount");
+    assertTrue(templateRows > 0, "the scratch date should render template rows");
+
+    mockMvc.perform(rowRequest(page, templateRows).param("newShift", "New"))
+      .andExpect(status().is3xxRedirection());
+
+    assertEquals(templateRows + 1, rowSummaries().size(),
+                 "New should have added one row to the template rows: " + rowSummaries());
+  }
+
+  /**
+   * Same root cause as New: Delete found an empty list of saved rows and returned without
+   * removing anything.
+   */
+  @Test
+  void deleteRemovesARowOnADateWithNoSavedData() throws Exception {
+    assertEquals(0, rowSummaries().size(), "the scratch date must start with nothing saved");
+
+    String page = editPage();
+    int templateRows = hiddenInt(page, "shiftCount");
+    assertTrue(templateRows >= 2, "need at least two template rows to delete one");
+
+    mockMvc.perform(rowRequest(page, templateRows).param("delete_0", "Delete"))
+      .andExpect(status().is3xxRedirection());
+
+    assertEquals(templateRows - 1, rowSummaries().size(),
+                 "Delete should have removed one of the template rows: " + rowSummaries());
+  }
+
+  /** The end rows offer one arrow each; the middle rows offer both. */
+  @Test
+  void arrowsAreOfferedOnlyWhereARowCanActuallyMove() throws Exception {
+    String page = editPage();
+    int shiftCount = hiddenInt(page, "shiftCount");
+    assertTrue(shiftCount >= 2, "need at least two rows to test reordering");
+    int lastRow = shiftCount - 1;
+
+    assertFalse(page.contains("name=\"moveUp_0\""), "the top row cannot move up");
+    assertTrue(page.contains("name=\"moveDown_0\""), "the top row can move down");
+    assertTrue(page.contains("name=\"moveUp_" + lastRow + "\""), "the bottom row can move up");
+    assertFalse(page.contains("name=\"moveDown_" + lastRow + "\""),
+                "the bottom row cannot move down");
+  }
+
+  /** The New button keeps its own row at the very bottom, below every shift. */
+  @Test
+  void theNewButtonStaysBelowEveryShiftRow() throws Exception {
+    String page = editPage();
+    int shiftCount = hiddenInt(page, "shiftCount");
+
+    int lastRowArrow = page.indexOf("name=\"moveUp_" + (shiftCount - 1) + "\"");
+    int newButton = page.indexOf("name=\"newShift\"");
+    assertTrue(lastRowArrow > 0 && newButton > lastRowArrow,
+               "the New button should come after the last shift row");
+  }
+
+  /**
+   * Moving a row swaps it with its neighbour and carries that shift's assigned patrollers along,
+   * because the patrollers belong to the shift rather than to the row position.
+   */
+  @Test
+  void movingARowDownCarriesItsPatrollersWithIt() throws Exception {
+    //give the scratch date real saved rows, then put a patroller on row 0
+    String page = editPage();
+    int shiftCount = hiddenInt(page, "shiftCount");
+    assertTrue(shiftCount >= 2, "need at least two rows to reorder");
+    saveRowsAsTyped(page, shiftCount);
+    assignPatrollerToFirstSlotOfRow(0);
+
+    List<String> before = rowSummaries();
+    assertTrue(before.get(0).contains("p0=" + MEMBER_ID),
+               "row 0 should start with the patroller on it: " + before);
+
+    mockMvc.perform(rowRequest(editPage(), shiftCount).param("moveDown_0", "\u25BC"))
+      .andExpect(status().is3xxRedirection());
+
+    List<String> after = rowSummaries();
+    assertEquals(before.get(1).replaceFirst("^pos=\\S+ ", ""),
+                 after.get(0).replaceFirst("^pos=\\S+ ", ""),
+                 "the old row 1 should now be first: " + after);
+    assertEquals(before.get(0).replaceFirst("^pos=\\S+ ", ""),
+                 after.get(1).replaceFirst("^pos=\\S+ ", ""),
+                 "and the old row 0, patroller included, should now be second: " + after);
+    assertTrue(after.get(1).contains("p0=" + MEMBER_ID),
+               "the patroller must have travelled with the shift: " + after);
+  }
+
+  /**
    * The point of the earlier change: edit a start time, click straight through to the assignment
    * grid, and the edit is saved rather than discarded.
    */
@@ -141,6 +240,89 @@ class DayShiftsControllerTest {
 
     assertEquals(EDITED_START_TIME, savedStartTimeOnDisk(),
                  "and the edit should have been written to the database");
+  }
+
+  private static final String MEMBER_ID = "200401";
+
+  /** A POST echoing every shift row back exactly as rendered, with no action button set. */
+  private MockHttpServletRequestBuilder rowRequest(String page, int shiftCount) {
+    MockHttpServletRequestBuilder request = post("/DayShifts")
+      .param("resort", "Sample")
+      .param("ID", DIRECTOR_ID)
+      .param("dayOfWeek", String.valueOf(SCRATCH_DAY_OF_WEEK))
+      .param("date", String.valueOf(SCRATCH_DATE))
+      .param("month", String.valueOf(SCRATCH_MONTH))
+      .param("year", String.valueOf(SCRATCH_YEAR))
+      .param("shiftCount", String.valueOf(shiftCount))
+      .param("newName", "")
+      .header("User-Agent", BROWSER)
+      .session(directorSession());
+
+    for (int row = 0; row < shiftCount; row++) {
+      request = request
+        .param("startTime_" + row, namedValue(page, "startTime_" + row))
+        .param("endTime_" + row, namedValue(page, "endTime_" + row))
+        .param("count_" + row, selectedOption(page, "count_" + row))
+        .param("shift_" + row, selectedOption(page, "shift_" + row));
+    }
+    return request;
+  }
+
+  /** Persist the rows exactly as rendered, so the scratch date holds real saved assignments. */
+  private void saveRowsAsTyped(String page, int shiftCount) throws Exception {
+    mockMvc.perform(rowRequest(page, shiftCount).param("saveShiftBtn", "Save Shift Changes"))
+      .andExpect(status().is3xxRedirection());
+  }
+
+  /** Put a known member on slot 0 of the given saved row. */
+  private void assignPatrollerToFirstSlotOfRow(int row) {
+    withPatrolData(patrolData -> {
+      List<Assignments> rows = scratchRows(patrolData);
+      Assignments target = rows.get(row);
+      target.insertAt("Sample", 0, MEMBER_ID);
+      target.setExisted(true);
+      patrolData.writeAssignment(target);
+    });
+  }
+
+  /** One line per saved row: its position key, times, count, type and slot-0 patroller. */
+  private List<String> rowSummaries() {
+    List<String> summaries = new ArrayList<>();
+    withPatrolData(patrolData -> {
+      for (Assignments row : scratchRows(patrolData)) {
+        summaries.add("pos=" + row.getDate()
+                        + " start=" + row.getStartingTimeString()
+                        + " end=" + row.getEndingTimeString()
+                        + " count=" + row.getCount()
+                        + " type=" + row.getType()
+                        + " p0=" + row.getPosID(0));
+      }
+    });
+    return summaries;
+  }
+
+  private List<Assignments> scratchRows(PatrolData patrolData) {
+    List<Assignments> rows = new ArrayList<>();
+    for (Assignments assignment : patrolData.readSortedAssignments(SCRATCH_YEAR, SCRATCH_MONTH + 1)) {
+      if (assignment.getDay() == SCRATCH_DATE) {
+        rows.add(assignment);
+      }
+    }
+    return rows;
+  }
+
+  private void withPatrolData(java.util.function.Consumer<PatrolData> work) {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setSession(directorSession());
+    javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+    Logger log = new Logger(DayShiftsControllerTest.class, javaxRequest, "GET", "Sample", Logger.INFO);
+    PatrolData patrolData = new PatrolData("Sample", new SessionData(javaxRequest, null, log), log);
+    try {
+      work.accept(patrolData);
+    }
+    finally {
+      patrolData.close();
+    }
   }
 
   private MockHttpServletRequestBuilder assignRequest(String page, int shiftCount) {

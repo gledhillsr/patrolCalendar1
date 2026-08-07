@@ -142,9 +142,9 @@
         <div th:if="${!doAssignments}">
             <hr>
             <div align="center">
-                <table border="3" cellpadding="0" cellspacing="0" width="375" height="281">
+                <table border="3" cellpadding="0" cellspacing="0" width="450" height="281">
                     <tr>
-                        <td width="554" bgcolor="#C0C0C0" height="279">
+                        <td width="665" bgcolor="#C0C0C0" height="279">
                             <form id="editShiftForm" th:action="@{/DayShifts}"
                                   onsubmit="return CheckEventName()" method="post">
                                 <input type="hidden" name="ID" th:value="${patrollerId}">
@@ -158,10 +158,10 @@
                                 <h2 align="center">Change Today's Shift</h2>
 
                                 <div align="center">
-                                    <table border="3" cellpadding="0" cellspacing="0" width="700" height="192">
+                                    <table border="3" cellpadding="0" cellspacing="0" width="840" height="192">
                                         <center>
                                             <tr>
-                                                <td height="150" width="650">
+                                                <td height="150" width="780">
                                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                                     Use Predefined Shift format:
                                                     <select onchange="reloadPage(this)" size="1" name="selectedShift">
@@ -176,19 +176,21 @@
                                                     <br>
                                                     &nbsp;&nbsp;
                                                     <div align="center">
-                                                        <table border="3" cellpadding="0" cellspacing="0" width="683" style="font-size: 12pt">
+                                                        <table border="3" cellpadding="0" cellspacing="0" width="820" style="font-size: 12pt">
                                                             <tr>
-                                                                <td colspan="5">
+                                                                <td colspan="6">
                                                                     Event Name/Comment:
                                                                     <input type="text" name="newName"
                                                                            onkeydown="javascript:return captureEnter(event.keyCode)"
                                                                            th:value="${originalName}" size="39">
                                                                     <br>
                                                                     <font size="2">Basic HTML tags are accepted here, for
-                                                                        example &lt;b&gt;bold&lt;/b&gt;,
-                                                                        &lt;br&gt; for a line break, or a link:
+                                                                        example &lt;b&gt;bold&lt;/b&gt; or
+                                                                        &lt;br&gt; for a line break.
+                                                                        <br>
+                                                                        Or a link:
                                                                         &lt;a href=https://example.com&gt;click
-                                                                        here&lt;/a&gt; (links open in a new tab).</font>
+                                                                        here&lt;/a&gt; (links open in a new window).</font>
                                                                 </td>
                                                             </tr>
 
@@ -203,7 +205,7 @@
                                                                                    th:name="'delete_' + ${iterStat.index}"
                                                                                    th:onclick="'return confirmShiftDelete(' + ${assignment.getUseCount(resort)} + ')'">
                                                                         </td>
-                                                                        <td>
+                                                                        <td nowrap>
                                                                             Start:
                                                                             <input type="text"
                                                                                    th:name="'startTime_' + ${iterStat.index}"
@@ -212,7 +214,7 @@
                                                                                    size="7"
                                                                                    onkeydown="javascript:return captureEnter(event.keyCode)">
                                                                         </td>
-                                                                        <td>
+                                                                        <td nowrap>
                                                                             End:
                                                                             <input type="text"
                                                                                    th:name="'endTime_' + ${iterStat.index}"
@@ -221,7 +223,7 @@
                                                                                    size="7"
                                                                                    onkeydown="javascript:return captureEnter(event.keyCode)">
                                                                         </td>
-                                                                        <td>
+                                                                        <td nowrap>
                                                                             Patroller&nbsp;Count:&nbsp;
                                                                             <select th:name="'count_' + ${iterStat.index}"
                                                                                     th:with="selectedCount=${assignment.count ge 0 and assignment.count le maxAssignmentSize ? assignment.count : 1}">
@@ -240,6 +242,19 @@
                                                                                         th:text="${shiftType}"></option>
                                                                             </select>
                                                                         </td>
+                                                                        <!-- Reorder. The top row can only go down and the bottom row only
+                                                                             up, so each end shows a single arrow. Moving a shift takes
+                                                                             its assigned patrollers with it. -->
+                                                                        <td nowrap>
+                                                                            <input th:unless="${iterStat.first}" type="submit"
+                                                                                   th:name="'moveUp_' + ${iterStat.index}"
+                                                                                   value="&#9650;"
+                                                                                   title="Move this shift up">
+                                                                            <input th:unless="${iterStat.last}" type="submit"
+                                                                                   th:name="'moveDown_' + ${iterStat.index}"
+                                                                                   value="&#9660;"
+                                                                                   title="Move this shift down">
+                                                                        </td>
                                                                     </tr>
                                                                 </th:block>
                                                             </th:block>
@@ -250,10 +265,11 @@
                                                                     <input type="submit" value="New" name="newShift"
                                                                            th:disabled="${maxShiftsReached}">
                                                                 </td>
-                                                                <td width="170">&nbsp;</td>
-                                                                <td width="170">&nbsp;</td>
-                                                                <td width="200">&nbsp;</td>
-                                                                <td width="120">&nbsp;</td>
+                                                                <td width="205">&nbsp;</td>
+                                                                <td width="205">&nbsp;</td>
+                                                                <td width="240">&nbsp;</td>
+                                                                <td width="145">&nbsp;</td>
+                                                                <td>&nbsp;</td>
                                                             </tr>
                                                         </table>
                                                     </div>
