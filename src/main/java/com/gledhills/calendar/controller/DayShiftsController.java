@@ -277,6 +277,7 @@ public class DayShiftsController {
         model.addAttribute("maxShiftsReached", assignments.size() >= ShiftDefinitions.MAX);
         model.addAttribute("countOptions", buildCountOptions());
         model.addAttribute("maxAssignmentSize", Assignments.MAX_ASSIGNMENT_SIZE);
+        model.addAttribute("shiftTypes", buildShiftTypes());
 
         addResortMetadata(resort, model);
         patrolData.close();
@@ -332,6 +333,18 @@ public class DayShiftsController {
 
             parameterShifts.add(new ShiftDefinitions(newName, startTime, endTime, count, typeId, LOG));
         }
+    }
+
+    /**
+     * Shift type names, in type-id order, so the option index is the stored type. Same list
+     * EditShiftTemplates uses, which keeps the two shift editors' dropdowns identical.
+     */
+    private List<String> buildShiftTypes() {
+        List<String> types = new ArrayList<>(Assignments.MAX_SHIFT_TYPES);
+        for (int type = 0; type < Assignments.MAX_SHIFT_TYPES; type++) {
+            types.add(Assignments.getShiftName(type));
+        }
+        return types;
     }
 
     /** Patroller-count choices for each shift row: 0 through the max slots a shift can hold. */
