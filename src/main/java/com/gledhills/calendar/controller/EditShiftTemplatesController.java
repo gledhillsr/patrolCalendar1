@@ -274,7 +274,65 @@ public class EditShiftTemplatesController {
             patrolData.writeShift(shiftDefinition);
         }
 
+        // Move a row up or down. This runs after the updates above, so the edits the director had
+        // pending are saved first - the same thing New and Delete do.
+        int moveFrom = findRequestedMove(request, shiftCount);
+        if (moveFrom >= 0) {
+            int moveTo = request.getParameter("moveUp_" + moveFrom) != null
+                ? moveFrom - 1 : moveFrom + 1;
+            swapTemplateRows(patrolData, selectedShift, moveFrom, moveTo, LOG);
+        }
+
         return new ProcessResult(selectedShift, newShift, addShift);
+    }
+
+    /**
+     * Which row's up/down arrow was clicked, or -1 when none was.
+     * The arrows are named moveUp_&lt;row&gt; / moveDown_&lt;row&gt;.
+     */
+    private int findRequestedMove(HttpServletRequest request, int shiftCount) {
+        for (int i = 0; i < shiftCount; i++) {
+            if (request.getParameter("moveUp_" + i) != null
+                    || request.getParameter("moveDown_" + i) != null) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Swap two rows of a template. A row's position lives in the suffix of its shift name
+     * ("Sunday_a", "Sunday_b", ...), so the two names stay put and exchange their definitions.
+     * Unlike a day's shifts, a template carries no patrollers, so there is nothing else to move.
+     */
+    private void swapTemplateRows(PatrolData patrolData, String templateName, int from, int to,
+                                  Logger LOG) {
+        List<ShiftDefinitions> rows = new ArrayList<>();
+        for (ShiftDefinitions shift : patrolData.readShiftDefinitions()) {
+            if (shift.parsedEventName().equals(templateName)) {
+                rows.add(shift);
+            }
+        }
+
+        if (from < 0 || to < 0 || from >= rows.size() || to >= rows.size()) {
+            LOG.info("ignoring move of row " + from + " to " + to + ", template '" + templateName
+                       + "' has " + rows.size() + " row(s)");
+            return;
+        }
+
+        ShiftDefinitions fromRow = rows.get(from);
+        ShiftDefinitions toRow = rows.get(to);
+
+        ShiftDefinitions movedToFrom = new ShiftDefinitions(fromRow.getEventName(),
+            toRow.getStartString(), toRow.getEndString(), toRow.getCount(), toRow.getType(), LOG);
+        ShiftDefinitions movedToTo = new ShiftDefinitions(toRow.getEventName(),
+            fromRow.getStartString(), fromRow.getEndString(), fromRow.getCount(),
+            fromRow.getType(), LOG);
+
+        patrolData.deleteShift(fromRow);
+        patrolData.deleteShift(toRow);
+        patrolData.writeShift(movedToFrom);
+        patrolData.writeShift(movedToTo);
     }
 
     /**

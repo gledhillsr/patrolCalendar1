@@ -83,9 +83,9 @@
     </div>
 
     <div align="center">
-        <table border="3" cellpadding="0" cellspacing="0" width="750">
+        <table border="3" cellpadding="0" cellspacing="0" width="900">
             <tr>
-                <td width="654" bgcolor="#C0C0C0">
+                <td width="785" bgcolor="#C0C0C0">
                     <form th:action="@{/EditShiftTemplates}" onsubmit="return CheckEventName()" method="post">
                         <input type="hidden" name="resort" th:value="${resort}" />
                         <input type="hidden" name="ID" th:value="${patrollerId}" />
@@ -94,7 +94,7 @@
                         <h2 align="center">&nbsp; Change/Edit Shift Format</h2>
 
                         <div align="center">
-                            <table border="3" cellpadding="0" cellspacing="0" width="716">
+                            <table border="3" cellpadding="0" cellspacing="0" width="860">
                                 <tr>
                                     <td>
                                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -111,9 +111,9 @@
                                         <br>
                                         &nbsp;&nbsp;
                                         <div align="center">
-                                            <table border="3" cellpadding="0" cellspacing="0" width="683" style="font-size: 12pt">
+                                            <table border="3" cellpadding="0" cellspacing="0" width="820" style="font-size: 12pt">
                                                 <tr>
-                                                    <td colspan="5">
+                                                    <td colspan="6">
                                                         Event Name/Day of Week:
                                                         <input type="text"
                                                                name="eventName"
@@ -125,13 +125,13 @@
                                                 </tr>
 
                                                 <!-- Existing shifts -->
-                                                <tr th:each="shiftWithIndex : ${selectedShifts}">
+                                                <tr th:each="shiftWithIndex, iterStat : ${selectedShifts}">
                                                     <td>
                                                         <input type="submit"
                                                                value="Delete"
                                                                th:name="|delete_${shiftWithIndex.index}|" />
                                                     </td>
-                                                    <td>
+                                                    <td nowrap>
                                                         Start:
                                                         <input type="text"
                                                                th:name="|startTime_${shiftWithIndex.index}|"
@@ -140,7 +140,7 @@
                                                                size="7"
                                                                onkeydown="javascript:return captureEnter(event.keyCode)" />
                                                     </td>
-                                                    <td>
+                                                    <td nowrap>
                                                         End:
                                                         <input type="text"
                                                                th:name="|endTime_${shiftWithIndex.index}|"
@@ -149,7 +149,7 @@
                                                                size="7"
                                                                onkeydown="javascript:return captureEnter(event.keyCode)" />
                                                     </td>
-                                                    <td>
+                                                    <td nowrap>
                                                         Patroller&nbsp;Count:&nbsp;
                                                         <select th:name="|count_${shiftWithIndex.index}|"
                                                                 th:with="selectedCount=${shiftWithIndex.shift.count ge 0 and shiftWithIndex.shift.count le maxAssignmentSize ? shiftWithIndex.shift.count : 1}">
@@ -162,11 +162,23 @@
                                                     <td>
                                                         &nbsp;
                                                         <select th:name="|shift_${shiftWithIndex.index}|">
-                                                            <option th:each="shiftType, iterStat : ${shiftTypes}"
-                                                                    th:selected="${iterStat.index == shiftWithIndex.shift.type}"
+                                                            <option th:each="shiftType, typeStat : ${shiftTypes}"
+                                                                    th:selected="${typeStat.index == shiftWithIndex.shift.type}"
                                                                     th:value="${shiftType}"
                                                                     th:text="${shiftType}"></option>
                                                         </select>
+                                                    </td>
+                                                    <!-- Reorder. The top row can only go down and the bottom row only
+                                                         up, so each end shows a single arrow. -->
+                                                    <td nowrap>
+                                                        <input th:unless="${iterStat.first}" type="submit"
+                                                               th:name="|moveUp_${shiftWithIndex.index}|"
+                                                               value="&#9650;"
+                                                               title="Move this shift up" />
+                                                        <input th:unless="${iterStat.last}" type="submit"
+                                                               th:name="|moveDown_${shiftWithIndex.index}|"
+                                                               value="&#9660;"
+                                                               title="Move this shift down" />
                                                     </td>
                                                 </tr>
 
@@ -175,10 +187,11 @@
                                                     <td width="90">
                                                         <input type="submit" value="New" name="addShift" />
                                                     </td>
-                                                    <td width="170">&nbsp;</td>
-                                                    <td width="170">&nbsp;</td>
-                                                    <td width="200">&nbsp;</td>
-                                                    <td width="120">&nbsp;</td>
+                                                    <td width="205">&nbsp;</td>
+                                                    <td width="205">&nbsp;</td>
+                                                    <td width="240">&nbsp;</td>
+                                                    <td width="145">&nbsp;</td>
+                                                    <td>&nbsp;</td>
                                                 </tr>
                                             </table>
                                         </div>

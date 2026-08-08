@@ -10,20 +10,26 @@
         @import "/css/BrightonMenubar.css";
     </style>
     <style type="text/css">
+        /* Deliberately no font-family here: EditShiftTemplates leaves the body font to the
+           browser, and this page is meant to match it. Setting Verdana made the two shift
+           editors look like different applications. */
         body {
-            font-family: Verdana, Arial, Helvetica, sans-serif;
             font-size: 10pt;
             color: #000000;
             background-color: #ffffff;
         }
-        h1 {
+        /* The date header keeps its red colour, but takes the same font style as the
+           "Change Today's Shift" heading below it and the heading on EditShiftTemplates,
+           so every heading on the page is consistent. */
+        h2.date-header {
             color: #FF0000;
         }
         table {
             border-collapse: collapse;
         }
-        td {
-            padding: 4px;
+        /* the time fields line up when their digits are the same width, as on EditShiftTemplates */
+        input[type="text"] {
+            font-family: monospace;
         }
         .shift-table {
             border: 3px solid #000000;
@@ -89,7 +95,8 @@
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
     <!-- Date header -->
-    <h1 th:text="${dayName} + ' ' + ${monthName} + ' ' + ${date} + ', ' + ${year}">Date</h1>
+    <h2 class="date-header"
+        th:text="${dayName} + ' ' + ${monthName} + ' ' + ${date} + ', ' + ${year}">Date</h2>
 
     <!-- Non-Director View - Shift Details Only -->
     <div th:if="${!isDirector}">
@@ -274,21 +281,24 @@
                                                         </table>
                                                     </div>
 
-                                                    <p align="center">
-                                                        <input type="submit" value="Save Shift Changes" name="saveShiftBtn">&nbsp;&nbsp;
-                                                        <input type="button" value="Cancel" name="B6"
-                                                               th:data-url="@{/MonthCalendar(month=${month}, year=${year}, resort=${resort}, ID=${patrollerId})}"
-                                                               onclick="window.location=this.dataset.url">
-                                                        &nbsp;&nbsp;
-                                                        <input type="submit" value="Delete All (restore template)" name="deleteAllShiftsBtn"
-                                                               th:onclick="'return confirmDeleteAll(' + ${patrollersOnSchedule} + ')'">
-                                                    </p>
                                                 </td>
                                             </tr>
                                         </center>
                                     </table>
                                 </div>
-                                <font size="3">NOTE: pressing <b>New</b> or <b>Delete</b> does a <b>Save Shift Changes</b> (<b>Cancel</b> won't undo change)</font>
+
+                                <p>NOTE: Pressing 'New' or 'Delete' will do a <b>Save Shift Changes</b> first.</p>
+
+                                <p align="center">
+                                    <input type="submit" value="Save Shift Changes" name="saveShiftBtn">
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                    <input type="button" value="Cancel" name="B6"
+                                           th:data-url="@{/MonthCalendar(month=${month}, year=${year}, resort=${resort}, ID=${patrollerId})}"
+                                           onclick="window.location=this.dataset.url">
+                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                    <input type="submit" value="Delete All (restore template)" name="deleteAllShiftsBtn"
+                                           th:onclick="'return confirmDeleteAll(' + ${patrollersOnSchedule} + ')'">
+                                </p>
                             </form>
                         </td>
                     </tr>
@@ -362,7 +372,7 @@
                         <td width="100%" bgcolor="#C0C0C0">
                             &nbsp;&nbsp;&nbsp;
                             <input type="submit" value="Save Assignment Changes" name="B13">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                            <input type="button" value="Cancel, return to Calendar" onclick="history.back()">
+                            <input type="button" value="Cancel" onclick="history.back()">
                         </td>
                     </tr>
                 </table>
