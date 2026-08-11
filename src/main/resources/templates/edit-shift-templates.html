@@ -17,8 +17,33 @@
             font-weight: bold;
             margin: 10px 0;
         }
+        .error-message {
+            color: #FF0000;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .has-patrollers {
+            color: #006400;
+            font-weight: bold;
+        }
         table {
             border-collapse: collapse;
+        }
+        /* Keeps the two buttons off the top edge of the template frame below them */
+        .template-actions {
+            margin-bottom: 12px;
+        }
+        /* The "already scheduled" question, boxed off so it reads as a dialog and not as prose */
+        .conflict-dialog {
+            border: 2px solid #FF0000;
+            background-color: #FFF8DC;
+            padding: 6px 12px;
+            margin: 12px 0;
+            max-width: 700px;
+        }
+        .conflict-dates {
+            font-family: monospace;
+            font-weight: bold;
         }
         input[type="text"] {
             font-family: monospace;
@@ -42,7 +67,8 @@
 
         function reloadPage(list) {
             var idx = list.selectedIndex;
-            var msg = list.options[idx].text;
+            // .value, not .text: the visible text carries a "(n patrollers)" hint
+            var msg = list.options[idx].value;
             location = "/calendar-1/EditShiftTemplates?resort=" + resort + "&ID=" + patrollerId + "&selectedShift=" + encodeURIComponent(msg);
         }
 
@@ -61,13 +87,46 @@
             if (mustChangeName) {
                 alert("This 'shift' MUST have a valid name BEFORE anything else can be done. '" + currName + "' is invalid");
                 return false;
-            } else {
-                return true;
             }
+            // The row position is stored as a "_<n>" suffix on the shift name, so an underscore in
+            // the name itself makes the two indistinguishable.
+            if (currName.indexOf("_") >= 0) {
+                alert("Shift template names cannot contain an underscore ('_'). '" + currName + "' is invalid.");
+                return false;
+            }
+            return true;
+        }
+
+        function insertName(form, where) {
+            var idx = form.NameList.selectedIndex;
+            if (idx == -1)
+                alert("Select a Name to Insert");
+            else
+                where.value = form.NameList.options[idx].text;
+        }
+
+        function deleteName(form, where) {
+            where.value = "";
         }
 
         function goHome() {
             location.href = "/calendar-1/Directors?resort=" + resort + "&ID=" + patrollerId;
+        }
+
+        // Apply is harmless until the director picks Overwrite on the conflict question. That one
+        // deletes shifts people are already on, so it is asked a second time with the dates spelled
+        // out - the same treatment the DayShifts format change gets.
+        function confirmApply(form) {
+            var dialog = document.getElementById("conflictDialog");
+            var chosen = form.querySelector('input[name="conflictMode"]:checked');
+
+            if (!dialog || !chosen || chosen.value != "overwrite") {
+                return true;
+            }
+            return confirm("This will DELETE the existing shifts on " + dialog.dataset.dates
+                + " and rebuild them from the '" + currName + "' template.\n\n"
+                + dialog.dataset.removed + " patroller(s) scheduled on those days will lose that"
+                + " shift. This cannot be undone.\n\nOverwrite them?");
         }
         /*]]>*/
     </script>
@@ -82,16 +141,48 @@
         <h4>Template Was Deleted</h4>
     </div>
 
-    <div align="center">
+    <!-- Rejected name (the browser check can be bypassed, so the server has the last word) -->
+    <div th:if="${errorMessage}" class="error-message">
+        <h4 th:text="${errorMessage}">Invalid name</h4>
+    </div>
+
+    <!-- Mirrors the DayShifts placement: top left, above the frame. form="templateForm" means
+         pending row edits are submitted with it and saved before the grid opens. -->
+    <div class="template-actions" th:unless="${assignPatrollers or applyToCalendar}">
+        <input type="submit" name="assignPatrollers" value="Assign Patrollers to this template"
+               form="templateForm">
+        &nbsp;&nbsp;
+        <!-- Live only for Sunday..Saturday: the weekday in the name is what decides which days of
+             the range get the template, so a template named anything else has nothing to match. -->
+        <input type="submit" name="applyToCalendar" value="Apply to calendar..."
+               form="templateForm"
+               th:disabled="${!selectedShiftIsDayOfWeek}"
+               th:title="${selectedShiftIsDayOfWeek}
+                         ? 'Put this template on every ' + ${selectedShift} + ' in a date range'
+                         : 'Only the day-of-week templates (Sunday to Saturday) can be applied to the calendar'">
+        <span th:if="${selectedTemplatePatrollers > 0}" class="has-patrollers"
+              th:text="'&#9654; ' + ${selectedShift} + ' has ' + ${selectedTemplatePatrollers}
+                       + ' patroller(s) assigned'">has patrollers</span>
+    </div>
+
+    <div align="center" th:unless="${assignPatrollers or applyToCalendar}">
         <table border="3" cellpadding="0" cellspacing="0" width="900">
             <tr>
                 <td width="785" bgcolor="#C0C0C0">
-                    <form th:action="@{/EditShiftTemplates}" onsubmit="return CheckEventName()" method="post">
+                    <form id="templateForm" th:action="@{/EditShiftTemplates}"
+                          onsubmit="return CheckEventName()" method="post">
                         <input type="hidden" name="resort" th:value="${resort}" />
                         <input type="hidden" name="ID" th:value="${patrollerId}" />
                         <input type="hidden" name="shiftCount" th:value="${#lists.size(selectedShifts)}" />
 
-                        <h2 align="center">&nbsp; Change/Edit Shift Format</h2>
+                        <h2 align="center">&nbsp; Change/Edit Shift Template<br>
+                            <font size="3">(and add patrollers to template if you schedule by
+                                teams)</font></h2>
+                        <p align="center" th:if="${selectedTemplatePatrollers > 0}"
+                           class="has-patrollers"
+                           th:text="'This template has ' + ${selectedTemplatePatrollers}
+                                    + ' patroller(s) assigned. They are added to any day built from this template'">
+                            has patrollers</p>
 
                         <div align="center">
                             <table border="3" cellpadding="0" cellspacing="0" width="860">
@@ -103,10 +194,12 @@
                                             <option th:selected="${#strings.isEmpty(selectedShift)}"
                                                     th:value="${newShiftStyle}"
                                                     th:text="${newShiftStyle}"></option>
+                                            <!-- the text flags templates that carry patrollers; the value stays the bare name -->
                                             <option th:each="option : ${shiftOptions}"
+                                                    th:with="assigned=${templatePatrollerCounts.getOrDefault(option.key, 0)}"
                                                     th:selected="${option.key == selectedShift}"
                                                     th:value="${option.key}"
-                                                    th:text="${option.value}"></option>
+                                                    th:text="${option.value} + (${assigned} > 0 ? ' (' + ${assigned} + ' patrollers)' : '')"></option>
                                         </select>
                                         <br>
                                         &nbsp;&nbsp;
@@ -215,13 +308,202 @@
         </table>
     </div>
 
-    <p>-- NOTE: The Shift names '<B>Sunday</B>', '<B>Monday</B>', etc. are <B>Special</B>. If defined here, they will
+    <p th:unless="${assignPatrollers or applyToCalendar}">-- NOTE: The Shift names '<B>Sunday</B>', '<B>Monday</B>', etc. are <B>Special</B>. If defined here, they will
         fill in that -empty- day-of-the-week on the calendar.<br>
         --Also the shift name '<B>Closed</B>' is reserved, and will not highlight the day, but it will display
         <font color="#FF0000" size="4">Closed</font>.<br>
         --deleting all the entries for a template, will delete the template.<br>
         --If you want more than 10 patrollers on a shift, ie 23, then create two shifts with 10 patrollers, and one with 3 patrollers (all with the same start and end time).
     </p>
+
+    <!-- Assign Patrollers grid, laid out like the DayShifts "Change Today's Assignments" view -->
+    <div th:if="${assignPatrollers}">
+        <hr>
+        <form th:action="@{/EditShiftTemplates}" method="post">
+            <input type="hidden" name="saveTemplatePatrollersBtn" value="yes">
+            <input type="hidden" name="resort" th:value="${resort}">
+            <input type="hidden" name="ID" th:value="${patrollerId}">
+            <input type="hidden" name="selectedShift" th:value="${selectedShift}">
+            <input type="hidden" name="eventName" th:value="${selectedShift}">
+
+            <table border="1" width="100%">
+                <tr>
+                    <td width="100%" bgcolor="#C0C0C0">
+                        <h2 align="center"
+                            th:text="'Assign Patrollers to ' + ${selectedShift}">Assign Patrollers</h2>
+                        <p align="center">
+                            These patrollers are filled in when this template builds a day on the
+                            calendar. Nobody is scheduled, and no reminder emails are sent, until a
+                            day is actually created from the template.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="100%" bgcolor="#C0C0C0">
+                        <table border="1" width="100%">
+                            <tr>
+                                <td width="20%">
+                                    <select th:size="${8 + (#lists.size(templateSlots) * 3) / 2}"
+                                            name="NameList">
+                                        <option th:each="name : ${sortedRoster}"
+                                                th:text="${name}">Name</option>
+                                    </select>
+                                </td>
+                                <td width="80%">
+                                    <table border="1" width="100%" cellspacing="1"
+                                           bordercolorlight="#FFFFFF">
+                                        <tr th:if="${#lists.isEmpty(templateSlots)}">
+                                            <td bgcolor="#C0C0C0">This template has no slots to
+                                                assign. Give a shift a Patroller Count above first.
+                                            </td>
+                                        </tr>
+                                        <tr th:each="slot : ${templateSlots}">
+                                            <td width="20%" bgcolor="#C0C0C0">
+                                                <input type="button" value="Insert --&gt;"
+                                                       th:data-fieldname="${slot.fieldName}"
+                                                       onclick="insertName(this.form, document.getElementsByName(this.dataset.fieldname)[0])">
+                                            </td>
+                                            <td width="35%" bgcolor="#C0C0C0"
+                                                th:text="${slot.time}">Time</td>
+                                            <td width="30%" bgcolor="#C0C0C0">
+                                                <input readonly type="text"
+                                                       th:name="${slot.fieldName}" size="18"
+                                                       th:value="${slot.memberName}">
+                                            </td>
+                                            <td width="15%" bgcolor="#C0C0C0">
+                                                <input type="button" value="Clear"
+                                                       th:data-fieldname="${slot.fieldName}"
+                                                       onclick="deleteName(this.form, document.getElementsByName(this.dataset.fieldname)[0])">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="100%" bgcolor="#C0C0C0">
+                        &nbsp;&nbsp;&nbsp;
+                        <input type="submit" value="Save Patroller Assignments">
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="button" value="Cancel" onclick="history.back()">
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+
+    <!-- Apply to calendar: pick a range and press Apply. Apply only stops to ask when days in the
+         range are already scheduled; answering the question and pressing Apply again commits.
+         Same 900px centred frame as the template editor above it. -->
+    <div align="center" th:if="${applyToCalendar}">
+        <hr>
+        <form th:action="@{/EditShiftTemplates}" method="post"
+              onsubmit="return confirmApply(this)">
+            <input type="hidden" name="resort" th:value="${resort}">
+            <input type="hidden" name="ID" th:value="${patrollerId}">
+            <input type="hidden" name="selectedShift" th:value="${selectedShift}">
+            <input type="hidden" name="eventName" th:value="${selectedShift}">
+
+            <table border="3" cellpadding="0" cellspacing="0" width="900">
+                <tr>
+                    <td bgcolor="#C0C0C0">
+                        <h2 align="center"
+                            th:text="|Apply the '${selectedShift}' Template including the assigned patrollers|">
+                            Apply</h2>
+                    </td>
+                </tr>
+                <tr>
+                    <td bgcolor="#C0C0C0" align="left" style="padding: 0 12px">
+                        <p>
+                            This puts the <b th:text="${selectedShift}">Monday</b> template on
+                            <b>every <span th:text="${selectedShift}">Monday</span></b> between the
+                            two dates below, and on no other day.
+                        </p>
+                        <p>
+                            From <input type="date" name="applyFrom" th:value="${applyFrom}">
+                            &nbsp; to <input type="date" name="applyTo" th:value="${applyTo}">
+                        </p>
+                        <p>
+                            Days with nothing scheduled are filled in. If any
+                            <span th:text="${selectedShift}">Monday</span> in the range already has
+                            shifts, Apply stops and asks what to do with it before writing anything.
+                        </p>
+
+                        <p th:if="${applyNeedsDates}">
+                            <b>Choose a date range above.</b>
+                        </p>
+                        <p th:if="${applyError}" class="error-message" th:text="${applyError}">error</p>
+
+                        <th:block th:if="${applyPreview != null}">
+                            <p th:unless="${applyPreview.applicable}" class="error-message">
+                                Only the day-of-week templates (Sunday to Saturday) can be applied
+                                this way, because they are the ones that fill in a day on the
+                                calendar. Use a specific date's shift editor for
+                                <span th:text="${selectedShift}">this</span>.
+                            </p>
+
+                            <!-- Days that are already scheduled: the director decides, by name and
+                                 date, rather than having them silently skipped or wiped. This only
+                                 appears when the template has somebody on it, because an empty
+                                 template has nothing to push out and so never overwrites. -->
+                            <div th:if="${applyPreview.applicable and applyPreview.isAskingConflictQuestion()}"
+                                 id="conflictDialog" class="conflict-dialog"
+                                 th:data-dates="${#strings.listJoin(applyPreview.conflictDates, ', ')}"
+                                 th:data-removed="${applyPreview.patrollersInConflict}">
+                                <p>
+                                    &#9888; <b>Patroller shift assignments already exist for:</b>
+                                </p>
+                                <p class="conflict-dates">
+                                    <span th:each="date,dateStat : ${applyPreview.conflictDates}"
+                                          th:text="${date} + (${dateStat.last} ? '' : ', ')">date</span>
+                                </p>
+                                <p th:if="${applyPreview.patrollersInConflict > 0}">
+                                    <b th:text="${applyPreview.patrollersInConflict}">0</b>
+                                    patroller(s) are currently scheduled on those days.
+                                </p>
+                                <p>
+                                    <label>
+                                        <input type="radio" name="conflictMode" value="skip" checked>
+                                        <b>Skip</b> them &#8212; leave those days exactly as they
+                                        are, and fill in only the
+                                        <b th:text="${applyPreview.daysToWriteCount}">0</b>
+                                        empty <span th:text="${selectedShift}">Monday</span>(s).
+                                    </label>
+                                    <br>
+                                    <label>
+                                        <input type="radio" name="conflictMode" value="overwrite">
+                                        <b>Overwrite</b> them &#8212; delete their shifts and rebuild
+                                        them from this template, so everybody scheduled on them loses
+                                        that shift. This cannot be undone.
+                                    </label>
+                                </p>
+                                <!-- Marks the question as answered, so pressing Apply again commits
+                                     rather than asking the same thing a second time. -->
+                                <input type="hidden" name="conflictAnswered" value="yes">
+                                <p><b>Press Apply again to go ahead.</b></p>
+                            </div>
+                        </th:block>
+
+                        <p th:if="${applyResult}" class="success-message"
+                           th:text="${applyResult}">done</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td bgcolor="#C0C0C0">
+                        &nbsp;&nbsp;&nbsp;
+                        <input th:unless="${applyDone}" type="submit" name="confirmApply"
+                               value="Apply">
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="button" th:value="${applyDone} ? 'Done' : 'Cancel'"
+                               th:data-url="@{/EditShiftTemplates(resort=${resort}, ID=${patrollerId}, selectedShift=${selectedShift})}"
+                               onclick="window.location=this.dataset.url">
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
 
     <div th:replace="~{fragments/footer :: footer}"></div>
 </body>

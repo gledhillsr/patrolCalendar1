@@ -135,6 +135,170 @@ class EditShiftTemplatesControllerTest {
                  "the template should be restored to its original order");
   }
 
+  /** The button is top-left and submits the template form, so pending row edits save first. */
+  @Test
+  void theAssignPatrollersButtonSubmitsTheTemplateForm() throws Exception {
+    String page = page(MULTI_ROW_TEMPLATE);
+
+    assertTrue(page.contains("id=\"templateForm\""), "the edit form needs an id to target");
+    Matcher button = Pattern.compile("<input[^>]*name=\"assignPatrollers\"[^>]*>").matcher(page);
+    assertTrue(button.find(), "the page should offer the assign button");
+    assertTrue(button.group().contains("form=\"templateForm\""),
+               "the button must submit the template form: " + button.group());
+    assertTrue(page.indexOf("name=\"assignPatrollers\"") < page.indexOf("Change/Edit Shift Template"),
+               "the button belongs above the frame, as on DayShifts");
+  }
+
+  /** The grid offers one line per slot, across every row of the template. */
+  @Test
+  void theGridOffersOneLinePerTemplateSlot() throws Exception {
+    String grid = assignGrid();
+
+    assertTrue(grid.contains("Assign Patrollers to " + MULTI_ROW_TEMPLATE),
+               "the grid should name the template it is editing");
+
+    int expectedSlots = 0;
+    for (String row : templateRows(MULTI_ROW_TEMPLATE)) {
+      expectedSlots += Integer.parseInt(row.split(" ")[3]); //"name start end count type"
+    }
+    //\s before name= so the Insert/Clear buttons' data-fieldname does not also match
+    Matcher slots = Pattern.compile("\\sname=\"slot_\\d+_\\d+\"").matcher(grid);
+    int found = 0;
+    while (slots.find()) {
+      found++;
+    }
+    assertEquals(expectedSlots, found,
+                 "one field per slot, summed over the template's Patroller Counts");
+  }
+
+  /**
+   * The whole point: pencil a patroller into a template slot, and it is still there next time.
+   * Cleared afterwards so the template is left as found.
+   */
+  @Test
+  void assigningAPatrollerToATemplateSlotPersists() throws Exception {
+    String memberName = firstRosterName();
+
+    try {
+      saveGridWithSlotZero(memberName);
+
+      assertTrue(assignGrid().contains("value=\"" + memberName + "\""),
+                 "the grid should show the patroller after saving");
+    }
+    finally {
+      saveGridWithSlotZero(""); //clear it again
+    }
+
+    assertFalse(assignGrid().contains("value=\"" + memberName + "\""),
+                "clearing the slot should remove the patroller");
+  }
+
+  /** Post the grid with one name in slot 0 of row 0, every other slot left empty. */
+  private void saveGridWithSlotZero(String memberName) throws Exception {
+    String grid = assignGrid();
+    MockHttpServletRequestBuilder request = post("/EditShiftTemplates")
+      .param("resort", "Sample")
+      .param("ID", DIRECTOR_ID)
+      .param("selectedShift", MULTI_ROW_TEMPLATE)
+      .param("eventName", MULTI_ROW_TEMPLATE)
+      .param("saveTemplatePatrollersBtn", "yes")
+      .header("User-Agent", BROWSER)
+      .session(directorSession());
+
+    Matcher slots = Pattern.compile("\\sname=\"(slot_\\d+_\\d+)\"").matcher(grid);
+    boolean first = true;
+    while (slots.find()) {
+      request = request.param(slots.group(1), first ? memberName : "");
+      first = false;
+    }
+    mockMvc.perform(request).andExpect(status().isOk());
+  }
+
+  private String assignGrid() throws Exception {
+    return mockMvc.perform(post("/EditShiftTemplates")
+                             .param("resort", "Sample")
+                             .param("ID", DIRECTOR_ID)
+                             .param("selectedShift", MULTI_ROW_TEMPLATE)
+                             .param("eventName", MULTI_ROW_TEMPLATE)
+                             .param("assignPatrollers", "Assign Patrollers to this template")
+                             .header("User-Agent", BROWSER)
+                             .session(directorSession()))
+      .andExpect(status().isOk())
+      .andReturn().getResponse().getContentAsString();
+  }
+
+  /** The first name in the grid's pick list. */
+  private String firstRosterName() throws Exception {
+    Matcher option = Pattern.compile("<option>([^<]+)</option>").matcher(assignGrid());
+    assertTrue(option.find(), "the grid should offer roster names to pick from");
+    return option.group(1);
+  }
+
+  /**
+   * A row's position is stored as a "_<n>" suffix on its shift name, so an underscore inside the
+   * name itself makes name and position ambiguous. No existing template may contain one.
+   */
+  @Test
+  void noExistingTemplateNameContainsAnUnderscore() {
+    List<String> offenders = new ArrayList<>();
+    withPatrolData(patrolData -> {
+      for (ShiftDefinitions shift : patrolData.readShiftDefinitions()) {
+        if (shift.parsedEventName().contains("_")) {
+          offenders.add(shift.getEventName());
+        }
+      }
+    });
+
+    assertTrue(offenders.isEmpty(),
+               "these template names contain an underscore and will parse ambiguously: " + offenders);
+  }
+
+  /** The browser check can be bypassed, so the server must refuse the name too. */
+  @Test
+  void theServerRejectsATemplateNameContainingAnUnderscore() throws Exception {
+    String before = String.join("|", templateRows(MULTI_ROW_TEMPLATE));
+
+    String page = mockMvc.perform(post("/EditShiftTemplates")
+                                    .param("resort", "Sample")
+                                    .param("ID", DIRECTOR_ID)
+                                    .param("selectedShift", MULTI_ROW_TEMPLATE)
+                                    .param("eventName", "Bad_Name")
+                                    .param("shiftCount", "0")
+                                    .header("User-Agent", BROWSER)
+                                    .session(directorSession()))
+      .andExpect(status().isOk())
+      .andReturn().getResponse().getContentAsString();
+
+    assertTrue(page.contains("cannot contain an underscore"),
+               "the page should say why the name was refused");
+    assertEquals(before, String.join("|", templateRows(MULTI_ROW_TEMPLATE)),
+                 "and nothing should have been written");
+  }
+
+  /** The name check runs in the browser as well, so a typo is caught before a round trip. */
+  @Test
+  void theBrowserAlsoChecksForAnUnderscore() throws Exception {
+    String page = page(MULTI_ROW_TEMPLATE);
+
+    assertTrue(page.contains("currName.indexOf(\"_\")"),
+               "CheckEventName should reject underscores client-side too");
+  }
+
+  private void withPatrolData(java.util.function.Consumer<PatrolData> work) {
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setSession(directorSession());
+    javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+    Logger log = new Logger(EditShiftTemplatesControllerTest.class, javaxRequest, "GET", "Sample",
+                            Logger.INFO);
+    PatrolData patrolData = new PatrolData("Sample", new SessionData(javaxRequest, null, log), log);
+    try {
+      work.accept(patrolData);
+    }
+    finally {
+      patrolData.close();
+    }
+  }
+
   /** Submit the template form with one arrow pressed, echoing the rows back unchanged. */
   private void clickArrow(String arrow, int rows) throws Exception {
     String page = page(MULTI_ROW_TEMPLATE);

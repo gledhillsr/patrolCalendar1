@@ -7,13 +7,17 @@ import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
 import com.gledhills.calendar.utils.ResortData;
 import com.gledhills.calendar.utils.StaticUtils;
+import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Service for composing and sending emails asynchronously.
@@ -30,6 +35,8 @@ import java.util.List;
 @Service
 public class EmailService {
     private static final String FALLBACK_FROM_ADDRESS = "steve@gledhills.com";
+    /** Where a batch that did not go out cleanly gets reported, alongside the director. */
+    private static final String ADMIN_NOTIFICATION_ADDRESS = "steve@gledhills.com";
 
     private final JavaMailSender mailSender;
 
@@ -192,31 +199,296 @@ public class EmailService {
             ? MimeMessageHelper.MULTIPART_MODE_MIXED
             : MimeMessageHelper.MULTIPART_MODE_NO;
 
-        for (EmailRecipient recipient : recipients) {
+        BatchOutcome outcome = new BatchOutcome(recipients.size());
+
+        try (SmtpConnection connection = SmtpConnection.open(mailSender)) {
+            for (EmailRecipient recipient : recipients) {
+                try {
+                    connection.send(compose(recipient, batch, footer, multipartMode));
+                    outcome.recordSent();
+
+                    logger.info("Email sent to " + recipient.getFullNameLastFirst() +
+                               " at " + recipient.getEmailAddress() +
+                               (multipart ? " with " + batch.attachments().size() + " attachment(s)" : "") + " From: " + batch.fromEmail);
+                } catch (MessagingException | MailException e) {
+                    logger.logException("Failed to send email to " + recipient.getEmailAddress(), e);
+                    outcome.recordFailure(recipient, e);
+
+                    if (isFatalToTheBatch(e)) {
+                        // The server is refusing this sender, not this address. Carrying on would
+                        // just repeat the same rejection once per remaining member, burying the one
+                        // fact that matters under a hundred identical errors.
+                        outcome.stopEarly(firstLineOf(e));
+                        logger.error("Stopping the batch after " + outcome.attempted() + " of "
+                                     + recipients.size() + " - the mail server is rejecting this "
+                                     + "sender: " + firstLineOf(e));
+                        break;
+                    }
+                }
+            }
+        } catch (MessagingException e) {
+            logger.logException("Could not open an SMTP connection - none of the "
+                                + recipients.size() + " emails were sent", e);
+            outcome.stopEarly(firstLineOf(e));
+        }
+
+        logger.info("Batch complete: " + outcome.sent() + " of " + recipients.size() + " emails sent");
+
+        if (outcome.needsReporting()) {
+            reportOutcome(batch, outcome, logger);
+        }
+    }
+
+    /**
+     * Is this the mail server refusing the sender rather than one address?
+     *
+     * Gmail answers "454-4.7.0 Too many login attempts" when it is throttling logins and
+     * "550 5.4.5 Daily user sending limit exceeded" when the day's quota is gone. Both apply to
+     * every remaining message in the batch. A rejection of one bad address must NOT match here,
+     * or one dead mailbox would abandon everybody after it - so this matches deliberately narrow
+     * signatures rather than anything that merely looks like a failure.
+     */
+    boolean isFatalToTheBatch(Exception e) {
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof AuthenticationFailedException) {
+                return true;
+            }
+            String message = cause.getMessage();
+            if (message == null) {
+                continue;
+            }
+            String lower = message.toLowerCase(Locale.ROOT);
+            if (lower.contains("too many login attempts")
+                || lower.contains("5.4.5")
+                || lower.contains("daily user sending")
+                || lower.contains("sending quota exceeded")
+                || lower.contains("account has exceeded")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** SMTP rejections run to several lines; the first one carries the code and the reason. */
+    private static String firstLineOf(Exception e) {
+        String message = e.getMessage();
+        if (message == null || message.isBlank()) {
+            return e.getClass().getSimpleName();
+        }
+        String firstLine = message.split("\\R", 2)[0].trim();
+        return firstLine.length() > 200 ? firstLine.substring(0, 200) + "..." : firstLine;
+    }
+
+    /**
+     * Mail the director who pressed Send, and the site admin, when a batch did not go out cleanly.
+     *
+     * Without this nobody finds out: the confirmation page reports how many recipients were
+     * *queued*, and the failures only ever reached the server log.
+     */
+    private void reportOutcome(Batch batch, BatchOutcome outcome, Logger logger) {
+        List<String> to = new ArrayList<>();
+        to.add(ADMIN_NOTIFICATION_ADDRESS);
+        if (batch.hasValidReturnEmail()
+            && !ADMIN_NOTIFICATION_ADDRESS.equalsIgnoreCase(batch.replyToEmail())) {
+            to.add(batch.replyToEmail());
+        }
+
+        String resortName = PatrolData.getResortFullName(batch.resort(), logger);
+        try {
+            MimeMessage report = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(report, false, "utf-8");
+            helper.setFrom(batch.fromEmail());
+            helper.setTo(to.toArray(new String[0]));
+            helper.setSubject(resortName + " email: " + outcome.sent() + " of " + outcome.total()
+                              + " sent, " + outcome.notDelivered() + " not delivered");
+            helper.setText(outcome.describe(batch, resortName), false);
+
+            // a fresh connection on purpose - the batch's is closed, and may be why we are here
+            mailSender.send(report);
+            logger.info("Failure summary sent to " + String.join(", ", to));
+        } catch (MessagingException | MailException e) {
+            // If the mail server is the thing that is broken this cannot get through either. The
+            // log is the fallback, and it already holds every individual failure.
+            logger.logException("Could not send the failure summary to " + String.join(", ", to), e);
+        }
+    }
+
+    /** What became of one batch: how much went out, what did not, and whether it stopped early. */
+    static final class BatchOutcome {
+
+        private final int total;
+        private int sent;
+        private final List<String> failures = new ArrayList<>();
+        private String stopReason;
+
+        BatchOutcome(int total) {
+            this.total = total;
+        }
+
+        void recordSent() {
+            sent++;
+        }
+
+        void recordFailure(EmailRecipient recipient, Exception e) {
+            failures.add(recipient.getFullNameLastFirst() + " <" + recipient.getEmailAddress() + ">"
+                         + "\n      " + firstLineOf(e));
+        }
+
+        void stopEarly(String reason) {
+            stopReason = reason;
+        }
+
+        int total() {
+            return total;
+        }
+
+        int sent() {
+            return sent;
+        }
+
+        int attempted() {
+            return sent + failures.size();
+        }
+
+        /** Everyone who did not get it: the outright failures plus anyone never attempted. */
+        int notDelivered() {
+            return total - sent;
+        }
+
+        boolean needsReporting() {
+            return notDelivered() > 0;
+        }
+
+        String describe(Batch batch, String resortName) {
+            StringBuilder report = new StringBuilder();
+            report.append("Subject: ").append(batch.subject())
+                  .append("\nSent from the ").append(resortName).append(" scheduling web site.\n\n")
+                  .append(sent).append(" of ").append(total).append(" emails were delivered.\n");
+
+            if (stopReason != null) {
+                int neverTried = total - attempted();
+                report.append("\nThe send STOPPED EARLY - the mail server rejected this sender:\n  ")
+                      .append(stopReason).append('\n');
+                if (neverTried > 0) {
+                    report.append("\n").append(neverTried)
+                          .append(" members were never attempted. Sending again later should reach them.\n");
+                }
+            }
+
+            if (!failures.isEmpty()) {
+                report.append('\n').append(failures.size())
+                      .append(failures.size() == 1 ? " address did not go through:\n"
+                                                   : " addresses did not go through:\n");
+                for (String failure : failures) {
+                    report.append("  ").append(failure).append('\n');
+                }
+                report.append("\nIf an address is wrong, correcting it on the member's record will "
+                              + "fix it for next time.\n");
+            }
+
+            return report.toString();
+        }
+    }
+
+    /** Build one recipient's copy of the batch message. */
+    private MimeMessage compose(EmailRecipient recipient, Batch batch, String footer, int multipartMode)
+            throws MessagingException {
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, multipartMode, "utf-8");
+        helper.setFrom(batch.fromEmail());
+        if (batch.replyToEmail() != null) {
+            helper.setReplyTo(batch.replyToEmail());
+        }
+        helper.setTo(recipient.getEmailAddress());
+        helper.setSubject(batch.subject());
+        helper.setText(personalize(batch.messageTemplate(), recipient) + footer, false);
+
+        for (Attachment attachment : batch.attachments()) {
+            helper.addAttachment(attachment.filename(),
+                                 new ByteArrayResource(attachment.content()),
+                                 attachment.contentType());
+        }
+        return mimeMessage;
+    }
+
+    /**
+     * One SMTP connection, reused for a whole batch.
+     *
+     * {@code JavaMailSenderImpl.send(MimeMessage)} connects, authenticates, sends and disconnects
+     * on every call, so sending in a loop meant one Gmail login per recipient. At around 80 logins
+     * in two minutes Gmail starts answering "454-4.7.0 Too many login attempts, please try again
+     * later" and every remaining message in the batch fails. Logging in once and holding the
+     * connection open is what a bulk send is supposed to do.
+     */
+    private static final class SmtpConnection implements AutoCloseable {
+
+        private final JavaMailSender fallbackSender;
+        private final JavaMailSenderImpl sender;
+        private Transport transport;
+
+        static SmtpConnection open(JavaMailSender mailSender) throws MessagingException {
+            SmtpConnection connection = new SmtpConnection(mailSender);
+            if (connection.sender != null) {
+                connection.connect();
+            }
+            return connection;
+        }
+
+        private SmtpConnection(JavaMailSender mailSender) {
+            this.fallbackSender = mailSender;
+            // anything other than the Spring implementation (a test double, say) has no Session to
+            // borrow, so those fall back to one connection per message
+            this.sender = (mailSender instanceof JavaMailSenderImpl impl) ? impl : null;
+        }
+
+        private void connect() throws MessagingException {
+            Session session = sender.getSession();
+            transport = session.getTransport(protocolOf(session));
+            transport.connect(sender.getHost(), sender.getPort(),
+                              sender.getUsername(), sender.getPassword());
+        }
+
+        /**
+         * Mirrors JavaMailSenderImpl.getTransport, which is protected. getProtocol() is only set by
+         * setProtocol - AsyncConfig configures the protocol through mail.transport.protocol instead,
+         * so reading the getter alone would hand session.getTransport(null) and fail every send.
+         */
+        private String protocolOf(Session session) {
+            String protocol = sender.getProtocol();
+            if (protocol == null) {
+                protocol = session.getProperty("mail.transport.protocol");
+            }
+            return protocol != null ? protocol : JavaMailSenderImpl.DEFAULT_PROTOCOL;
+        }
+
+        void send(MimeMessage message) throws MessagingException {
+            if (transport == null) {
+                fallbackSender.send(message);
+                return;
+            }
+            message.saveChanges();
             try {
-                MimeMessage mimeMessage = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, multipartMode, "utf-8");
-                helper.setFrom(batch.fromEmail());
-                if (batch.replyToEmail() != null) {
-                    helper.setReplyTo(batch.replyToEmail());
+                transport.sendMessage(message, message.getAllRecipients());
+            } catch (MessagingException e) {
+                // A server that has dropped the connection - Gmail does this once one has been open
+                // a while or carried enough messages - should cost one reconnect, not the rest of
+                // the batch. A rejection on a still-live connection is this recipient's problem.
+                if (transport.isConnected()) {
+                    throw e;
                 }
-                helper.setTo(recipient.getEmailAddress());
-                helper.setSubject(batch.subject());
-                helper.setText(personalize(batch.messageTemplate(), recipient) + footer, false);
+                connect();
+                transport.sendMessage(message, message.getAllRecipients());
+            }
+        }
 
-                for (Attachment attachment : batch.attachments()) {
-                    helper.addAttachment(attachment.filename(),
-                                         new ByteArrayResource(attachment.content()),
-                                         attachment.contentType());
+        @Override
+        public void close() {
+            if (transport != null) {
+                try {
+                    transport.close();
+                } catch (MessagingException ignored) {
+                    // the batch is already sent; a noisy disconnect is not worth reporting
                 }
-
-                mailSender.send(mimeMessage);
-
-                logger.info("Email sent to " + recipient.getFullNameLastFirst() +
-                           " at " + recipient.getEmailAddress() +
-                           (multipart ? " with " + batch.attachments().size() + " attachment(s)" : "") + " From: " + batch.fromEmail);
-            } catch (MessagingException | MailException e) {
-                logger.logException("Failed to send email to " + recipient.getEmailAddress(), e);
             }
         }
     }

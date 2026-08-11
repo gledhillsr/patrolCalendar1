@@ -44,9 +44,29 @@
         var mustChangeName = true;
         var currName = /*[[${selectedShift}]]*/ '';
 
+        var patrollersOnSchedule = /*[[${patrollersOnSchedule}]]*/ 0;
+
         function reloadPage(list) {
             var idx = list.selectedIndex;
-            var msg = list.options[idx].text;
+            // .value, not .text: the visible text carries a "(n patrollers)" hint, and only the
+            // value is the real template name
+            var msg = list.options[idx].value;
+
+            // With patrollers on the day, switching format throws them off it. Ask first, then POST
+            // so a refresh cannot silently repeat a destructive change.
+            if (patrollersOnSchedule > 0) {
+                var warning = 'This day has ' + patrollersOnSchedule + ' patroller(s) scheduled.'
+                    + '\n\nSwitching to "' + msg + '" will REMOVE them and replace the day\'s'
+                    + ' shifts.\n\nContinue?';
+                if (!confirm(warning)) {
+                    location.reload();   // put the dropdown back as it was
+                    return;
+                }
+                document.getElementById('replaceShiftFormat').value = msg;
+                document.getElementById('editShiftForm').submit();
+                return;
+            }
+
             var base = /*[[@{/DayShifts(resort=${resort}, dayOfWeek=${dayOfWeek}, date=${date}, month=${month}, year=${year}, ID=${patrollerId})}]]*/ '';
             location = base + '&dropdownShift=' + encodeURIComponent(msg);
         }
@@ -161,6 +181,8 @@
                                 <input type="hidden" name="year" th:value="${year}">
                                 <input type="hidden" name="resort" th:value="${resort}">
                                 <input type="hidden" name="shiftCount" th:value="${#lists.size(assignments)}">
+                                <!-- set by reloadPage() when a format change has been confirmed -->
+                                <input type="hidden" id="replaceShiftFormat" name="replaceShiftFormat" value="">
 
                                 <h2 align="center">Change Today's Shift</h2>
 
@@ -172,14 +194,23 @@
                                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                                     Use Predefined Shift format:
                                                     <select onchange="reloadPage(this)" size="1" name="selectedShift">
-                                                        <option value="">--New Shift Style--</option>
+                                                        <option th:value="${T(com.gledhills.calendar.utils.PatrolData).NEW_SHIFT_STYLE}"
+                                                                th:text="${T(com.gledhills.calendar.utils.PatrolData).NEW_SHIFT_STYLE}">
+                                                            --New Shift Style--</option>
+                                                        <!-- the text flags templates that carry patrollers; the value stays the bare name -->
                                                         <option th:each="option : ${shiftOptions}"
+                                                                th:with="assigned=${templatePatrollerCounts.getOrDefault(option.key, 0)}"
                                                                 th:value="${option.key}"
-                                                                th:text="${option.value}"
+                                                                th:text="${option.value} + (${assigned} > 0 ? ' (' + ${assigned} + ' patrollers)' : '')"
                                                                 th:selected="${option.key == selectedShift}">
                                                             Template
                                                         </option>
                                                     </select>
+                                                    <span th:if="${selectedTemplatePatrollers > 0}"
+                                                          style="color:#006400; font-weight:bold"
+                                                          th:text="'This template has ' + ${selectedTemplatePatrollers}
+                                                                   + ' patroller(s) assigned to it.'">
+                                                        has patrollers</span>
                                                     <br>
                                                     &nbsp;&nbsp;
                                                     <div align="center">

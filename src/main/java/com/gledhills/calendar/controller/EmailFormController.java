@@ -15,12 +15,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -96,7 +94,7 @@ public class EmailFormController {
 
         try {
             if (attachmentsTooLarge) {
-                // bounced back here by handleUploadTooLarge - the POST never got parsed
+                // bounced back here by UploadTooLargeAdvice - the POST never got parsed
                 model.addAttribute("attachmentError",
                     "Those attachments were too large to upload. The limit is " +
                     asMegabytes(EmailCompositionForm.MAX_ATTACHMENTS_TOTAL_BYTES) + " in total.");
@@ -237,24 +235,6 @@ public class EmailFormController {
 
     private String asMegabytes(long bytes) {
         return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
-    }
-
-    /**
-     * Backstop for uploads too large to even buffer (see spring.servlet.multipart.* limits).
-     * The multipart body is unreadable at this point, so send the user back to a clean form
-     * rather than trying to redisplay what they typed.
-     */
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public String handleUploadTooLarge(HttpServletRequest request) {
-        // resort/fromPatrollerId ride in the form action's query string, so they survive
-        // even though the body was rejected
-        return "redirect:/EmailForm?resort=" + nullSafe(request.getParameter("resort"))
-             + "&ID=" + nullSafe(request.getParameter("fromPatrollerId"))
-             + "&attachmentsTooLarge=true";
-    }
-
-    private String nullSafe(String value) {
-        return value != null ? value : "";
     }
 
     /** Everything the shared header fragment needs. */

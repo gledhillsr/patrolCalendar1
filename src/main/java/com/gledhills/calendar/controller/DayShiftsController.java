@@ -3,6 +3,7 @@ package com.gledhills.calendar.controller;
 import com.gledhills.calendar.store.Assignments;
 import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.store.ShiftDefinitions;
+import com.gledhills.calendar.store.ShiftTemplatePatrollers;
 import com.gledhills.calendar.utils.*;
 import com.gledhills.calendar.utils.*;
 import org.springframework.stereotype.Controller;
@@ -89,6 +90,7 @@ public class DayShiftsController {
             @RequestParam(required = false) String selectedShift,
             @RequestParam(required = false) Integer shiftCount,
             @RequestParam(required = false) String doAssignments,
+            @RequestParam(required = false) String replaceShiftFormat,
             HttpServletRequest request,
             HttpServletResponse response,
             Model model) throws IOException {
@@ -102,6 +104,17 @@ public class DayShiftsController {
         LOG.setId(patrollerId);
 
         PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        // Replacing the day's shift format is destructive - it removes the day's shifts and
+        // everybody on them - so it arrives as a confirmed POST rather than a URL that a refresh
+        // or a stale link could fire again.
+        if (replaceShiftFormat != null && !replaceShiftFormat.isEmpty()) {
+            processReplaceShiftFormat(resort, dayOfWeek, date, month, year, patrolData,
+                    sessionData, javaxRequest, replaceShiftFormat, LOG);
+            patrolData.close();
+            return "redirect:/DayShifts?resort=" + resort + "&dayOfWeek=" + dayOfWeek +
+                    "&date=" + date + "&month=" + month + "&year=" + year + "&ID=" + patrollerId;
+        }
 
         if (doAssignments != null) {
             // "Assign Patrollers to Today's Shifts" button. The button submits the shift edit
@@ -117,7 +130,9 @@ public class DayShiftsController {
                         patrolData, sessionData, pendingFromDisk, javaxRequest);
                 readParameterShifts(javaxRequest, shiftCount, newName, pendingShifts, LOG);
                 processSaveShiftChanges(patrolData, pendingFromDisk, pendingShifts,
-                        newName, date, month, year, LOG);
+                        newName, date, month, year, resort,
+                        templatePatrollersForFreshDay(patrolData, pendingFromDisk, selectedShift,
+                                dayOfWeek, LOG), LOG);
             }
 
             return showEditShiftView(resort, dayOfWeek, date, month, year, patrollerId,
@@ -147,12 +162,15 @@ public class DayShiftsController {
             selectedShift = dropdownShift2;
         } else if (newShift != null) {
             ensureDisplayedRowsAreSaved(resort, dayOfWeek, date, month, year, patrolData,
-                    sessionData, javaxRequest, assignmentsFromDisk, parameterShifts, newName, LOG);
+                    sessionData, javaxRequest, assignmentsFromDisk, parameterShifts, newName,
+                    selectedShift, LOG);
             processAddNewShift(patrolData, assignmentsFromDisk, parameterShifts, newName,
                     date, month, year, LOG);
         } else if (saveShiftBtn != null) {
             processSaveShiftChanges(patrolData, assignmentsFromDisk, parameterShifts,
-                    newName, date, month, year, LOG);
+                    newName, date, month, year, resort,
+                    templatePatrollersForFreshDay(patrolData, assignmentsFromDisk, selectedShift,
+                            dayOfWeek, LOG), LOG);
             return redirectToCalendar(response, resort, month, year, patrollerId);
         }
 
@@ -162,7 +180,7 @@ public class DayShiftsController {
             int moveTo = javaxRequest.getParameter("moveUp_" + rowToMove) != null
                     ? rowToMove - 1 : rowToMove + 1;
             processMoveShift(resort, dayOfWeek, date, month, year, patrolData, sessionData,
-                    javaxRequest, assignmentsFromDisk, parameterShifts, newName,
+                    javaxRequest, assignmentsFromDisk, parameterShifts, newName, selectedShift,
                     rowToMove, moveTo, LOG);
         }
 
@@ -172,7 +190,7 @@ public class DayShiftsController {
                 if (javaxRequest.getParameter("delete_" + i) != null) {
                     ensureDisplayedRowsAreSaved(resort, dayOfWeek, date, month, year, patrolData,
                             sessionData, javaxRequest, assignmentsFromDisk, parameterShifts,
-                            newName, LOG);
+                            newName, selectedShift, LOG);
                     processDeleteShift(patrolData, assignmentsFromDisk, i, newName,
                             date, month, year, LOG);
                     break;
@@ -242,7 +260,10 @@ public class DayShiftsController {
         // rows are all empty (e.g. everyone was removed) may still switch patterns.
         if (dropdownShift != null && dropdownShift.length() > 1) {
             if (patrollersOnSchedule > 0) {
-                model.addAttribute("popupMessage", "Shift changes unavailable when patrollers are on the schedule");
+                //reached only if the POST path was bypassed; the dropdown confirms and posts
+                model.addAttribute("popupMessage",
+                        "This day has patrollers on it. Use the shift format dropdown, which will "
+                          + "ask before removing them.");
             } else {
                 selectedShift = dropdownShift;
                 assignments.clear(); //forget the saved rows; display the chosen pattern instead
@@ -255,7 +276,7 @@ public class DayShiftsController {
         // If no assignments exist for this date, populate the rows from the selected template
         if (assignments.isEmpty()) {
             populateAssignmentsFromTemplate(assignments, shiftTemplates, selectedShift,
-                    date, month, year, LOG);
+                    date, month, year, resort, patrolData, LOG);
         }
 
         String originalName = assignments.isEmpty() ? "" : assignments.get(0).getEventName();
@@ -293,6 +314,12 @@ public class DayShiftsController {
         model.addAttribute("countOptions", buildCountOptions());
         model.addAttribute("maxAssignmentSize", Assignments.MAX_ASSIGNMENT_SIZE);
         model.addAttribute("shiftTypes", buildShiftTypes());
+        Map<String, Integer> templatePatrollerCounts = ShiftTemplatePatrollers
+                .countByTemplateName(LOG, patrolData.getConnection(), shiftTemplates,
+                                     numToName.keySet());
+        model.addAttribute("templatePatrollerCounts", templatePatrollerCounts);
+        model.addAttribute("selectedTemplatePatrollers",
+                           templatePatrollerCounts.getOrDefault(selectedShift, 0));
 
         addResortMetadata(resort, model);
         patrolData.close();
@@ -455,6 +482,45 @@ public class DayShiftsController {
     }
 
     /**
+     * Throw away everything on a day and rebuild it from a different shift template.
+     *
+     * The day's shifts and the patrollers on them are deleted outright - the patrollers live on the
+     * shift rows, so removing the rows removes them. The chosen template is then applied, bringing
+     * its own patrollers if it has any. Choosing a name that matches no template leaves the day
+     * empty, which reverts it to the day-of-week template.
+     */
+    private void processReplaceShiftFormat(String resort, int dayOfWeek, int date, int month,
+            int year, PatrolData patrolData, SessionData sessionData,
+            javax.servlet.http.HttpServletRequest javaxRequest, String newFormat, Logger LOG) {
+
+        ArrayList<Assignments> existing = new ArrayList<>();
+        readAssignmentsAndShifts(resort, dayOfWeek, date, month, year,
+                patrolData, sessionData, existing, javaxRequest);
+
+        int patrollersRemoved = 0;
+        for (Assignments assignment : existing) {
+            patrollersRemoved += assignment.getUseCount(resort);
+        }
+        for (int i = existing.size() - 1; i >= 0; i--) {
+            patrolData.deleteAssignment(existing.get(i));
+        }
+
+        ArrayList<Assignments> replacement = new ArrayList<>();
+        ArrayList<ShiftDefinitions> templates = new ArrayList<>(patrolData.readShiftDefinitions());
+        populateAssignmentsFromTemplate(replacement, templates, newFormat,
+                date, month, year, resort, patrolData, LOG);
+
+        for (Assignments assignment : replacement) {
+            assignment.setExisted(false);
+            patrolData.writeAssignment(assignment);
+        }
+
+        LOG.info("replaced the shift format on " + year + "-" + (month + 1) + "-" + date
+                   + " with '" + newFormat + "', removing " + patrollersRemoved
+                   + " patroller(s) and writing " + replacement.size() + " shift row(s)");
+    }
+
+    /**
      * A date nobody has saved yet still shows rows: the day-of-week template is rendered so the
      * director has something to edit. Those rows are not in the database, and New and Delete both
      * work on saved rows - Delete would find nothing to remove, and New would build its row at a
@@ -467,7 +533,8 @@ public class DayShiftsController {
             int year, PatrolData patrolData, SessionData sessionData,
             javax.servlet.http.HttpServletRequest javaxRequest,
             ArrayList<Assignments> assignmentsFromDisk,
-            ArrayList<ShiftDefinitions> parameterShifts, String newName, Logger LOG) {
+            ArrayList<ShiftDefinitions> parameterShifts, String newName, String selectedShift,
+            Logger LOG) {
 
         if (!assignmentsFromDisk.isEmpty() || parameterShifts.isEmpty()) {
             return; //already saved, or there is nothing on screen to save
@@ -476,7 +543,9 @@ public class DayShiftsController {
         LOG.info("saving the " + parameterShifts.size() + " template row(s) shown for "
                    + year + "-" + (month + 1) + "-" + date + " before editing them");
         saveShiftInfo(patrolData, assignmentsFromDisk, parameterShifts, newName,
-                date, month, year, LOG);
+                date, month, year, resort,
+                readTemplatePatrollersByRow(patrolData, templateNameOnScreen(selectedShift, dayOfWeek),
+                        LOG), LOG);
 
         assignmentsFromDisk.clear();
         readAssignmentsAndShifts(resort, dayOfWeek, date, month, year,
@@ -511,10 +580,12 @@ public class DayShiftsController {
             PatrolData patrolData, SessionData sessionData,
             javax.servlet.http.HttpServletRequest javaxRequest,
             ArrayList<Assignments> assignmentsFromDisk, ArrayList<ShiftDefinitions> parameterShifts,
-            String newName, int from, int to, Logger LOG) {
+            String newName, String selectedShift, int from, int to, Logger LOG) {
 
         processSaveShiftChanges(patrolData, assignmentsFromDisk, parameterShifts,
-                newName, date, month, year, LOG);
+                newName, date, month, year, resort,
+                templatePatrollersForFreshDay(patrolData, assignmentsFromDisk, selectedShift,
+                        dayOfWeek, LOG), LOG);
 
         // saveShiftInfo rewrote every row, so re-read before touching positions
         ArrayList<Assignments> rows = new ArrayList<>();
@@ -586,9 +657,22 @@ public class DayShiftsController {
     private void processSaveShiftChanges(PatrolData patrolData, ArrayList<Assignments> assignments,
             ArrayList<ShiftDefinitions> parameterShifts, String newName,
             int date, int month, int year, Logger LOG) {
+        processSaveShiftChanges(patrolData, assignments, parameterShifts, newName,
+                date, month, year, null, null, LOG);
+    }
+
+    /**
+     * @param templatePatrollersByRow template patrollers indexed by row, seeding rows that have
+     *                                nothing saved yet; null to seed nothing
+     */
+    private void processSaveShiftChanges(PatrolData patrolData, ArrayList<Assignments> assignments,
+            ArrayList<ShiftDefinitions> parameterShifts, String newName,
+            int date, int month, int year, String resort,
+            List<List<String>> templatePatrollersByRow, Logger LOG) {
 
         if (parameterShifts.size() > 0) {
-            saveShiftInfo(patrolData, assignments, parameterShifts, newName, date, month, year, LOG);
+            saveShiftInfo(patrolData, assignments, parameterShifts, newName, date, month, year,
+                    resort, templatePatrollersByRow, LOG);
             // Delete leftover saved rows beyond the new row count
             // (e.g. the day was switched to a template with fewer shifts)
             for (int i = parameterShifts.size(); i < assignments.size(); i++) {
@@ -610,6 +694,28 @@ public class DayShiftsController {
     private void saveShiftInfo(PatrolData patrolData, ArrayList<Assignments> assignmentsFromDisk,
             ArrayList<ShiftDefinitions> parameterShifts, String newName,
             int date, int month, int year, Logger LOG) {
+        saveShiftInfo(patrolData, assignmentsFromDisk, parameterShifts, newName,
+                date, month, year, null, null, LOG);
+    }
+
+    /**
+     * Write the day's shift rows.
+     *
+     * The row form carries times, counts and types but no patrollers, so whoever is on a shift has
+     * to be carried across the rewrite. An existing row keeps its own patrollers. A row with
+     * nothing saved yet is seeded from the template it came from, which is what makes the
+     * day-of-week auto-fill arrive with patrollers on it. Real assignments always win: template
+     * patrollers only ever fill a position that had nothing in it.
+     *
+     * @param templatePatrollersByRow template patrollers indexed by row, or null for none
+     */
+    private void saveShiftInfo(PatrolData patrolData, ArrayList<Assignments> assignmentsFromDisk,
+            ArrayList<ShiftDefinitions> parameterShifts, String newName,
+            int date, int month, int year, String resort,
+            List<List<String>> templatePatrollersByRow, Logger LOG) {
+
+        Set<String> rosterIds = templatePatrollersByRow == null
+                ? Set.of() : buildRosterLookup(patrolData).keySet();
 
         for (int shiftIndex = 0; shiftIndex < parameterShifts.size(); shiftIndex++) {
             ShiftDefinitions sh = parameterShifts.get(shiftIndex);
@@ -624,6 +730,10 @@ public class DayShiftsController {
 
             if (prevAssignment != null) {
                 assignment.copyAssignedPatrollers(prevAssignment);
+            }
+            else if (templatePatrollersByRow != null && shiftIndex < templatePatrollersByRow.size()) {
+                applyTemplatePatrollers(assignment, resort, rosterIds,
+                        templatePatrollersByRow.get(shiftIndex), LOG);
             }
 
             patrolData.writeAssignment(assignment);
@@ -654,15 +764,27 @@ public class DayShiftsController {
         }
     }
 
-    /** Dropdown display name for a shift template: everything before the first "_". */
+    /**
+     * Dropdown display name for a shift template: the name with its "_&lt;position&gt;" suffix
+     * removed.
+     *
+     * Splits on the LAST underscore, matching ShiftDefinitions.parsedEventName. This used to split
+     * on the first, so a template whose name contained an underscore was grouped under the wrong
+     * name here while the month calendar used the right one. New names can no longer contain an
+     * underscore (EditShiftTemplates rejects them), but existing data still can.
+     */
     private static String shiftDropdownName(String eventName) {
-        int underscore = eventName.indexOf('_');
+        int underscore = eventName.lastIndexOf('_');
         return underscore >= 0 ? eventName.substring(0, underscore) : eventName;
     }
 
     private void populateAssignmentsFromTemplate(ArrayList<Assignments> assignments,
             ArrayList<ShiftDefinitions> shiftTemplates, String selectedShift,
-            int date, int month, int year, Logger LOG) {
+            int date, int month, int year, String resort, PatrolData patrolData, Logger LOG) {
+
+        Map<String, List<String>> templatePatrollers =
+                ShiftTemplatePatrollers.readAll(LOG, patrolData.getConnection());
+        Set<String> rosterIds = buildRosterLookup(patrolData).keySet();
 
         // Find all shift definitions that match the selected shift name
         // (same first-"_" trimming used for the dropdown options)
@@ -673,9 +795,77 @@ public class DayShiftsController {
                 String szAssignmentDate = getTodaysAssignmentString(date, month, year, position);
                 Assignments assignment = new Assignments(szAssignmentDate, template, LOG);
                 assignment.setEventName(" ");
+                //whoever the director pencilled into this template row shows up on the day
+                applyTemplatePatrollers(assignment, resort, rosterIds,
+                        templatePatrollers.get(template.getEventName()), LOG);
                 assignments.add(assignment);
                 position++;
             }
         }
+    }
+
+    /**
+     * Seed a day's shift with the patrollers a director pencilled into the template row it came
+     * from. Slots beyond the shift's count are skipped, as is anybody no longer on the roster -
+     * a deleted member would otherwise surface on the calendar as "Err id (...)".
+     */
+    private void applyTemplatePatrollers(Assignments assignment, String resort,
+            Set<String> rosterIds, List<String> templateSlots, Logger LOG) {
+        if (templateSlots == null) {
+            return;
+        }
+        for (int slot = 0; slot < templateSlots.size() && slot < assignment.getCount(); slot++) {
+            String patrollerId = templateSlots.get(slot);
+            if (ShiftTemplatePatrollers.isEmpty(patrollerId)) {
+                continue;
+            }
+            if (!rosterIds.contains(patrollerId)) {
+                LOG.info("template patroller " + patrollerId + " is no longer on the roster, skipped");
+                continue;
+            }
+            assignment.insertAt(resort, slot, patrollerId);
+        }
+    }
+
+    /**
+     * Template patrollers to seed a day with, but only when the day has nothing saved - that is
+     * the day-of-week auto-fill case. An existing day keeps its own patrollers, so this returns
+     * null and nothing is seeded.
+     */
+    private List<List<String>> templatePatrollersForFreshDay(PatrolData patrolData,
+            ArrayList<Assignments> assignmentsFromDisk, String selectedShift, int dayOfWeek,
+            Logger LOG) {
+        if (!assignmentsFromDisk.isEmpty()) {
+            return null;
+        }
+        return readTemplatePatrollersByRow(patrolData,
+                templateNameOnScreen(selectedShift, dayOfWeek), LOG);
+    }
+
+    /**
+     * Which template the rows on screen came from. An empty selection means the director never
+     * picked one, so the day-of-week template is what showEditShiftView displayed.
+     */
+    private String templateNameOnScreen(String selectedShift, int dayOfWeek) {
+        return (selectedShift != null && !selectedShift.isEmpty())
+                ? selectedShift : StaticUtils.szDays[dayOfWeek];
+    }
+
+    /** Each matching template row's patrollers, indexed by row, for the selected template. */
+    private List<List<String>> readTemplatePatrollersByRow(PatrolData patrolData,
+            String selectedShift, Logger LOG) {
+        List<List<String>> byRow = new ArrayList<>();
+        if (selectedShift == null || selectedShift.isEmpty()) {
+            return byRow;
+        }
+        Map<String, List<String>> all =
+                ShiftTemplatePatrollers.readAll(LOG, patrolData.getConnection());
+
+        for (ShiftDefinitions template : patrolData.readShiftDefinitions()) {
+            if (shiftDropdownName(template.getEventName()).equals(selectedShift)) {
+                byRow.add(all.getOrDefault(template.getEventName(), new ArrayList<>()));
+            }
+        }
+        return byRow;
     }
 }

@@ -5,6 +5,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import com.gledhills.calendar.store.Assignments;
 import com.gledhills.calendar.store.ShiftDefinitions;
+import com.gledhills.calendar.store.ShiftTemplatePatrollers;
+import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.utils.*;
 
 import java.util.stream.IntStream;
@@ -16,7 +18,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.gledhills.calendar.service.ShiftTemplateApplyService;
+
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,6 +37,12 @@ import java.util.Map;
  */
 @Controller
 public class EditShiftTemplatesController {
+
+    private final ShiftTemplateApplyService shiftTemplateApplyService;
+
+    public EditShiftTemplatesController(ShiftTemplateApplyService shiftTemplateApplyService) {
+        this.shiftTemplateApplyService = shiftTemplateApplyService;
+    }
 
     @GetMapping("/EditShiftTemplates")
     public String showEditShiftTemplates(
@@ -97,12 +109,27 @@ public class EditShiftTemplatesController {
         try {
             String loggedInUserId = sessionData.getLoggedInUserId();
 
+            // The "Assign Patrollers to this template" grid posts back its own slots. Handle that
+            // before the row processing below, which only knows about times/counts/types.
+            if (request.getParameter("saveTemplatePatrollersBtn") != null) {
+                saveTemplatePatrollers(request, patrolData, selectedShift, LOG);
+            }
+
+            boolean assignPatrollers = request.getParameter("assignPatrollers") != null;
+            boolean applyToCalendar = request.getParameter("applyToCalendar") != null
+                || request.getParameter("confirmApply") != null;
+
             // Process form submission FIRST - this is what persists row edits/adds/deletes.
             // (The legacy servlet also parsed and wrote changes before honoring SaveChangesBtn.)
             ProcessResult result = processFormSubmission(request, sessionData, patrolData, selectedShift, deleteTemplateBtn, LOG);
 
+            if (result.errorMessage != null) {
+                model.addAttribute("errorMessage", result.errorMessage);
+            }
+
             // Handle Save Changes button - changes are saved above, now return to Directors
-            if (saveChangesBtn != null) {
+            // (but stay put when the name was rejected, so the director sees why)
+            if (saveChangesBtn != null && result.errorMessage == null) {
                 response.sendRedirect("Directors?resort=" + resort + "&ID=" + loggedInUserId);
                 return null;
             }
@@ -143,6 +170,26 @@ public class EditShiftTemplatesController {
             model.addAttribute("shiftTypes", getAllShiftTypes());
             model.addAttribute("maxAssignmentSize", Assignments.MAX_ASSIGNMENT_SIZE);
             model.addAttribute("countOptions", buildCountOptions());
+            Map<String, Integer> templatePatrollerCounts = ShiftTemplatePatrollers
+                .countByTemplateName(LOG, patrolData.getConnection(), allShifts,
+                                     buildIdToName(patrolData).keySet());
+            model.addAttribute("templatePatrollerCounts", templatePatrollerCounts);
+            model.addAttribute("selectedTemplatePatrollers",
+                               templatePatrollerCounts.getOrDefault(selectedShift, 0));
+            model.addAttribute("assignPatrollers", assignPatrollers);
+            model.addAttribute("applyToCalendar", applyToCalendar);
+            // Only Sunday..Saturday can be applied - the weekday in the name is what picks the days
+            // out of the range - so the button is dead for every other template.
+            model.addAttribute("selectedShiftIsDayOfWeek",
+                               shiftTemplateApplyService.isDayOfWeekTemplate(selectedShift));
+            if (applyToCalendar) {
+                addApplyToCalendarModel(request, patrolData, resort, selectedShift, model, LOG);
+            }
+            if (assignPatrollers) {
+                model.addAttribute("templateSlots",
+                                   buildTemplateSlots(patrolData, selectedShifts, LOG));
+                model.addAttribute("sortedRoster", buildSortedRoster(patrolData));
+            }
 
             // Add resort metadata for header
             ResortData resortData = PatrolData.getResortInfo(resort);
@@ -171,6 +218,16 @@ public class EditShiftTemplatesController {
             Logger LOG) {
 
         String eventName = request.getParameter("eventName");
+
+        // A row's position is stored as a "_<n>" suffix on its shift name ("Saturday_0"), so an
+        // underscore inside the name itself would make the name and the position ambiguous.
+        // The browser checks this too, but that can be bypassed.
+        if (eventName != null && eventName.contains("_")) {
+            LOG.info("rejected shift template name with an underscore: (" + eventName + ")");
+            return new ProcessResult(selectedShift, false, false,
+                                     "Shift template names cannot contain an underscore ('_'). '"
+                                       + eventName + "' was not saved.");
+        }
         String addShiftParam = request.getParameter("addShift");
         boolean addShift = (addShiftParam != null);
 
@@ -227,6 +284,11 @@ public class EditShiftTemplatesController {
             todaysData[i].setExists(true);
         }
 
+        // A row delete renumbers every row after it (decrementShift renames _2 to _1, and so on),
+        // so the patrollers keyed by those names have to move with them. Snapshot by row index
+        // now, and rewrite once the renumbering is done.
+        List<List<String>> patrollersByRow = snapshotTemplatePatrollers(patrolData, selectedShift, LOG);
+
         // Process deletions and updates
         int selectedSize = 0;
         boolean foundDeleteShift = false;
@@ -261,6 +323,19 @@ public class EditShiftTemplatesController {
 
                 selectedSize++;
             }
+        }
+
+        if (deleteTemplateBtn != null) {
+            //the whole template is gone; forget every row's patrollers
+            for (int row = 0; row < patrollersByRow.size(); row++) {
+                ShiftTemplatePatrollers.deleteShift(LOG, patrolData.getConnection(),
+                                                   ShiftDefinitions.createShiftName(selectedShift, row));
+            }
+        }
+        else if (foundDeleteShift && shiftToDelete >= 0 && shiftToDelete < patrollersByRow.size()) {
+            patrollersByRow.remove(shiftToDelete);
+            rewriteTemplatePatrollers(patrolData, selectedShift, patrollersByRow,
+                                      selectedSize, LOG);
         }
 
         // Add new shift
@@ -333,6 +408,47 @@ public class EditShiftTemplatesController {
         patrolData.deleteShift(toRow);
         patrolData.writeShift(movedToFrom);
         patrolData.writeShift(movedToTo);
+
+        //the patrollers belong to the shift, so they travel with it
+        ShiftTemplatePatrollers.swap(LOG, patrolData.getConnection(),
+                                     fromRow.getEventName(), toRow.getEventName());
+    }
+
+    /** Each row's patrollers for a template, indexed by row position. */
+    private List<List<String>> snapshotTemplatePatrollers(PatrolData patrolData, String templateName,
+                                                          Logger LOG) {
+        List<List<String>> byRow = new ArrayList<>();
+        if (templateName == null || templateName.isEmpty()) {
+            return byRow;
+        }
+        Map<String, List<String>> all =
+            ShiftTemplatePatrollers.readAll(LOG, patrolData.getConnection());
+
+        for (ShiftDefinitions shift : patrolData.readShiftDefinitions()) {
+            if (shift.parsedEventName().equals(templateName)) {
+                byRow.add(new ArrayList<>(
+                    all.getOrDefault(shift.getEventName(), new ArrayList<>())));
+            }
+        }
+        return byRow;
+    }
+
+    /**
+     * Re-key the patrollers onto row names 0..n-1 after a delete shifted everything up, and clear
+     * any name beyond the new end so the removed row leaves nothing behind.
+     */
+    private void rewriteTemplatePatrollers(PatrolData patrolData, String templateName,
+                                           List<List<String>> patrollersByRow, int previousRowCount,
+                                           Logger LOG) {
+        for (int row = 0; row < patrollersByRow.size(); row++) {
+            ShiftTemplatePatrollers.write(LOG, patrolData.getConnection(),
+                                          ShiftDefinitions.createShiftName(templateName, row),
+                                          patrollersByRow.get(row));
+        }
+        for (int row = patrollersByRow.size(); row <= previousRowCount; row++) {
+            ShiftTemplatePatrollers.deleteShift(LOG, patrolData.getConnection(),
+                                                ShiftDefinitions.createShiftName(templateName, row));
+        }
     }
 
     /**
@@ -356,6 +472,204 @@ public class EditShiftTemplatesController {
     /**
      * Helper class for shift with index (for form field naming).
      */
+    /**
+     * Drive the "Apply to calendar" panel. Apply writes straight away unless days in the range are
+     * already scheduled, in which case it stops and asks; the answer comes back on the next Apply,
+     * marked by the question's own hidden field, and only then is anything written.
+     */
+    private void addApplyToCalendarModel(HttpServletRequest request, PatrolData patrolData,
+                                         String resort, String selectedShift, Model model,
+                                         Logger LOG) {
+        LocalDate from = parseDate(request.getParameter("applyFrom"));
+        LocalDate to = parseDate(request.getParameter("applyTo"));
+
+        model.addAttribute("applyFrom", request.getParameter("applyFrom"));
+        model.addAttribute("applyTo", request.getParameter("applyTo"));
+
+        if (request.getParameter("confirmApply") == null) {
+            return; // the panel just opened; there is nothing to work out yet
+        }
+        if (from == null || to == null) {
+            model.addAttribute("applyNeedsDates", true);
+            return;
+        }
+        if (to.isBefore(from)) {
+            model.addAttribute("applyError", "The 'to' date is before the 'from' date.");
+            return;
+        }
+
+        // The skip/overwrite radio answers the conflict question. Anything but a literal
+        // "overwrite" means skip, so neither an unanswered question nor a mangled parameter can be
+        // the thing that deletes a shift.
+        ShiftTemplateApplyService.ConflictMode mode =
+            ShiftTemplateApplyService.ConflictMode.of(request.getParameter("conflictMode"));
+        ShiftTemplateApplyService.Preview preview = shiftTemplateApplyService
+            .preview(resort, patrolData, selectedShift, from, to, mode, LOG);
+
+        // Stop and ask, unless this Apply is carrying the answer back
+        if (!preview.isApplicable()
+                || (preview.isAskingConflictQuestion()
+                        && request.getParameter("conflictAnswered") == null)) {
+            model.addAttribute("applyPreview", preview);
+            return;
+        }
+        if (preview.getDaysAffectedCount() == 0 && !preview.hasConflicts()) {
+            model.addAttribute("applyError",
+                               "There are no " + selectedShift + "s between " + from + " and " + to
+                                 + ".");
+            return;
+        }
+
+        int written = shiftTemplateApplyService.apply(resort, patrolData, selectedShift,
+                                                      from, to, mode, LOG);
+        String result = "Put " + selectedShift + " shifts on " + written + " day(s).";
+
+        //preview was read before apply() ran, so it still describes what was there
+        if (preview.isOverwriting()) {
+            result += " " + preview.getDaysInConflictCount()
+                + " of those already had shifts and were overwritten, removing "
+                + preview.patrollersInConflict() + " scheduled patroller(s).";
+        }
+        else if (preview.hasConflicts()) {
+            result += " " + preview.getDaysInConflictCount()
+                + " day(s) already had shifts and were left alone.";
+        }
+        model.addAttribute("applyResult", result);
+        model.addAttribute("applyDone", true);
+    }
+
+    /** An HTML date input gives yyyy-MM-dd; anything else is treated as not supplied. */
+    private LocalDate parseDate(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value.trim());
+        }
+        catch (DateTimeParseException e) {
+            return null;
+        }
+    }
+
+    /**
+     * The slots of every row of the selected template, with whoever is pencilled into each.
+     * One flat list, because the grid draws one line per slot.
+     */
+    private List<TemplateSlot> buildTemplateSlots(PatrolData patrolData,
+                                                  List<ShiftWithIndex> selectedShifts, Logger LOG) {
+        Map<String, List<String>> patrollersByShift =
+            ShiftTemplatePatrollers.readAll(LOG, patrolData.getConnection());
+        Map<String, String> idToName = buildIdToName(patrolData);
+
+        List<TemplateSlot> slots = new ArrayList<>();
+        for (ShiftWithIndex row : selectedShifts) {
+            ShiftDefinitions shift = row.getShift();
+            List<String> assigned =
+                patrollersByShift.getOrDefault(shift.getEventName(), new ArrayList<>());
+            String time = shift.getStartString() + " - " + shift.getEndString();
+
+            for (int position = 0; position < shift.getCount(); position++) {
+                String patrollerId = position < assigned.size() ? assigned.get(position) : null;
+                String memberName = ShiftTemplatePatrollers.isEmpty(patrollerId)
+                    ? "" : idToName.getOrDefault(patrollerId, "");
+
+                slots.add(new TemplateSlot(slotFieldName(row.getIndex(), position), time, memberName));
+            }
+        }
+        return slots;
+    }
+
+    /** Form field carrying the name pencilled into one slot. */
+    private static String slotFieldName(int row, int position) {
+        return "slot_" + row + "_" + position;
+    }
+
+    /**
+     * Store what the grid posted back. Names come from the roster list, so they are turned back
+     * into ids; anything unrecognised is treated as an empty slot rather than guessed at.
+     */
+    private void saveTemplatePatrollers(HttpServletRequest request, PatrolData patrolData,
+                                        String selectedShift, Logger LOG) {
+        if (selectedShift == null || selectedShift.isEmpty()) {
+            return;
+        }
+
+        for (ShiftDefinitions shift : patrolData.readShiftDefinitions()) {
+            if (!shift.parsedEventName().equals(selectedShift)) {
+                continue;
+            }
+            int row = shift.getEventIndex();
+            List<String> patrollerIds = new ArrayList<>();
+            boolean sawAnyField = false;
+
+            for (int position = 0; position < shift.getCount(); position++) {
+                String name = request.getParameter(slotFieldName(row, position));
+                if (name == null) {
+                    patrollerIds.add(ShiftTemplatePatrollers.EMPTY_SLOT);
+                    continue;
+                }
+                sawAnyField = true;
+                Roster member = name.trim().length() > 2 ? patrolData.getMemberByName2(name) : null;
+                patrollerIds.add(member != null && member.getID() != null
+                                     ? member.getID() : ShiftTemplatePatrollers.EMPTY_SLOT);
+            }
+
+            //a row whose fields were not submitted at all is left alone, rather than cleared
+            if (sawAnyField) {
+                ShiftTemplatePatrollers.write(LOG, patrolData.getConnection(),
+                                              shift.getEventName(), patrollerIds);
+            }
+        }
+    }
+
+    /** Roster names for the grid's pick list, in the order the roster returns them. */
+    private String[] buildSortedRoster(PatrolData patrolData) {
+        List<String> names = new ArrayList<>();
+        java.sql.ResultSet rosterResults = patrolData.resetRoster();
+        Roster member;
+
+        while ((member = patrolData.nextMember("", rosterResults)) != null) {
+            names.add(member.getFullName_lastNameFirst());
+        }
+        return names.toArray(new String[0]);
+    }
+
+    private Map<String, String> buildIdToName(PatrolData patrolData) {
+        Map<String, String> idToName = new LinkedHashMap<>();
+        java.sql.ResultSet rosterResults = patrolData.resetRoster();
+        Roster member;
+
+        while ((member = patrolData.nextMember("", rosterResults)) != null) {
+            idToName.put(member.getID(), member.getFullName_lastNameFirst());
+        }
+        return idToName;
+    }
+
+    /** One slot of one template row, for the "Assign Patrollers to this template" grid. */
+    public static class TemplateSlot {
+        private final String fieldName;
+        private final String time;
+        private final String memberName;
+
+        TemplateSlot(String fieldName, String time, String memberName) {
+            this.fieldName = fieldName;
+            this.time = time;
+            this.memberName = memberName;
+        }
+
+        public String getFieldName() {
+            return fieldName;
+        }
+
+        public String getTime() {
+            return time;
+        }
+
+        public String getMemberName() {
+            return memberName;
+        }
+    }
+
     public static class ShiftWithIndex {
         private final ShiftDefinitions shift;
         private final int index;
@@ -381,11 +695,18 @@ public class EditShiftTemplatesController {
         final String selectedShift;
         final boolean newShift;
         final boolean addShift;
+        /** Why nothing was saved, or null when the submission was accepted. */
+        final String errorMessage;
 
         ProcessResult(String selectedShift, boolean newShift, boolean addShift) {
+            this(selectedShift, newShift, addShift, null);
+        }
+
+        ProcessResult(String selectedShift, boolean newShift, boolean addShift, String errorMessage) {
             this.selectedShift = selectedShift;
             this.newShift = newShift;
             this.addShift = addShift;
+            this.errorMessage = errorMessage;
         }
     }
 
