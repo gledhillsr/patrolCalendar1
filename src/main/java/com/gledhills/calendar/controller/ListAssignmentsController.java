@@ -11,6 +11,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -28,6 +30,13 @@ import java.util.Map;
 public class ListAssignmentsController {
 
     public static final String DISPLAY_ALL_ASSIGNMENTS = "DisplayAllAssignments";
+
+    /**
+     * Roster name a director picked on the Directors page, to read that patroller's history
+     * instead of their own. Named for the Directors page's own select, so its "Show Patrollers
+     * History ..." button can submit that form straight here.
+     */
+    public static final String SELECTED_PATROLLER = "NameToEdit";
 
     /**
      * Model class for assignment information
@@ -113,6 +122,33 @@ public class ListAssignmentsController {
                 return "list-assignments";
             }
 
+            // 7b. A director can arrive from the Directors page with a roster name selected, to
+            // read somebody else's history. Only a director may: the parameter is ignored for
+            // anyone else, so a hand-typed URL shows the asker their own assignments as usual.
+            String selectedName = request.getParameter(SELECTED_PATROLLER);
+            String subjectId = patrollerId;
+            boolean cameFromDirectors = false;
+
+            if (selectedName != null && !selectedName.trim().isEmpty()) {
+                Roster loggedIn = patrolData.getMemberByID(patrollerId);
+
+                if (loggedIn != null && loggedIn.isDirector()) {
+                    Roster selected = patrolData.getMemberByName2(selectedName);
+                    cameFromDirectors = true;
+
+                    if (selected != null && selected.getID() != null) {
+                        subjectId = selected.getID();
+                    }
+                    else {
+                        LOG.info("no roster member named (" + selectedName + "), showing own history");
+                    }
+                }
+                else {
+                    LOG.info("ignoring " + SELECTED_PATROLLER + "=(" + selectedName
+                               + "): " + patrollerId + " is not a director");
+                }
+            }
+
             // 8. Get DisplayAllAssignments parameter
             String displayAllParam = request.getParameter(DISPLAY_ALL_ASSIGNMENTS);
             boolean displayAllAssignments = "true".equals(displayAllParam);
@@ -131,10 +167,11 @@ public class ListAssignmentsController {
             }
             calendarStart.set(startYear, startMonth, 1);
 
-            // 10. Get member info
-            Roster member = patrolData.getMemberByID(patrollerId);
+            // 10. Get member info - the subject, who is the logged-in user unless a director
+            // picked somebody off the roster
+            Roster member = patrolData.getMemberByID(subjectId);
             String memberName = member != null ? member.getFullName() : "Unknown";
-            int myID = Integer.parseInt(patrollerId);
+            int myID = Integer.parseInt(subjectId);
 
             // 11. Initialize collections for assignment data
             List<AssignmentInfo> assignments = new ArrayList<>();
@@ -148,7 +185,7 @@ public class ListAssignmentsController {
             int lastMonth = 0;
 
             // 13. Load and process assignments
-            for (Assignments ns : patrolData.readAllSortedAssignments(patrollerId)) {
+            for (Assignments ns : patrolData.readAllSortedAssignments(subjectId)) {
                 // Check if assignment is within season range
                 Calendar assignmentDate = new GregorianCalendar(ns.getYear(), ns.getMonth() - 1, ns.getDay());
                 if (assignmentDate.before(calendarStart)) {
@@ -201,9 +238,14 @@ public class ListAssignmentsController {
                 }
             }
 
-            // 15. Build toggle URL and text
+            // 15. Build toggle URL and text. The selected patroller has to ride along, or toggling
+            // the season would silently switch the page back to the director's own history.
             String toggleUrl = "ListAssignments?resort=" + resort + "&ID=" + patrollerId +
                 "&" + DISPLAY_ALL_ASSIGNMENTS + "=" + !displayAllAssignments;
+            if (cameFromDirectors) {
+                toggleUrl += "&" + SELECTED_PATROLLER + "="
+                    + URLEncoder.encode(selectedName, StandardCharsets.UTF_8);
+            }
             String toggleText = displayAllAssignments
                 ? "Change to current season only"
                 : "Change to display all assignments";
@@ -220,6 +262,11 @@ public class ListAssignmentsController {
             model.addAttribute("shiftCounts", shiftCountsMap);
             model.addAttribute("totalShifts", totalShifts);
             model.addAttribute("isBackdoorUser", false);
+            // Arrived from the Directors page, so the way back is a Done button rather than the
+            // browser's Back button
+            model.addAttribute("cameFromDirectors", cameFromDirectors);
+            model.addAttribute("directorsUrl",
+                               "Directors?resort=" + resort + "&ID=" + patrollerId);
 
             // 17. Add resort metadata for header
             ResortData resortData = PatrolData.getResortInfo(resort);

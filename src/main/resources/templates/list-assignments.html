@@ -73,6 +73,13 @@
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span th:text="${entry.key}">Shift Type</span> = <b th:text="${entry.value}">0</b>
         </span>
         <br><b>Total shifts</b>:&nbsp;&nbsp;&nbsp;<b th:text="${totalShifts}">0</b>
+
+        <!-- Reached from the Directors page, so give the way back rather than relying on Back -->
+        <p th:if="${cameFromDirectors}">
+            <br>
+            <input type="button" value="Done" th:data-url="${directorsUrl}"
+                   onclick="window.location=this.dataset.url">
+        </p>
     </div>
 
     <div th:replace="~{fragments/footer :: footer}"></div>

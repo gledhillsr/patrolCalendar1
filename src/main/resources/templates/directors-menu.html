@@ -125,6 +125,15 @@
                                 <br>
                                 <input class="btn btn-red" type="submit" name="removeName" value="Delete Patroller ...">
                             </div>
+                            <!-- formaction/formmethod send this one button to ListAssignments as a
+                                 GET, so it carries the roster selection without the form itself
+                                 having to stop posting to UpdateInfo for every other button. -->
+                            <div class="patroller-actions">
+                                <span class="field-label">Show assignments history</span>
+                                <input class="btn" type="submit" name="showHistory"
+                                       value="Show Patrollers History ..."
+                                       formaction="ListAssignments" formmethod="get">
+                            </div>
                         </div>
                     </div>
                 </div>
