@@ -1,0 +1,58 @@
+[Unit]
+Description=PatrolCalendar
+After=syslog.target
+After=network.target
+# The app is useless without the database, and on a reboot systemd would
+# otherwise race it. Wants= rather than Requires= so a database problem does
+# not also stop the app from being started by hand.
+#
+# mariadb.service, not mysqld.service: the MariaDB package does declare
+# mysql/mysqld aliases, but those only exist as symlinks once the unit is
+# enabled - and this one is currently disabled, so the alias would resolve to
+# nothing and the ordering would be silently lost.
+After=mariadb.service
+Wants=mariadb.service
+
+# Keep retrying instead of landing in a permanently failed state that needs a
+# human. The default gives up after 5 starts in 10s, which is exactly what you
+# do not want when the box is recovering from memory pressure.
+# NOTE: on Amazon Linux 2 (systemd 219) this directive is called
+# StartLimitInterval and belongs in [Service] instead.
+StartLimitIntervalSec=0
+
+[Service]
+User=ec2-user
+Group=ec2-user
+
+# Cap the heap explicitly. A JVM with no -Xmx takes a QUARTER OF SYSTEM RAM as
+# its maximum heap, so this process silently resized itself when the instance
+# did - 230MB on a 1GB t3.micro, ~480MB on a 2GB t3.small - and shared that box
+# with MySQL and the doReminder.sh cron JVM. Nothing was bounded, so nothing
+# had headroom.
+#
+# SerialGC on purpose: at 2GB the JVM would switch itself to G1, which spends
+# extra native memory on region metadata, remembered sets and GC threads to buy
+# pause times a low-concurrency scheduling app does not need. Take the RAM as
+# headroom instead.
+#
+# Sizing: use -Xmx512m on a 2GB t3.small, -Xmx256m if still on a 1GB t3.micro.
+Environment="JAVA_OPTS=-Xmx512m -XX:+UseSerialGC"
+# $JAVA_OPTS unbraced so systemd word-splits it into separate arguments.
+# JVM options must come before -jar.
+ExecStart=/usr/bin/java $JAVA_OPTS -jar /home/ec2-user/calendar-1.jar
+
+# Optional: Set environment variables if needed
+# Environment="SPRING_PROFILES_ACTIVE=prod"
+
+# always rather than on-failure: a server exiting cleanly is still an outage.
+Restart=always
+RestartSec=10
+
+# Logging. Note journald keeps only the current boot unless /var/log/journal
+# exists - create it, or a reboot erases the evidence of why anything died.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=patrolcalendar
+
+[Install]
+WantedBy=multi-user.target

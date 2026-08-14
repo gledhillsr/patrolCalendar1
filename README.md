@@ -1,5 +1,72 @@
 # Patrol Calendar
 
+
+
+
+sudo systemctl status mariadb
+sudo systemctl restart springbootapp.service
+sudo nginx -t && sudo systemctl reload nginx
+sudo systemctl start php-fpm
+
+
+The deploy steps are unchanged: (Update(src/main/resources/springbootapp.service) << verify
+
+sudo cp springbootapp.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart springbootapp.service
+systemd-analyze verify /etc/systemd/system/springbootapp.service
+<<<>>>>
+
+Clean version for t3 → t3 (no ENA step needed).
+
+1. Before you stop it
+
+Check for an Elastic IP — this is the step that bites people. Select the instance → Networking tab → look for "Elastic IP addresses". 
+If it's blank, the public IPv4 is auto-assigned and stopping the instance releases it permanently; 
+you'll restart on a different address and anything pointing at the old one breaks. Allocate and associate an EIP first, or be ready to update DNS.
+
+Confirm services start at boot, or the box comes back without them:
+
+systemctl is-enabled springbootapp.service mysqld
+
+Any disabled → sudo systemctl enable <name> now.
+
+Take a rollback point: Actions → Image and templates → Create image.
+
+2. Resize
+
+1. EC2 console → Instances → select your instance
+2. Instance state → Stop instance → confirm; wait for state Stopped (30–60 s — the next menu stays greyed out until it is)
+3. Actions → Instance settings → Change instance type
+4. Choose t3.small → Apply
+5. Instance state → Start instance
+6. Wait for Running with 2/2 checks passed
+
+Downtime is typically 2–4 minutes. Billing switches to the t3.small rate on start.
+
+3. Verify
+
+free -m                                     # ~2 GB now
+systemctl status springbootapp.service mysqld
+curl -sI http://127.0.0.1:8080/calendar-1/  # app answering
+
+4. Do this immediately after — don't skip it
+
+At 2 GB, your app JVM will jump from 230 MB to ~480 MB of heap and switch from SerialGC to G1GC on its own, since nothing pins either. G1 also adds native memory overhead you don't need for this workload. Check what you actually got:
+
+java -XX:+PrintFlagsFinal -version | grep -E "MaxHeapSize|UseG1GC|UseSerialGC"
+
+Then pin the app's service unit to -Xmx512m -XX:+UseSerialGC, the same way we just pinned doReminder.sh. Otherwise you've bought 1 GB of RAM and let the JVM spend most of it on heap it won't use and a collector you don't need — leaving you with less real headroom than the upgrade suggests.
+
+Add swap while you're in there, on either instance size:
+
+sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+Also remember to copy the updated doReminder.sh next to calendar-1.jar if your cron runs an extracted copy — rebuilding the jar won't refresh it.
+
+
 National Ski Patrol Online Scheduling System - A web-based application for managing ski patrol shift scheduling and assignments across multiple ski patrol organizations.
 
 ## Overview
