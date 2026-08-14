@@ -156,6 +156,16 @@ Template patrollers are a starting point, not a schedule. They become real only 
   work), and `ConflictMode.of` reads anything but a literal `"overwrite"` as skip, so no missing or
   mangled parameter can be the thing that deletes a shift.
 
+**Nobody holds two slots on the same shift.** Both bulk grids — "Assign Patrollers to Today's
+Shifts" on DayShifts and "Assign Patrollers to this template" on EditShiftTemplates — enforce it,
+in the browser when a name is inserted and again on save, because the browser check can be
+bypassed. The save drops the duplicate and keeps the first slot rather than rejecting the form.
+**A shift is keyed by its times, not by its row** (`shiftKey` in both controllers): a shift needing
+more than 10 patrollers is entered as several rows sharing a start and end time, and those are one
+shift to the person working it. The key has to match the time string the grid renders, since that
+is what the browser groups by. Someone may of course work 8am *and* 4pm. Covered by
+`NoDuplicateOnAShiftTest`.
+
 **Real assignments win unless a director explicitly says otherwise.** Template patrollers only ever
 fill a position that had nothing in it; the confirmed overwrite above is the one exception, and it
 is a whole-day replace rather than a merge. Ids no longer on the roster are dropped, since the

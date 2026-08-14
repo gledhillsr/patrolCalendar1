@@ -99,14 +99,61 @@
 
         function insertName(form, where) {
             var idx = form.NameList.selectedIndex;
-            if (idx == -1)
+            if (idx == -1) {
                 alert("Select a Name to Insert");
-            else
-                where.value = form.NameList.options[idx].text;
+                return;
+            }
+            var name = form.NameList.options[idx].text;
+
+            // Somebody can be on the 8am shift and the 4pm shift, but not the 8am shift twice.
+            // Slots are grouped by the times they show rather than by row, because a shift needing
+            // more than 10 patrollers is entered as several rows sharing a start and end time.
+            if (alreadyOnShift(form, where, name)) {
+                alert(name + " is already assigned to the " + where.dataset.shift + " shift.\n\n"
+                    + "A patroller can be on more than one shift, but cannot be assigned to the "
+                    + "same shift twice.");
+                return;
+            }
+            where.value = name;
+        }
+
+        function alreadyOnShift(form, where, name) {
+            var fields = form.querySelectorAll('input[data-shift]');
+            for (var i = 0; i < fields.length; i++) {
+                if (fields[i] != where && fields[i].dataset.shift == where.dataset.shift
+                        && fields[i].value == name) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         function deleteName(form, where) {
             where.value = "";
+        }
+
+        // Empties every slot on the grid. Asks first when there is something to lose - this is one
+        // click undoing the whole template - but nothing is written until Save is pressed.
+        function clearAllNames(form) {
+            var fields = form.querySelectorAll('input[data-shift]');
+            var filled = 0;
+            var i;
+
+            for (i = 0; i < fields.length; i++) {
+                if (fields[i].value != "") {
+                    filled++;
+                }
+            }
+            if (filled == 0) {
+                return;
+            }
+            if (!confirm("Remove all " + filled + " patroller(s) from the '" + currName
+                    + "' template?\n\nNothing is saved until you press Save Patroller Assignments.")) {
+                return;
+            }
+            for (i = 0; i < fields.length; i++) {
+                fields[i].value = "";
+            }
         }
 
         function goHome() {
@@ -368,12 +415,21 @@
                                             <td width="30%" bgcolor="#C0C0C0">
                                                 <input readonly type="text"
                                                        th:name="${slot.fieldName}" size="18"
+                                                       th:data-shift="${slot.time}"
                                                        th:value="${slot.memberName}">
                                             </td>
                                             <td width="15%" bgcolor="#C0C0C0">
                                                 <input type="button" value="Clear"
                                                        th:data-fieldname="${slot.fieldName}"
                                                        onclick="deleteName(this.form, document.getElementsByName(this.dataset.fieldname)[0])">
+                                            </td>
+                                        </tr>
+                                        <!-- Empties every slot at once. Mirrors the per-row Clear,
+                                             so it sits under that column. -->
+                                        <tr th:unless="${#lists.isEmpty(templateSlots)}">
+                                            <td colspan="4" align="right" bgcolor="#C0C0C0">
+                                                <input type="button" value="Clear all"
+                                                       onclick="clearAllNames(this.form)">
                                             </td>
                                         </tr>
                                     </table>

@@ -24,9 +24,11 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Spring Boot controller for editing shift templates.
@@ -566,7 +568,7 @@ public class EditShiftTemplatesController {
             ShiftDefinitions shift = row.getShift();
             List<String> assigned =
                 patrollersByShift.getOrDefault(shift.getEventName(), new ArrayList<>());
-            String time = shift.getStartString() + " - " + shift.getEndString();
+            String time = shiftKey(shift);
 
             for (int position = 0; position < shift.getCount(); position++) {
                 String patrollerId = position < assigned.size() ? assigned.get(position) : null;
@@ -585,14 +587,28 @@ public class EditShiftTemplatesController {
     }
 
     /**
+     * What counts as one shift for the "not twice on the same shift" rule: its times, not its row.
+     * A shift needing more than 10 patrollers is entered as several rows sharing a start and end
+     * time, and those are one shift as far as the person working it is concerned. This has to match
+     * the time the grid shows, since that is what the browser check groups by.
+     */
+    private static String shiftKey(ShiftDefinitions shift) {
+        return shift.getStartString() + " - " + shift.getEndString();
+    }
+
+    /**
      * Store what the grid posted back. Names come from the roster list, so they are turned back
      * into ids; anything unrecognised is treated as an empty slot rather than guessed at.
+     *
+     * Nobody may hold two slots on the same shift. The grid stops it before the name goes in, but
+     * that check is in the browser and can be bypassed, so this has the last word.
      */
     private void saveTemplatePatrollers(HttpServletRequest request, PatrolData patrolData,
                                         String selectedShift, Logger LOG) {
         if (selectedShift == null || selectedShift.isEmpty()) {
             return;
         }
+        Map<String, Set<String>> alreadyOnShift = new LinkedHashMap<>();
 
         for (ShiftDefinitions shift : patrolData.readShiftDefinitions()) {
             if (!shift.parsedEventName().equals(selectedShift)) {
@@ -601,6 +617,8 @@ public class EditShiftTemplatesController {
             int row = shift.getEventIndex();
             List<String> patrollerIds = new ArrayList<>();
             boolean sawAnyField = false;
+            Set<String> onThisShift =
+                alreadyOnShift.computeIfAbsent(shiftKey(shift), key -> new HashSet<>());
 
             for (int position = 0; position < shift.getCount(); position++) {
                 String name = request.getParameter(slotFieldName(row, position));
@@ -610,8 +628,20 @@ public class EditShiftTemplatesController {
                 }
                 sawAnyField = true;
                 Roster member = name.trim().length() > 2 ? patrolData.getMemberByName2(name) : null;
-                patrollerIds.add(member != null && member.getID() != null
-                                     ? member.getID() : ShiftTemplatePatrollers.EMPTY_SLOT);
+
+                if (member == null || member.getID() == null) {
+                    patrollerIds.add(ShiftTemplatePatrollers.EMPTY_SLOT);
+                }
+                // add() is false when this shift already holds that id, which drops the duplicate
+                // and keeps the first slot they were put in
+                else if (onThisShift.add(member.getID())) {
+                    patrollerIds.add(member.getID());
+                }
+                else {
+                    LOG.info("dropped a duplicate assignment of " + member.getID() + " to the "
+                               + shiftKey(shift) + " shift of template '" + selectedShift + "'");
+                    patrollerIds.add(ShiftTemplatePatrollers.EMPTY_SLOT);
+                }
             }
 
             //a row whose fields were not submitted at all is left alone, rather than cleared

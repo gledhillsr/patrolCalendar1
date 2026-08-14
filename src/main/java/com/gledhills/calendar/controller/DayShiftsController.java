@@ -151,7 +151,7 @@ public class DayShiftsController {
 
         // Handle different button actions
         if (saveAssignmentBtn != null) {
-            processSaveAssignments(javaxRequest, patrolData, assignmentsFromDisk, resort);
+            processSaveAssignments(javaxRequest, patrolData, assignmentsFromDisk, resort, LOG);
             return redirectToCalendar(response, resort, month, year, patrollerId);
         } else if (deleteAllShiftsBtn != null) {
             processDeleteAllShifts(patrolData, assignmentsFromDisk);
@@ -424,11 +424,17 @@ public class DayShiftsController {
     }
 
     private void processSaveAssignments(javax.servlet.http.HttpServletRequest request, PatrolData patrolData,
-            ArrayList<Assignments> assignments, String resort) {
+            ArrayList<Assignments> assignments, String resort, Logger LOG) {
+
+        // Nobody may hold two slots on the same shift. The grid stops it before the name goes in,
+        // but that check is in the browser and can be bypassed, so the save has the last word.
+        Map<String, Set<String>> alreadyOnShift = new HashMap<>();
 
         for (int i = 0; i < assignments.size(); i++) {
             Assignments data = assignments.get(i);
             data.setExisted(true);
+            Set<String> onThisShift =
+                alreadyOnShift.computeIfAbsent(shiftKey(data), key -> new HashSet<>());
 
             for (int j = 0; ; j++) {
                 String param = "name" + PatrolData.IndexToString(i) + "_" + PatrolData.IndexToString(j);
@@ -443,8 +449,16 @@ public class DayShiftsController {
                     member = patrolData.getMemberByName2(name);
                 }
 
+                // add() is false when this shift already holds that id, which drops the duplicate
+                // and keeps the first slot they were put in
                 if (member != null && member.getID() != null) {
-                    data.insertAt(resort, j, member.getID());
+                    if (onThisShift.add(member.getID())) {
+                        data.insertAt(resort, j, member.getID());
+                    } else {
+                        LOG.info("dropped a duplicate assignment of " + member.getID() + " to the "
+                                   + shiftKey(data) + " shift on " + data.getDate());
+                        data.insertAt(resort, j, "0");
+                    }
                 } else {
                     data.insertAt(resort, j, "0");
                 }
@@ -452,6 +466,15 @@ public class DayShiftsController {
 
             patrolData.writeAssignment(data);
         }
+    }
+
+    /**
+     * What counts as one shift for the "not twice on the same shift" rule: its times, not its row.
+     * A shift needing more than 10 patrollers is entered as several rows sharing a start and end
+     * time, and those are one shift as far as the person working it is concerned.
+     */
+    private String shiftKey(Assignments assignment) {
+        return assignment.getStartingTimeString() + " - " + assignment.getEndingTimeString();
     }
 
     private void processDeleteAllShifts(PatrolData patrolData, ArrayList<Assignments> assignments) {
