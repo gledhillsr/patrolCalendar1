@@ -25,6 +25,16 @@ import java.util.List;
 public class MemberListController {
 
     /**
+     * Classifications this tab lists. Alumni (ALM), Other (OTH) and the legacy Inactive (INA) are
+     * deliberately left out - they are not people the patrol contacts day to day.
+     *
+     * The listing loop and the "email THESE patrollers" URL are both built from this one list, so
+     * they cannot drift apart: the page and the email it offers have to hold the same members.
+     */
+    private static final List<String> LISTED_CLASSIFICATIONS =
+        List.of("BAS", "SR", "SRA", "PRO", "AUX", "TRA", "CAN");
+
+    /**
      * Model class for member information
      */
     public static class MemberInfo {
@@ -109,8 +119,9 @@ public class MemberListController {
             Roster member = patrolData.nextMember("&nbsp;", rosterResults);
 
             while (member != null) {
-                // Only include active members (commitment != "0")
-                if (!member.getCommitment().equals("0")) {
+                // Active members (commitment != "0") in a listed classification
+                if (!member.getCommitment().equals("0")
+                        && LISTED_CLASSIFICATIONS.contains(member.getClassification())) {
                     // Create MemberInfo with contact details
                     String name = member.getFullName_lastNameFirst();
                     String homePhone = cleanField(member.getHomePhone());
@@ -149,11 +160,18 @@ public class MemberListController {
             }
             model.addAttribute("logoutLink", "");
 
-            // 11. Build EmailForm URL with default options
-            String emailFormUrl = "EmailForm?resort=" + resort + "&ID=" + patrollerId +
-                "&BAS=1&INA=1&SR=1&SRA=1&ALM=1&PRO=1&AUX=1&TRA=1&CAN=1" +
-                "&FullTime=1&PartTime=1&Inactive=1&ALL=1";
-            model.addAttribute("emailFormUrl", emailFormUrl);
+            // 11. Build the EmailForm URL. It has to ask EmailForm for exactly the members listed
+            // above, or "email THESE patrollers" mails people the page never showed:
+            //   - the same LISTED_CLASSIFICATIONS the loop used, so Alumni/Other/Inactive stay out
+            //   - no Inactive=1, because the loop skips commitment "0"
+            //   - ALL=1, because the loop applies no director/instructor filter
+            StringBuilder emailFormUrl =
+                new StringBuilder("EmailForm?resort=" + resort + "&ID=" + patrollerId);
+            for (String classification : LISTED_CLASSIFICATIONS) {
+                emailFormUrl.append("&").append(classification).append("=1");
+            }
+            emailFormUrl.append("&FullTime=1&PartTime=1&ALL=1");
+            model.addAttribute("emailFormUrl", emailFormUrl.toString());
 
             return "member-list";
 

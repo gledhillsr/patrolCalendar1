@@ -19,25 +19,30 @@ import java.util.Map;
 public class ShiftAssignmentService {
 
     /**
-     * Drop recipients who worked fewer than the requested number of shifts within the
+     * Keep only recipients who worked <b>fewer than</b> the requested number of shifts within the
      * requested date range. Only the shift types flagged in the request are counted.
      *
+     * The checkbox this comes from reads "Only list if less than N shifts" on SetupListPatrollers,
+     * and `RosterQueryService.applyMinDaysFilter` keeps `count < limit` to match. This has to agree
+     * with it, or "email THESE patrollers" mails a different set of people than the page listed -
+     * in fact the exact complement, which is how the two drifted unnoticed.
+     *
      * @param recipients Recipients to filter
-     * @param request Request containing date range, shift type flags and the minimum
+     * @param request Request containing date range, shift type flags and the limit
      * @param patrolData Patrol data accessor
-     * @return Recipients meeting the minimum, in the order supplied
+     * @return Recipients under the limit, in the order supplied
      */
-    public List<EmailRecipient> filterByMinimumShifts(List<EmailRecipient> recipients,
-                                                      EmailFormRequest request,
-                                                      PatrolData patrolData) {
-        int minimumShifts = request.minShiftsThreshold();
-        if (minimumShifts <= 0) {
+    public List<EmailRecipient> filterByShiftLimit(List<EmailRecipient> recipients,
+                                                   EmailFormRequest request,
+                                                   PatrolData patrolData) {
+        int shiftLimit = request.minShiftsThreshold();
+        if (shiftLimit <= 0) {
             return recipients;
         }
 
         Map<String, Integer> shiftsById = countShifts(recipients, request, patrolData);
         return recipients.stream()
-            .filter(recipient -> shiftsById.getOrDefault(recipient.getId(), 0) >= minimumShifts)
+            .filter(recipient -> shiftsById.getOrDefault(recipient.getId(), 0) < shiftLimit)
             .toList();
     }
 

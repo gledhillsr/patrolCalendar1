@@ -300,8 +300,14 @@ public class ListPatrollersController {
       url.append("&Toboggan=1");
     }
 
+    // Every counter the setup page lets "Only list if less than N shifts" apply to, not just
+    // day/swing/night: a Training-only or Holiday-only listing used to drop the whole block, and
+    // EmailForm with no MIN_DAYS and no date range does no shift filtering at all - so the mail
+    // went to everyone the classification filter allowed, well beyond what the page had listed.
     if (dateRange.get("useMinDays") == 1 &&
-      (flags.get("showDayCnt") || flags.get("showSwingCnt") || flags.get("showNightCnt"))) {
+      (flags.get("showDayCnt") || flags.get("showSwingCnt") || flags.get("showNightCnt")
+        || flags.get("showTrainingCnt") || flags.get("showOtherCnt")
+        || flags.get("showHolidayCnt"))) {
       url.append("&MIN_DAYS=1&MinDays=").append(dateRange.get("minDays"));
       if (flags.get("showDayCnt")) {
         url.append("&DAY_CNT=1");

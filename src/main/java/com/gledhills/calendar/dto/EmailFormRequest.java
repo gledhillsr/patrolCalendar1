@@ -84,7 +84,11 @@ public record EmailFormRequest(
     return StartYear != null;
   }
 
-  /** Minimum shifts a member must have worked in the date range, or 0 when not filtering. */
+  /**
+   * The "Only list if less than N shifts" limit, or 0 when not filtering. A member is kept when
+   * their shift count in the date range is strictly below this - it is a ceiling, not a floor,
+   * despite the name.
+   */
   public int minShiftsThreshold() {
     return (isSet(MIN_DAYS) && MinDays != null) ? MinDays : 0;
   }

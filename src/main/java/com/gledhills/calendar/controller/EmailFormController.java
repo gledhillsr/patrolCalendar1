@@ -187,7 +187,7 @@ public class EmailFormController {
                               EmailFormRequest filter, PatrolData patrolData, Logger LOG) {
         List<EmailRecipient> recipients = filterService.filterMembers(filter, patrolData);
         if (filter.hasDateRange()) {
-            recipients = shiftAssignmentService.filterByMinimumShifts(recipients, filter, patrolData);
+            recipients = shiftAssignmentService.filterByShiftLimit(recipients, filter, patrolData);
         }
 
         List<EmailRecipient> validRecipients = new ArrayList<>();

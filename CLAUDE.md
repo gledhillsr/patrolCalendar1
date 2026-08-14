@@ -177,6 +177,42 @@ the download button echoes the page's parameters through in its URL.
 `RosterExcelExporter` writes the workbook with Apache POI (`poi-ooxml`). Its column list mirrors
 `templates/list-patrollers.html`: **a column added to the page must be added there too.**
 
+**"e-mail THESE patrollers" must mail exactly who the page listed.** Two pages carry that button and
+neither shares a filter implementation with EmailForm, so they drift silently — three separate
+mismatches have already been fixed, all of which mailed people the page never showed:
+
+- `ListPatrollersController.buildEmailFormUrl` re-emits the page's filters as query parameters. It
+  must forward `MIN_DAYS` for **every** counter the setup page allows it on (day/swing/night/
+  training/other/holiday) — gating on day/swing/night alone sent EmailForm no limit and no date
+  range, and no limit means everybody.
+- `ShiftAssignmentService.filterByShiftLimit` keeps `count < limit`. The checkbox reads "Only list
+  if less than N shifts" and `RosterQueryService.applyMinDaysFilter` keeps `< limit`; when this held
+  `>= limit` the email went to the exact **complement** of the page. `EmailFormRequest`'s accessor
+  is still named `minShiftsThreshold()` — it is a ceiling, not a floor.
+- The **Patrollers tab in the header goes to `MemberList`, not `ListPatrollers`**, and builds its own
+  EmailForm URL. Both the listing loop and that URL come from `MemberListController
+  .LISTED_CLASSIFICATIONS` (`BAS SR SRA PRO AUX TRA CAN` — Alumni, Other and the legacy Inactive
+  code are excluded), so they cannot drift; the loop also skips commitment `"0"`, which is why the
+  URL carries `FullTime`/`PartTime` but never `Inactive=1`. **Change the list, not either copy.**
+
+`EmailListMatchesPatrollerListTest` walks the real route — reads the page, pulls the button's URL
+out of it, follows it, compares the two name lists. Note the Sample roster has no inactive member,
+so the inactive case is pinned on the URL rather than on the lists.
+
+### Viewing Another Patroller's History
+
+`ListAssignments` normally shows the logged-in member their own shifts. The Directors page's
+"Show Patrollers History ..." button submits the *same form* the Edit/Delete buttons use — via
+`formaction="ListAssignments" formmethod="get"` on that one button — so the roster `<select>`
+arrives as `NameToEdit` without the form having to stop posting to `UpdateInfo` for everything else.
+
+The controller honours `NameToEdit` **only when the logged-in member is a director**; for anyone
+else it is logged and ignored, so a hand-typed URL shows the asker their own shifts rather than
+somebody else's. The name is resolved with `getMemberByName2`, which expects the `"Last, First"`
+format the Directors roster builds. When the parameter is honoured the page grows a **Done** button
+back to Directors, and the season toggle link carries `NameToEdit` along — without that, toggling
+would silently switch the page back to the director's own history.
+
 ### Email
 
 `EmailService` sends via Spring's `JavaMailSender` (configured in `AsyncConfig` using `smtp.host` from `application.properties`). Director-triggered bulk emails are `@Async` on the `emailTaskExecutor` thread pool. Password reset emails use one-time tokens stored in `{resort}_password_reset_tokens` (24-byte random, 15-minute expiry, single-use). The lifetime lives in `PasswordResetToken.LIFETIME_MINUTES` and is quoted to the member in the email — change it in that one place.
