@@ -185,7 +185,7 @@
                 </tr>
 
                 <tr>
-                    <td width="351" align="right"><font size="3">E-mail:</font></td>
+                    <td width="351" align="right"><font size="3">Email:</font></td>
                     <td width="600">
                         <input type="email" th:field="*{email}" size="30" />
                         <span th:if="${#fields.hasErrors('email')}" class="error-message" th:errors="*{email}">Email Error</span>
@@ -343,7 +343,24 @@
                 <tr>
                     <td colspan="2" align="center">
                         <br>
-                        <input type="submit" th:value="${isSetNewID ? 'Set New ID' : 'Update Information'}" />
+                        <input type="submit"
+                               th:value="${isSetNewID ? 'Set New ID'
+                                          : (isAddPatroller ? 'Create New Patroller'
+                                                            : 'Update Information')}" />
+                        <!-- Only when a director got here from the Directors page, which is where
+                             this returns to - Edit Patroller Info, Change ID Number or Add New
+                             Patroller. A member editing their own info from the My Info tab has the
+                             site nav to leave by, and no Directors page to go back to. -->
+                        <!-- "== true" rather than a bare or: this controller renders the form from
+                             a dozen places and several leave one of these flags out of the model
+                             entirely, which SpEL's `or` throws on rather than treating as false. -->
+                        <span th:if="${isEditPatroller == true or isSetNewID == true
+                                       or isAddPatroller == true}">
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            <input type="button" value="Cancel"
+                                   th:data-url="@{/Directors(resort=${resort}, ID=${patrollerId})}"
+                                   onclick="window.location=this.dataset.url">
+                        </span>
                     </td>
                 </tr>
             </table>

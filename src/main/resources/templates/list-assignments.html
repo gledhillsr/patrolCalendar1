@@ -10,6 +10,17 @@
             color: #000000;
             background-color: #ffffff;
         }
+        /* Same width as the assignment table it stands in for, so the page does not jump */
+        .no-shifts {
+            width: 550px;
+            max-width: 100%;
+            border: 1px solid #808080;
+            background-color: #ffffff;
+            padding: 14px 12px;
+            font-size: 12pt;
+            font-weight: bold;
+            color: #444444;
+        }
     </style>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
@@ -42,16 +53,16 @@
             <font size="5" th:text="${memberName} + '\'s Assignment Schedule for ' + ${resortFullName}">Assignment Schedule</font>
         </p>
 
-        <!-- Assignment table -->
-        <div align="left">
-            <table border="1" width="550" bgcolor="#FFFFFF" cellpadding="0" cellspacing="0">
-                <!-- Empty state -->
-                <tr th:if="${assignments.isEmpty()}">
-                    <td colspan="2" valign="middle" align="left">
-                        &nbsp;No shifts were scheduled
-                    </td>
-                </tr>
+        <!-- Nothing to show: say so plainly rather than drawing a one-row empty table, which
+             read as a broken page. Everything else round it stays put, the season toggle above
+             especially - widening the range is the obvious next thing to try. -->
+        <div th:if="${assignments.isEmpty()}" class="no-shifts">
+            No shift assignments found for the selected date range
+        </div>
 
+        <!-- Assignment table -->
+        <div align="left" th:unless="${assignments.isEmpty()}">
+            <table border="1" width="550" bgcolor="#FFFFFF" cellpadding="0" cellspacing="0">
                 <!-- Assignment rows -->
                 <tr th:each="assignment : ${assignments}" th:attr="bgcolor=${assignment.bgColor}">
                     <td th:if="${assignment.missedShift}" valign="middle" bgcolor="#80ffff" align="left">

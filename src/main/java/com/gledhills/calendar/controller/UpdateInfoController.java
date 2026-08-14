@@ -945,7 +945,7 @@ public class UpdateInfoController {
         // Create empty form with sensible defaults for patrol fields
         MemberUpdateForm memberForm = new MemberUpdateForm();
         memberForm.setClassification("CAN"); // Candidate
-        memberForm.setCommitment("0");       // Inactive
+        memberForm.setCommitment("2");       // Full Time - what a patroller being added almost always is
         memberForm.setDirector("");          // No
         memberForm.setTeamLead("0");         // No
         memberForm.setMentoring("0");        // No

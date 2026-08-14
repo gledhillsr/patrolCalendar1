@@ -70,7 +70,7 @@ public class Roster {
     { "WorkPhone", "Work Phone:&nbsp;", "WorkPhone", "n", "Work", "80" },      //10
     { "CellPhone", "Cell Phone:&nbsp;", "CellPhone", "n", "Cell", "70" },      //11
     { "Pager", "Pager:&nbsp;", "Pager", "n", "Pager", "70" },      //12
-    { "email", "E-mail:&nbsp;", "E-mailAddress", "n", "Email", "130" },     //13
+    { "email", "Email:&nbsp;", "E-mailAddress", "n", "Email", "130" },     //13
     { "EmergencyCallUp", "Emergency Call Up:&nbsp;", "EmergencyCall", "n", "Call Up", "50" },      //14
     { "Password", "Password:&nbsp;", "Password", "n", "Password", "60" },      //15
     { "NightSubsitute", "Substitute List:&nbsp;", "NightSubsitute", "n", "Sub", "50" },      //16
