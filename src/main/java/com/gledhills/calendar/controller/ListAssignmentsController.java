@@ -46,13 +46,16 @@ public class ListAssignmentsController {
         private String shiftType;
         private boolean missedShift;
         private String bgColor;
+        /** Set on the first row of a season, so the page can head the group; blank otherwise. */
+        private String seasonLabel;
 
         public AssignmentInfo(String dateTimeRange, String shiftType,
-                             boolean missedShift, String bgColor) {
+                             boolean missedShift, String bgColor, String seasonLabel) {
             this.dateTimeRange = dateTimeRange;
             this.shiftType = shiftType;
             this.missedShift = missedShift;
             this.bgColor = bgColor;
+            this.seasonLabel = seasonLabel;
         }
 
         // Getters
@@ -60,6 +63,20 @@ public class ListAssignmentsController {
         public String getShiftType() { return shiftType; }
         public boolean isMissedShift() { return missedShift; }
         public String getBgColor() { return bgColor; }
+        public String getSeasonLabel() { return seasonLabel; }
+        public boolean isStartsSeason() { return seasonLabel != null && !seasonLabel.isEmpty(); }
+    }
+
+    /**
+     * Which season a date belongs to, as "2024-2025 Season". A season runs 1 July to 30 June, so
+     * anything before July belongs to the season that opened the previous calendar year - the same
+     * cut-off the "current season only" filter above uses.
+     *
+     * @param month 1 based, as Assignments reports it
+     */
+    static String seasonLabel(int year, int month) {
+        int startYear = (month >= (Calendar.JULY + 1)) ? year : year - 1;
+        return startYear + "-" + (startYear + 1) + " Season";
     }
 
     @GetMapping("/ListAssignments")
@@ -183,6 +200,8 @@ public class ListAssignmentsController {
             String LT_GREEN_BG_COLOR = "#D7F5ED";
             String bgColor = WHITE_BG_COLOR;
             int lastMonth = 0;
+            //the season the previous row fell in, so a change can be labelled
+            String lastSeason = "";
 
             // 13. Load and process assignments
             for (Assignments ns : patrolData.readAllSortedAssignments(subjectId)) {
@@ -218,7 +237,19 @@ public class ListAssignmentsController {
                             boolean missedShift = (pat0 < 0);
                             String shiftTypeName = Assignments.getShiftName(ns.getType());
 
-                            assignments.add(new AssignmentInfo(dateTimeRange, shiftTypeName, missedShift, bgColor));
+                            // Head each season's rows with its own label. Worked out here rather
+                            // than before the inner loop so a season is only consumed when a row is
+                            // actually added - an assignment this member is not on must not swallow
+                            // the heading of the season it happens to fall in.
+                            String rowSeason = seasonLabel(ns.getYear(), ns.getMonth());
+                            String startsSeason = "";
+                            if (displayAllAssignments && !rowSeason.equals(lastSeason)) {
+                                startsSeason = rowSeason;
+                                lastSeason = rowSeason;
+                            }
+
+                            assignments.add(new AssignmentInfo(dateTimeRange, shiftTypeName,
+                                                               missedShift, bgColor, startsSeason));
                             shiftCounts[ns.getType()]++;
                             totalShifts++;
                         }

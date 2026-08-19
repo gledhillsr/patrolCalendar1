@@ -36,7 +36,24 @@ Group=ec2-user
 # headroom instead.
 #
 # Sizing: use -Xmx512m on a 2GB t3.small, -Xmx256m if still on a 1GB t3.micro.
-Environment="JAVA_OPTS=-Xmx512m -XX:+UseSerialGC"
+#
+# The rest is so the next outage explains itself. The site once went down with
+# nothing in the log at all, and the evidence needed to tell "the JVM was killed"
+# from "the JVM was alive but doing nothing" did not exist:
+#
+#   -Xlog:gc          one line per collection. A heap that fills and then
+#                     collects back-to-back without freeing much is a GC death
+#                     spiral - the app stops serving but never exits, so systemd
+#                     sees a healthy process and nothing is ever logged. This is
+#                     the only thing that shows it. Rotated at 5x20MB, because an
+#                     unbounded log on a small box is its own outage.
+#   HeapDumpOnOOM     a dump to inspect afterwards, up to the size of the heap.
+#                     Note it only fires on a real OutOfMemoryError; a spiral
+#                     that frees just enough each cycle never throws one, so the
+#                     GC log is what to read first.
+Environment="JAVA_OPTS=-Xmx512m -XX:+UseSerialGC \
+  -Xlog:gc:file=/home/ec2-user/gc.log:time,uptime:filecount=5,filesize=20M \
+  -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/home/ec2-user/"
 # $JAVA_OPTS unbraced so systemd word-splits it into separate arguments.
 # JVM options must come before -jar.
 ExecStart=/usr/bin/java $JAVA_OPTS -jar /home/ec2-user/calendar-1.jar

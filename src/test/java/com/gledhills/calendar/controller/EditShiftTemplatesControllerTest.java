@@ -280,8 +280,11 @@ class EditShiftTemplatesControllerTest {
   void theBrowserAlsoChecksForAnUnderscore() throws Exception {
     String page = page(MULTI_ROW_TEMPLATE);
 
-    assertTrue(page.contains("currName.indexOf(\"_\")"),
-               "CheckEventName should reject underscores client-side too");
+    // the rule moved into isUsableTemplateName, which the New button gate shares
+    assertTrue(page.contains("indexOf(\"_\")"),
+               "the browser should reject underscores client-side too");
+    assertTrue(page.contains("function CheckEventName"),
+               "and it should still gate the form's submit");
   }
 
   private void withPatrolData(java.util.function.Consumer<PatrolData> work) {

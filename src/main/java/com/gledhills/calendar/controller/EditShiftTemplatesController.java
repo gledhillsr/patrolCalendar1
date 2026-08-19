@@ -125,6 +125,15 @@ public class EditShiftTemplatesController {
             // (The legacy servlet also parsed and wrote changes before honoring SaveChangesBtn.)
             ProcessResult result = processFormSubmission(request, sessionData, patrolData, selectedShift, deleteTemplateBtn, LOG);
 
+            // processFormSubmission is what resolves the template's name: typing into "Event
+            // Name/Day of Week" renames an existing template or creates a new one, and everything
+            // below - the dropdown, the rows, the patroller counts - has to work from that rather
+            // than from whatever the dropdown happened to post. Without this, adding a row to a
+            // brand new template wrote it to the database and then displayed neither the row nor
+            // the name, having replaced the typed name with "--New Shift Style--".
+            // On a rejected name it returns the original, so the director stays where they were.
+            selectedShift = result.selectedShift;
+
             if (result.errorMessage != null) {
                 model.addAttribute("errorMessage", result.errorMessage);
             }
@@ -230,6 +239,18 @@ public class EditShiftTemplatesController {
                                      "Shift template names cannot contain an underscore ('_'). '"
                                        + eventName + "' was not saved.");
         }
+
+        // Nothing is saved under a name that is not a name. Saving with the field blank used to
+        // rename the template's rows to "_0", "_1" and so on - createShiftName just appends the
+        // position - which is where the blank entry in the dropdown came from. The browser blocks
+        // the submit, but that check can be bypassed.
+        // Deleting is let through: a template already stuck with a bad name has to be removable.
+        if (deleteTemplateBtn == null && eventName != null && !isUsableTemplateName(eventName)) {
+            LOG.info("rejected unusable shift template name: (" + eventName + ")");
+            return new ProcessResult(selectedShift, false, false,
+                                     "The 'Event Name/Day of Week' field must have a valid value "
+                                       + "to continue. Nothing was saved.");
+        }
         String addShiftParam = request.getParameter("addShift");
         boolean addShift = (addShiftParam != null);
 
@@ -239,11 +260,23 @@ public class EditShiftTemplatesController {
         if (selectedShift == null) {
             selectedShift = "";
         }
+        String originalSelectedShift = selectedShift;
 
         // Check if shift name changed (new shift)
         boolean newShift = (eventName != null && !eventName.isEmpty() && !eventName.equals(selectedShift));
         if (newShift) {
             selectedShift = eventName;
+        }
+
+        // "New" writes a row named after this template, so refuse to write one under a name that
+        // is not a name. The browser disables the button until the field is filled in, but that
+        // check can be bypassed - and when it was, pressing New created a template called ""
+        // whose row came out as "_0", which then sat in the dropdown as a blank entry.
+        if (addShift && !isUsableTemplateName(selectedShift)) {
+            LOG.info("refusing to add a shift to an unnamed template: (" + selectedShift + ")");
+            return new ProcessResult(originalSelectedShift, false, false,
+                                     "Enter a name in 'Event Name/Day of Week' before adding a "
+                                       + "shift to it.");
         }
 
         // Check for individual shift deletion
@@ -579,6 +612,21 @@ public class EditShiftTemplatesController {
             }
         }
         return slots;
+    }
+
+    /**
+     * Whether a template name is one we can store. Mirrors isUsableTemplateName in
+     * edit-shift-templates.html, which greys out the New button on the same rule - keep the two
+     * in step. Blank is out, the dropdown's "--New Shift Style--" label is a menu entry rather
+     * than a name, and an underscore would collide with the "_<n>" row-position suffix.
+     */
+    private static boolean isUsableTemplateName(String name) {
+        if (name == null) {
+            return false;
+        }
+        String trimmed = name.trim();
+        return !trimmed.isEmpty() && !trimmed.equals(PatrolData.NEW_SHIFT_STYLE)
+                 && !trimmed.contains("_");
     }
 
     /** Form field carrying the name pencilled into one slot. */

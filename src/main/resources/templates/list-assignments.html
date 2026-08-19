@@ -10,6 +10,15 @@
             color: #000000;
             background-color: #ffffff;
         }
+        /* Heads each season's block of shifts when all assignments are displayed */
+        .season-separator {
+            background-color: #003366;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 11pt;
+            padding: 4px 8px;
+            letter-spacing: 0.04em;
+        }
         /* Same width as the assignment table it stands in for, so the page does not jump */
         .no-shifts {
             width: 550px;
@@ -63,8 +72,13 @@
         <!-- Assignment table -->
         <div align="left" th:unless="${assignments.isEmpty()}">
             <table border="1" width="550" bgcolor="#FFFFFF" cellpadding="0" cellspacing="0">
-                <!-- Assignment rows -->
-                <tr th:each="assignment : ${assignments}" th:attr="bgcolor=${assignment.bgColor}">
+                <!-- Assignment rows, each season's headed by its own label. th:block so the
+                     separator and the row are siblings rather than nested. -->
+                <th:block th:each="assignment : ${assignments}">
+                <tr th:if="${assignment.startsSeason}">
+                    <td colspan="2" class="season-separator" th:text="${assignment.seasonLabel}">Season</td>
+                </tr>
+                <tr th:attr="bgcolor=${assignment.bgColor}">
                     <td th:if="${assignment.missedShift}" valign="middle" bgcolor="#80ffff" align="left">
                         &nbsp;<span th:text="${assignment.dateTimeRange}">Date</span> &lt;Shift Missed&gt;
                     </td>
@@ -75,6 +89,7 @@
                         &nbsp;<span th:text="${assignment.shiftType}">Type</span>
                     </td>
                 </tr>
+                </th:block>
             </table>
         </div>
 

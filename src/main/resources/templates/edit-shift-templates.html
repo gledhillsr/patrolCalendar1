@@ -48,10 +48,15 @@
         input[type="text"] {
             font-family: monospace;
         }
+        /* Shown beside the name box only while the name is unusable */
+        .name-required {
+            color: #b91c1c;
+            font-weight: bold;
+            font-size: 10pt;
+        }
     </style>
     <script type="text/javascript" th:inline="javascript">
         /*<![CDATA[*/
-        var mustChangeName = true;
         var currName = /*[[${selectedShift}]]*/ "";
         var resort = /*[[${resort}]]*/ "";
         var patrollerId = /*[[${patrollerId}]]*/ "";
@@ -72,26 +77,63 @@
             location = "/calendar-1/EditShiftTemplates?resort=" + resort + "&ID=" + patrollerId + "&selectedShift=" + encodeURIComponent(msg);
         }
 
-        function testName(str) {
-            currName = str;
-            if (str != newShiftStyle && str != "" && str != " ") {
-                mustChangeName = false;
+        // A template name has to be something we can actually store: not blank, not the dropdown's
+        // "--New Shift Style--" label, and no underscore (the row position is a "_<n>" suffix on
+        // the name, so one inside the name makes the two indistinguishable).
+        function isUsableTemplateName(str) {
+            if (str == null) {
+                return false;
             }
-            if (str == "" || str == " ") {
-                currName = "Blank";
+            var trimmed = str.replace(/^\s+|\s+$/g, "");
+            return trimmed != "" && trimmed != newShiftStyle && trimmed.indexOf("_") < 0;
+        }
+
+        // "New" writes a row to the database under whatever this field holds, so it stays disabled
+        // until the field holds a name worth writing. The hint beside the field says why.
+        function syncNewButton() {
+            var field = document.getElementById("eventNameField");
+            var button = document.getElementById("addShiftBtn");
+            var hint = document.getElementById("eventNameRequired");
+            if (!field || !button) {
+                return;
+            }
+            var usable = isUsableTemplateName(field.value);
+            button.disabled = !usable;
+            button.title = usable ? "" : "Enter a name for this shift template first";
+            if (hint) {
+                hint.style.display = usable ? "none" : "";
             }
         }
 
+        // Keeps currName in step for the delete and overwrite confirmations, which quote it.
+        function testName(str) {
+            var trimmed = (str == null) ? "" : str.replace(/^\s+|\s+$/g, "");
+            currName = (trimmed == "") ? "Blank" : trimmed;
+        }
+
+        // Gate on every submit of the template form - Save Changes, New, Delete row, the reorder
+        // arrows. Reads the field rather than the currName copy, because currName is only refreshed
+        // on blur and a submit can happen without the field ever having been focused.
         function CheckEventName() {
-            testName(currName);
-            if (mustChangeName) {
-                alert("This 'shift' MUST have a valid name BEFORE anything else can be done. '" + currName + "' is invalid");
+            var field = document.getElementById("eventNameField");
+            if (!field) {
+                return true;   //a panel that posts eventName as a hidden field instead
+            }
+            var name = field.value.replace(/^\s+|\s+$/g, "");
+            testName(name);
+
+            if (name == "" || name == newShiftStyle) {
+                alert("The 'Event Name/Day of Week' field must have a valid value to continue.\n\n"
+                    + "Enter a name for this shift template, then try again.");
+                field.focus();
                 return false;
             }
             // The row position is stored as a "_<n>" suffix on the shift name, so an underscore in
             // the name itself makes the two indistinguishable.
-            if (currName.indexOf("_") >= 0) {
-                alert("Shift template names cannot contain an underscore ('_'). '" + currName + "' is invalid.");
+            if (name.indexOf("_") >= 0) {
+                alert("Shift template names cannot contain an underscore ('_'). '" + name
+                    + "' is invalid.");
+                field.focus();
                 return false;
             }
             return true;
@@ -175,6 +217,7 @@
                 + dialog.dataset.removed + " patroller(s) scheduled on those days will lose that"
                 + " shift. This cannot be undone.\n\nOverwrite them?");
         }
+        window.addEventListener("DOMContentLoaded", syncNewButton);
         /*]]>*/
     </script>
 </head>
@@ -255,12 +298,23 @@
                                                 <tr>
                                                     <td colspan="6">
                                                         Event Name/Day of Week:
+                                                        <!-- Blank rather than "--New Shift Style--"
+                                                             when starting from scratch: that string
+                                                             is a menu label, not a name, and having
+                                                             it prefilled made it look like the field
+                                                             was already answered. -->
                                                         <input type="text"
+                                                               id="eventNameField"
                                                                name="eventName"
-                                                               th:value="${selectedShift}"
+                                                               th:value="${selectedShift == newShiftStyle ? '' : selectedShift}"
                                                                size="39"
+                                                               placeholder="Name this shift template - required"
+                                                               oninput="syncNewButton()"
                                                                onblur="testName(this.value)"
                                                                onkeydown="javascript:return captureEnter(event.keyCode)" />
+                                                        <span id="eventNameRequired" class="name-required">
+                                                            &#9664; required before you can add a shift
+                                                        </span>
                                                     </td>
                                                 </tr>
 
@@ -325,7 +379,8 @@
                                                 <!-- New button row -->
                                                 <tr>
                                                     <td width="90">
-                                                        <input type="submit" value="New" name="addShift" />
+                                                        <input type="submit" value="New" name="addShift"
+                                                               id="addShiftBtn" />
                                                     </td>
                                                     <td width="205">&nbsp;</td>
                                                     <td width="205">&nbsp;</td>
