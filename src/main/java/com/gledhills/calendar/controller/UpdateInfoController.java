@@ -447,6 +447,28 @@ public class UpdateInfoController {
         return true;
     }
 
+    /**
+     * Defaults for the flags update-info.html branches on. Spring runs this before the handler, so
+     * a path that sets one overrides the default and a path that does not still yields a boolean.
+     *
+     * The template combines these with "or" - {@code ${isDirector or isAddPatroller}} - and SpEL
+     * throws "cannot convert from null to boolean" on a null operand rather than treating it as
+     * false - and it checks the left operand before short-circuiting, so a null isDirector throws
+     * even when isAddPatroller is true. This controller renders the form from thirteen places and
+     * seven of them omit isDirector, all error re-renders: the Add New Patroller bounces (missing
+     * id, bad phone, duplicate id), the Change ID Number clash, and the "member not found" arms.
+     * One of those took a director to a 500 in production. Defaulting here fixes every path at
+     * once, including ones added later.
+     */
+    @ModelAttribute
+    void defaultTemplateFlags(Model model) {
+        model.addAttribute("isBackdoorUser", false);
+        model.addAttribute("isDirector", false);
+        model.addAttribute("isAddPatroller", false);
+        model.addAttribute("isSetNewID", false);
+        model.addAttribute("isEditPatroller", false);
+    }
+
     @GetMapping("/UpdateInfo")
     public String showUpdateForm(HttpServletRequest request, HttpServletResponse response,
                                  Model model) throws IOException {
@@ -518,14 +540,23 @@ public class UpdateInfoController {
                 patrollerId = loggedInUserId;
             }
 
-            // 7. Check for backdoor user
+            // 7. Check for backdoor user.
+            // Only when they are looking at their own record: the backdoor id has no roster row of
+            // its own, so there is nothing to draw a form from. Editing somebody else is a real
+            // request and has to fall through - getMemberByID hands the backdoor user a synthetic
+            // director, so the check above already let them past. Short-circuiting here regardless
+            // is what rendered "Personal Information for: null" over "Have a great day" when a
+            // backdoor login opened Edit_Patroller on a member.
             boolean isBackdoorUser = loggedInUserId.equalsIgnoreCase(sessionData.getBackDoorUser());
+            boolean viewingOwnBackdoorRecord =
+                isBackdoorUser && loggedInUserId.equalsIgnoreCase(patrollerId);
 
-            if (isBackdoorUser) {
+            if (viewingOwnBackdoorRecord) {
                 // Backdoor user - show friendly message
                 model.addAttribute("resort", resort);
                 model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
                 model.addAttribute("patrollerId", patrollerId);
+                model.addAttribute("memberName", loggedInUserId);   //or the heading reads "null"
                 model.addAttribute("isBackdoorUser", true);
                 model.addAttribute("isAddPatroller", false);
 
@@ -547,8 +578,14 @@ public class UpdateInfoController {
                 model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
                 model.addAttribute("patrollerId", patrollerId);
                 model.addAttribute("errorMessage", "Member not found: " + patrollerId);
+                //without this the heading renders "Personal Information for: null"
+                model.addAttribute("memberName", patrollerId);
+                // update-info.html is bound with th:object="${memberForm}"; without one
+                // #fields.hasAnyErrors() throws "Neither BindingResult nor plain target
+                // object for bean name 'memberForm'" and the page 500s instead of
+                // showing this message.
+                model.addAttribute("memberForm", new MemberUpdateForm());
                 model.addAttribute("isBackdoorUser", false);
-                model.addAttribute("isAddPatroller", false);
                 model.addAttribute("isAddPatroller", false);
 
                 // Add resort metadata for header
@@ -719,10 +756,12 @@ public class UpdateInfoController {
             Roster loggedInMember = patrolData.getMemberByID(loggedInUserId);
             boolean isDirector = loggedInMember != null && loggedInMember.isDirector();
 
-            // 8. Check for backdoor user (cannot update)
+            // 8. Check for backdoor user (cannot update their own non-existent record).
+            // As on the GET, a save aimed at somebody else's record is a real request and falls
+            // through; only a save of the backdoor id itself has nothing to write to.
             boolean isBackdoorUser = loggedInUserId.equalsIgnoreCase(sessionData.getBackDoorUser());
 
-            if (isBackdoorUser) {
+            if (isBackdoorUser && loggedInUserId.equalsIgnoreCase(patrollerId)) {
                 // Redirect back to GET for backdoor user
                 response.sendRedirect("UpdateInfo?resort=" + resort + "&ID=" + patrollerId);
                 return null;
@@ -748,6 +787,13 @@ public class UpdateInfoController {
                     model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
                     model.addAttribute("patrollerId", patrollerId);
                     model.addAttribute("errorMessage", "Member not found: " + patrollerId);
+                    //without this the heading renders "Personal Information for: null"
+                    model.addAttribute("memberName", patrollerId);
+                    // update-info.html is bound with th:object="${memberForm}"; without one
+                    // #fields.hasAnyErrors() throws "Neither BindingResult nor plain target
+                    // object for bean name 'memberForm'" and the page 500s instead of
+                    // showing this message.
+                    model.addAttribute("memberForm", new MemberUpdateForm());
                     model.addAttribute("isBackdoorUser", false);
                 model.addAttribute("isAddPatroller", false);
 
@@ -827,6 +873,13 @@ public class UpdateInfoController {
                 model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
                 model.addAttribute("patrollerId", patrollerId);
                 model.addAttribute("errorMessage", "Member not found: " + patrollerId);
+                //without this the heading renders "Personal Information for: null"
+                model.addAttribute("memberName", patrollerId);
+                // update-info.html is bound with th:object="${memberForm}"; without one
+                // #fields.hasAnyErrors() throws "Neither BindingResult nor plain target
+                // object for bean name 'memberForm'" and the page 500s instead of
+                // showing this message.
+                model.addAttribute("memberForm", new MemberUpdateForm());
                 model.addAttribute("isBackdoorUser", false);
                 model.addAttribute("isAddPatroller", false);
                 model.addAttribute("memberForm", memberForm);
@@ -1190,6 +1243,7 @@ public class UpdateInfoController {
                 model.addAttribute("isAddPatroller", false);
             model.addAttribute("memberForm", memberForm);
             model.addAttribute("isSetNewID", true);
+            model.addAttribute("isDirector", true);   //past rejectIfNotDirector to reach here
             model.addAttribute("oldMemberID", oldMemberID);
             model.addAttribute("errorMessage", "ERROR: ID '" + newMemberID + "' is already owned by " + existingMember.getFullName());
 
@@ -1304,6 +1358,10 @@ public class UpdateInfoController {
             model.addAttribute("patrollerId", loggedInUserId);
             model.addAttribute("isSetNewID", false);
             model.addAttribute("isAddPatroller", true);
+            //without these the heading renders "Personal Information for: null",
+            //and the director-only fields fall back to read-only text
+            model.addAttribute("memberName", "New Patroller");
+            model.addAttribute("isDirector", true);
             model.addAttribute("errorMessage", "ID Number is required for new patroller");
             model.addAttribute("memberForm", memberForm);
             return "update-info";
@@ -1329,6 +1387,10 @@ public class UpdateInfoController {
             model.addAttribute("patrollerId", loggedInUserId);
             model.addAttribute("isSetNewID", false);
             model.addAttribute("isAddPatroller", true);
+            //without these the heading renders "Personal Information for: null",
+            //and the director-only fields fall back to read-only text
+            model.addAttribute("memberName", "New Patroller");
+            model.addAttribute("isDirector", true);
             model.addAttribute("memberForm", memberForm);
             return "update-info";
         }
@@ -1341,6 +1403,10 @@ public class UpdateInfoController {
             model.addAttribute("patrollerId", loggedInUserId);
             model.addAttribute("isSetNewID", false);
             model.addAttribute("isAddPatroller", true);
+            //without these the heading renders "Personal Information for: null",
+            //and the director-only fields fall back to read-only text
+            model.addAttribute("memberName", "New Patroller");
+            model.addAttribute("isDirector", true);
             model.addAttribute("errorMessage", "ID Number " + newIdNumber + " already exists");
             model.addAttribute("memberForm", memberForm);
             return "update-info";
@@ -1369,6 +1435,10 @@ public class UpdateInfoController {
             model.addAttribute("patrollerId", loggedInUserId);
             model.addAttribute("isSetNewID", false);
             model.addAttribute("isAddPatroller", true);
+            //without these the heading renders "Personal Information for: null",
+            //and the director-only fields fall back to read-only text
+            model.addAttribute("memberName", "New Patroller");
+            model.addAttribute("isDirector", true);
             model.addAttribute("errorMessage", "Database error: Failed to add new patroller. Please try again.");
             model.addAttribute("memberForm", memberForm);
             return "update-info";
