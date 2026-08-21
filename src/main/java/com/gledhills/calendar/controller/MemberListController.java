@@ -35,6 +35,21 @@ public class MemberListController {
         List.of("BAS", "SR", "SRA", "PRO", "AUX", "TRA", "CAN");
 
     /**
+     * Everything the roster recognises, for the "Show FULL roster" toggle - the trimmed list plus
+     * Alumni, "Other" and the legacy Inactive code. Matches Roster.okToDisplay's vocabulary, so the
+     * email URL built from it asks EmailForm for exactly what the page drew.
+     *
+     * Note a member whose classification or commitment holds something outside these values is
+     * shown by neither list's email: okToDisplay rejects them whatever the URL asks for. That is
+     * pre-existing behaviour of okToDisplay, not something this toggle introduces.
+     */
+    private static final List<String> ALL_CLASSIFICATIONS =
+        List.of("BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "OTH");
+
+    /** Query parameter that flips the tab between the trimmed list and everybody. */
+    public static final String FULL_ROSTER = "fullRoster";
+
+    /**
      * Model class for member information
      */
     public static class MemberInfo {
@@ -106,6 +121,10 @@ public class MemberListController {
             // 6. Get logged-in user info
             String patrollerId = sessionData.getLoggedInUserId();
 
+            // Anything but a literal "true" is the trimmed list, so a mangled parameter shows the
+            // conservative view rather than everybody's details.
+            boolean fullRoster = "true".equals(request.getParameter(FULL_ROSTER));
+
             // 7. Check director status and emailAll permission
             DirectorSettings ds = patrolData.readDirectorSettings();
             Roster editor = patrolData.getMemberByID(patrollerId);
@@ -119,9 +138,11 @@ public class MemberListController {
             Roster member = patrolData.nextMember("&nbsp;", rosterResults);
 
             while (member != null) {
-                // Active members (commitment != "0") in a listed classification
-                if (!member.getCommitment().equals("0")
-                        && LISTED_CLASSIFICATIONS.contains(member.getClassification())) {
+                // Trimmed: active members (commitment != "0") in a listed classification.
+                // Full: everybody, which is what the toggle exists to show.
+                if (fullRoster
+                        || (!member.getCommitment().equals("0")
+                              && LISTED_CLASSIFICATIONS.contains(member.getClassification()))) {
                     // Create MemberInfo with contact details
                     String name = member.getFullName_lastNameFirst();
                     String homePhone = cleanField(member.getHomePhone());
@@ -161,17 +182,27 @@ public class MemberListController {
             model.addAttribute("logoutLink", "");
 
             // 11. Build the EmailForm URL. It has to ask EmailForm for exactly the members listed
-            // above, or "email THESE patrollers" mails people the page never showed:
-            //   - the same LISTED_CLASSIFICATIONS the loop used, so Alumni/Other/Inactive stay out
-            //   - no Inactive=1, because the loop skips commitment "0"
-            //   - ALL=1, because the loop applies no director/instructor filter
+            // above, or "email THESE patrollers" mails people the page never showed. Both halves
+            // come from the same list the loop used, so the two cannot drift:
+            //   - trimmed: LISTED_CLASSIFICATIONS, and no Inactive=1 since commitment "0" is skipped
+            //   - full:    ALL_CLASSIFICATIONS plus Inactive=1, matching "everybody"
+            //   - ALL=1 either way, because the loop applies no director/instructor filter
             StringBuilder emailFormUrl =
                 new StringBuilder("EmailForm?resort=" + resort + "&ID=" + patrollerId);
-            for (String classification : LISTED_CLASSIFICATIONS) {
+            for (String classification : (fullRoster ? ALL_CLASSIFICATIONS : LISTED_CLASSIFICATIONS)) {
                 emailFormUrl.append("&").append(classification).append("=1");
             }
-            emailFormUrl.append("&FullTime=1&PartTime=1&ALL=1");
+            emailFormUrl.append("&FullTime=1&PartTime=1");
+            if (fullRoster) {
+                emailFormUrl.append("&Inactive=1");
+            }
+            emailFormUrl.append("&ALL=1");
             model.addAttribute("emailFormUrl", emailFormUrl.toString());
+
+            // The toggle: its label describes where it goes, not where you are.
+            model.addAttribute("fullRoster", fullRoster);
+            model.addAttribute("toggleRosterUrl", "MemberList?resort=" + resort + "&ID=" + patrollerId
+                                 + (fullRoster ? "" : "&" + FULL_ROSTER + "=true"));
 
             return "member-list";
 

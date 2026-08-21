@@ -4,11 +4,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title th:text="'List of Members of the ' + ${resortFullName} + ' Ski Patrollers'">Member List</title>
+    <th:block th:replace="~{fragments/head :: icons}"></th:block>
     <style type="text/css">
         body {
             font-size: 10pt;
             color: #000000;
             background-color: #ffffff;
+        }
+        /* Small round "?" beside the toggle; click for what trimming leaves out */
+        .help-dot {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            line-height: 15px;
+            text-align: center;
+            border-radius: 50%;
+            border: 1px solid #003366;
+            background-color: #ffffff;
+            color: #003366;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            vertical-align: middle;
+            user-select: none;
         }
     </style>
 </head>
@@ -17,14 +35,23 @@
 
     <p><center><h2 th:text="'List of Members of the ' + ${resortFullName} + ' Ski Patrollers'">Member List</h2></center></p>
 
-    <!-- Email button -->
-    <p th:if="${showEmailButton}">
-        <b>
+    <!-- Email button, and the trimmed/full roster toggle beside it -->
+    <p>
+        <b th:if="${showEmailButton}">
             <input type="button"
                    value="email THESE patrollers"
                    th:data-url="${emailFormUrl}"
                    onclick="window.location=this.getAttribute('data-url')"/>
         </b>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <!-- The label says where the button goes, not where you are -->
+        <input type="button"
+               th:value="${fullRoster} ? 'Show Trimmed Roster' : 'Show FULL roster'"
+               th:data-url="${toggleRosterUrl}"
+               onclick="window.location=this.getAttribute('data-url')"/>
+        <!-- Only alongside "Show Trimmed Roster", to say what trimming leaves out -->
+        <span th:if="${fullRoster}" class="help-dot" title="What is a trimmed roster?"
+              onclick="alert('Trimmed roster does not show Inactive, Alumni, and \'Other\' patrollers');">?</span>
     </p>
 
     <!-- Member table -->

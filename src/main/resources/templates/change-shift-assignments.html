@@ -4,6 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
     <title th:text="${dayOfWeekName + ' ' + monthFullName + ' ' + dayOfMonth + ', ' + year}">Change Shift</title>
+    <th:block th:replace="~{fragments/head :: icons}"></th:block>
     <script>
         function goHome() {
             history.back();
