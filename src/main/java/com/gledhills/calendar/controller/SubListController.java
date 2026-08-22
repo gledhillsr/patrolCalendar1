@@ -96,6 +96,11 @@ public class SubListController {
             // 6. Get logged-in user info
             String patrollerId = sessionData.getLoggedInUserId();
 
+            // Pro is off by default here, unlike the Patrollers tab: a Pro is not usually who you
+            // call to cover a volunteer shift. Absent means unticked, so no hidden marker field is
+            // needed the way MemberList needs one for its default-on box.
+            boolean includePro = "true".equals(request.getParameter("pro"));
+
             // 7. Load substitute list and build email list in single pass
             List<SubstituteInfo> substitutes = new ArrayList<>();
             StringBuilder emailList = new StringBuilder();
@@ -103,9 +108,11 @@ public class SubListController {
             Roster member = patrolData.nextMember("&nbsp;", rosterResults);
 
             while (member != null) {
-                // Check if member opted in as substitute
-                String subField = member.getSub();
-                if (subField != null && (subField.startsWith("y") || subField.startsWith("Y"))) {
+                // On the substitute list and still patrolling - part time or full time. Roster
+                // owns the rule so that the "email THESE patrollers" button below, which reaches
+                // EmailForm through okToDisplay's SubList branch, offers exactly the people listed
+                // here. Printing the page is just the browser printing these same rows.
+                if (member.isAvailableSubstitute(includePro)) {
                     // Create SubstituteInfo with contact details
                     String name = member.getFullName_lastNameFirst();
                     String homePhone = cleanField(member.getHomePhone());
@@ -132,6 +139,7 @@ public class SubListController {
             model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
             model.addAttribute("patrollerId", patrollerId);
             model.addAttribute("substitutes", substitutes);
+            model.addAttribute("substituteCount", substitutes.size());
 
             // 8a. Add resort metadata for header
             ResortData resortData = PatrolData.getResortInfo(resort);
@@ -143,7 +151,11 @@ public class SubListController {
             model.addAttribute("logoutLink", ""); // TODO: Add logout functionality
 
             // 9. Build EmailForm URL with SubList parameter
-            String emailFormUrl = "EmailForm?resort=" + resort + "&ID=" + patrollerId + "&SubList=1";
+            // PRO=1 only when the box is ticked, so the email offers exactly who is listed -
+            // okToDisplay's SubList branch reads Pro out of the classification list it is given.
+            String emailFormUrl = "EmailForm?resort=" + resort + "&ID=" + patrollerId + "&SubList=1"
+                                    + (includePro ? "&PRO=1" : "");
+            model.addAttribute("includePro", includePro);
             model.addAttribute("emailFormUrl", emailFormUrl);
             model.addAttribute("emailList", emailList.toString());
 

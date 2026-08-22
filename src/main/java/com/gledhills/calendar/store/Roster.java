@@ -931,6 +931,78 @@ public class Roster {
     return memberData[SUB];
   }
 
+  /**
+   * Whether this member put themselves on the substitute list.
+   *
+   * The field holds "y", "Y" or "yes" in practice. Matched in full rather than by first letter:
+   * the old test was {@code substring(0, 1).equalsIgnoreCase("Y")}, which would have opted in
+   * anything beginning with a Y. Blank, "N" and the "&amp;nbsp;" placeholder that
+   * {@code nextMember} substitutes for empty fields all mean "not on the list".
+   *
+   * SubList and okToDisplay's SubList branch both call this, so the page and the email list its
+   * button offers cannot disagree about who is a substitute.
+   */
+  /**
+   * Part time or full time. Inactive ("0") is not, and neither is an unset or unrecognised value -
+   * okToDisplay reads anything it cannot parse as 3 and excludes it, so this agrees with that.
+   */
+  public boolean hasActiveCommitment() {
+    String commitment = getCommitment();
+    if (commitment == null) {
+      return false;
+    }
+    String trimmed = commitment.trim();
+    return trimmed.equals("1") || trimmed.equals("2");
+  }
+
+  /**
+   * Classifications that never stand in for a shift, whatever their substitute flag says.
+   * Everything else qualifies - a short exclusion list rather than a long allow list, so a
+   * classification added later is available by default. Pro is handled separately: it is excluded
+   * unless the caller asks for it, which is the "Pro" checkbox on SubList.
+   */
+  private static final List<String> NOT_SUBSTITUTING = List.of("ALM", "OTH");
+
+  private static final String PRO_CLASSIFICATION = "PRO";
+
+  /**
+   * On the substitute list, still patrolling, and of a classification that stands in for shifts.
+   *
+   * Somebody who went inactive - or who is Alumni or "Other" - without clearing their substitute
+   * flag should not be called. SubList and the email its button offers both ask this rather than
+   * reading the flag themselves, and note okToDisplay's SubList branch is an override that skips
+   * its own classification and commitment tests, so this method is the only thing holding those
+   * two views together.
+   *
+   * @param includePro whether Pro counts as a substitute; off by default on SubList, and turned on
+   *                   by its "Pro" checkbox
+   */
+  public boolean isAvailableSubstitute(boolean includePro) {
+    return isOnSubstituteList() && hasActiveCommitment()
+             && isSubstitutingClassification(includePro);
+  }
+
+  private boolean isSubstitutingClassification(boolean includePro) {
+    String classification = getClassification();
+    if (classification == null) {
+      return true;   //unset is none of the classifications we exclude
+    }
+    String code = classification.trim().toUpperCase();
+    if (NOT_SUBSTITUTING.contains(code)) {
+      return false;
+    }
+    return !PRO_CLASSIFICATION.equals(code) || includePro;
+  }
+
+  public boolean isOnSubstituteList() {
+    String sub = getSub();
+    if (sub == null) {
+      return false;
+    }
+    String trimmed = sub.trim();
+    return trimmed.equalsIgnoreCase("y") || trimmed.equalsIgnoreCase("yes");
+  }
+
   public String getLastUpdated() {
     return memberData[LAST_UPDATED];
   }
@@ -1134,12 +1206,9 @@ public class Roster {
     }
 
     if (SubList) {
-      String sub = getSub();
-      //noinspection RedundantIfStatement
-      if (sub != null && sub.length() >= 1 && sub.substring(0, 1).equalsIgnoreCase("Y")) {
-        return true;
-      }
-      return false;
+      //the Pro checkbox reaches EmailForm as PRO=1, which lands in the classification list
+      return isAvailableSubstitute(vClassificationsToDisplay != null
+                                     && vClassificationsToDisplay.contains(PRO_CLASSIFICATION));
     }
     //----end overrides
 

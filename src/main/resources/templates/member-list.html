@@ -11,6 +11,30 @@
             color: #000000;
             background-color: #ffffff;
         }
+        /* One row: email button, the Pro/Alumni boxes, then the roster toggle. flex so the
+           controls share a centre line whatever their natural heights, and wrap together
+           rather than mid-group on a narrow window. */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .toolbar-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+        }
+        .toolbar label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
         /* Small round "?" beside the toggle; click for what trimming leaves out */
         .help-dot {
             display: inline-block;
@@ -36,28 +60,46 @@
     <p><center><h2 th:text="'List of Members of the ' + ${resortFullName} + ' Ski Patrollers'">Member List</h2></center></p>
 
     <!-- Email button, and the trimmed/full roster toggle beside it -->
-    <p>
-        <b th:if="${showEmailButton}">
-            <input type="button"
-                   value="email THESE patrollers"
-                   th:data-url="${emailFormUrl}"
-                   onclick="window.location=this.getAttribute('data-url')"/>
-        </b>
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <!-- The label says where the button goes, not where you are -->
-        <input type="button"
-               th:value="${fullRoster} ? 'Show Trimmed Roster' : 'Show FULL roster'"
-               th:data-url="${toggleRosterUrl}"
+    <div class="toolbar">
+        <input th:if="${showEmailButton}" type="button"
+               value="email THESE patrollers"
+               th:data-url="${emailFormUrl}"
                onclick="window.location=this.getAttribute('data-url')"/>
-        <!-- Only alongside "Show Trimmed Roster", to say what trimming leaves out -->
-        <span th:if="${fullRoster}" class="help-dot" title="What is a trimmed roster?"
-              onclick="alert('Trimmed roster does not show Inactive, Alumni, and \'Other\' patrollers');">?</span>
-    </p>
+
+        <!-- Opt-in classifications. A GET form so the choice lands in the URL and the page can be
+             bookmarked or reloaded; each box reloads the list, which also rebuilds the email
+             button's URL so it keeps offering exactly who is on screen.
+             Hidden while the full roster is up - that already includes everyone. -->
+        <form th:if="${!fullRoster}" method="get" th:action="@{/MemberList}" class="toolbar-group">
+            <input type="hidden" name="resort" th:value="${resort}"/>
+            <input type="hidden" name="ID" th:value="${patrollerId}"/>
+            <!-- marks a request as having come through these boxes, so an unticked Pro is
+                 distinguishable from a plain link that never had the boxes on it -->
+            <input type="hidden" name="filters" value="1"/>
+            <label><input type="checkbox" name="pro" value="true"
+                          th:checked="${includePro}" onchange="this.form.submit()"/> Pro</label>
+            <label><input type="checkbox" name="alumni" value="true"
+                          th:checked="${includeAlumni}" onchange="this.form.submit()"/> Alumni</label>
+        </form>
+
+        <!-- The label says where the button goes, not where you are -->
+        <span class="toolbar-group">
+            <input type="button"
+                   th:value="${fullRoster} ? 'Show Trimmed Roster' : 'Show FULL roster'"
+                   th:data-url="${toggleRosterUrl}"
+                   onclick="window.location=this.getAttribute('data-url')"/>
+            <!-- Only alongside "Show Trimmed Roster", to say what trimming leaves out -->
+            <span th:if="${fullRoster}" class="help-dot" title="What is a trimmed roster?"
+                  onclick="alert('Trimmed roster does not show Inactive or \'Other\' patrollers.\n\nPro and Alumni are controlled by the boxes above.');">?</span>
+        </span>
+    </div>
 
     <!-- Member table -->
     <table style="font-size: 10pt; font-family: Verdana, Arial, Helvetica;" border="1" width="100%" bordercolordark="#003366" bordercolorlight="#C0C0C0">
         <tr>
             <td width="160" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Name</font></font></td>
+            <td width="55" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Class</font></font></td>
+            <td width="70" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Commitment</font></font></td>
             <td width="90" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Home</font></font></td>
             <td width="83" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Work</font></font></td>
             <td width="70" bgcolor="#C0C0C0"><font face="Verdana, Arial, Helvetica"><font size="2">Cell</font></font></td>
@@ -74,6 +116,8 @@
         <!-- Member rows -->
         <tr th:each="member : ${members}">
             <td th:text="${member.name}">Name</td>
+            <td th:text="${member.classification}">Class</td>
+            <td th:text="${member.commitment}">Commitment</td>
             <td th:text="${member.homePhone != null and member.homePhone != '' ? member.homePhone : ''}">Home</td>
             <td th:text="${member.workPhone != null and member.workPhone != '' ? member.workPhone : ''}">Work</td>
             <td th:text="${member.cellPhone != null and member.cellPhone != '' ? member.cellPhone : ''}">Cell</td>

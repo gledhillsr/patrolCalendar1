@@ -25,14 +25,19 @@ import java.util.List;
 public class MemberListController {
 
     /**
-     * Classifications this tab lists. Alumni (ALM), Other (OTH) and the legacy Inactive (INA) are
-     * deliberately left out - they are not people the patrol contacts day to day.
+     * Classifications this tab lists. Other (OTH) and the legacy Inactive (INA) are left out
+     * entirely. Pro (PRO) and Alumni (ALM) have a checkbox each: Pro starts ticked, so the default
+     * view is unchanged from before the boxes existed, and Alumni starts unticked.
      *
      * The listing loop and the "email THESE patrollers" URL are both built from this one list, so
      * they cannot drift apart: the page and the email it offers have to hold the same members.
      */
     private static final List<String> LISTED_CLASSIFICATIONS =
-        List.of("BAS", "SR", "SRA", "PRO", "AUX", "TRA", "CAN");
+        List.of("BAS", "SR", "SRA", "AUX", "TRA", "CAN");
+
+    /** Opt-in classifications, each behind its own checkbox on the page. */
+    private static final String PRO = "PRO";
+    private static final String ALUMNI = "ALM";
 
     /**
      * Everything the roster recognises, for the "Show FULL roster" toggle - the trimmed list plus
@@ -58,14 +63,19 @@ public class MemberListController {
         private String workPhone;
         private String cellPhone;
         private String email;
+        private String classification;
+        private String commitment;
 
         public MemberInfo(String name, String homePhone, String workPhone,
-                         String cellPhone, String email) {
+                         String cellPhone, String email,
+                         String classification, String commitment) {
             this.name = name;
             this.homePhone = homePhone;
             this.workPhone = workPhone;
             this.cellPhone = cellPhone;
             this.email = email;
+            this.classification = classification;
+            this.commitment = commitment;
         }
 
         // Getters
@@ -74,6 +84,8 @@ public class MemberListController {
         public String getWorkPhone() { return workPhone; }
         public String getCellPhone() { return cellPhone; }
         public String getEmail() { return email; }
+        public String getClassification() { return classification; }
+        public String getCommitment() { return commitment; }
     }
 
     /**
@@ -124,6 +136,27 @@ public class MemberListController {
             // Anything but a literal "true" is the trimmed list, so a mangled parameter shows the
             // conservative view rather than everybody's details.
             boolean fullRoster = "true".equals(request.getParameter(FULL_ROSTER));
+            // An unticked checkbox posts nothing, so "pro absent" is ambiguous: it means either
+            // "unticked" or "this request never went through the form". The hidden "filters" field
+            // tells them apart - present, the boxes are authoritative; absent, Pro starts ticked,
+            // which is how this tab has always listed Pros.
+            boolean cameFromTheFilters = request.getParameter("filters") != null;
+            boolean includePro = cameFromTheFilters
+                                   ? "true".equals(request.getParameter("pro")) : true;
+            boolean includeAlumni = "true".equals(request.getParameter("alumni"));
+
+            // One list drives both the rows below and the EmailForm URL, so the page and the
+            // people its email button offers cannot disagree.
+            List<String> listedClassifications = new ArrayList<>(LISTED_CLASSIFICATIONS);
+            if (includePro) {
+                listedClassifications.add(PRO);
+            }
+            if (includeAlumni) {
+                listedClassifications.add(ALUMNI);
+            }
+            if (fullRoster) {
+                listedClassifications = ALL_CLASSIFICATIONS;
+            }
 
             // 7. Check director status and emailAll permission
             DirectorSettings ds = patrolData.readDirectorSettings();
@@ -142,7 +175,7 @@ public class MemberListController {
                 // Full: everybody, which is what the toggle exists to show.
                 if (fullRoster
                         || (!member.getCommitment().equals("0")
-                              && LISTED_CLASSIFICATIONS.contains(member.getClassification()))) {
+                              && listedClassifications.contains(member.getClassification()))) {
                     // Create MemberInfo with contact details
                     String name = member.getFullName_lastNameFirst();
                     String homePhone = cleanField(member.getHomePhone());
@@ -150,7 +183,9 @@ public class MemberListController {
                     String cellPhone = cleanField(member.getCellPhone());
                     String email = cleanField(member.getEmailAddress());
 
-                    members.add(new MemberInfo(name, homePhone, workPhone, cellPhone, email));
+                    members.add(new MemberInfo(name, homePhone, workPhone, cellPhone, email,
+                                               cleanField(member.getClassification()),
+                                               member.getCommitmentLabel()));
 
                     // Build email list for EmailForm button
                     if (StaticUtils.isValidEmailAddress(email)) {
@@ -189,7 +224,7 @@ public class MemberListController {
             //   - ALL=1 either way, because the loop applies no director/instructor filter
             StringBuilder emailFormUrl =
                 new StringBuilder("EmailForm?resort=" + resort + "&ID=" + patrollerId);
-            for (String classification : (fullRoster ? ALL_CLASSIFICATIONS : LISTED_CLASSIFICATIONS)) {
+            for (String classification : listedClassifications) {
                 emailFormUrl.append("&").append(classification).append("=1");
             }
             emailFormUrl.append("&FullTime=1&PartTime=1");
@@ -200,9 +235,14 @@ public class MemberListController {
             model.addAttribute("emailFormUrl", emailFormUrl.toString());
 
             // The toggle: its label describes where it goes, not where you are.
+            //carry "filters" too, or the toggle would reset Pro back to ticked
+            String optIns = "&filters=1" + (includePro ? "&pro=true" : "")
+                              + (includeAlumni ? "&alumni=true" : "");
             model.addAttribute("fullRoster", fullRoster);
+            model.addAttribute("includePro", includePro);
+            model.addAttribute("includeAlumni", includeAlumni);
             model.addAttribute("toggleRosterUrl", "MemberList?resort=" + resort + "&ID=" + patrollerId
-                                 + (fullRoster ? "" : "&" + FULL_ROSTER + "=true"));
+                                 + (fullRoster ? "" : "&" + FULL_ROSTER + "=true") + optIns);
 
             return "member-list";
 
