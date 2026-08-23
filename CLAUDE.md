@@ -223,6 +223,41 @@ format the Directors roster builds. When the parameter is honoured the page grow
 back to Directors, and the season toggle link carries `NameToEdit` along — without that, toggling
 would silently switch the page back to the director's own history.
 
+### Custom Menu Buttons
+
+`ButtonMaintenanceController` ("Menu Configuration" on the Directors page, `/ButtonMaintenance`)
+lets a resort define up to `MenuButton.MAX_BUTTONS` (4) of its own header buttons: text, url,
+**Member Only** and **Enabled**. Director-only, since these appear in every member's header.
+
+Stored in `menubuttons`, keyed by `Position` 1..4 — a slot rather than a list entry, so clearing
+the middle one renumbers nothing. The table **self-creates via `CREATE TABLE IF NOT EXISTS`**, like
+`ShiftTemplatePatrollers` and `PasswordResetToken`, so no resort needs a migration; a failed create
+degrades to "no custom buttons". A blank slot is deleted rather than stored.
+
+**A url is validated on save with `EventNameSanitizer.isSafeUrl`** — the same test the calendar's
+day comments use — so `javascript:`, `data:` and `//host` are refused at the point they are typed
+rather than sanitized later. That method was made public for this; **anywhere a link is built from
+something a person typed should use it.**
+
+**There is now one header for every resort.** `brighton-header` is gone: its logo and title were
+already in `ResortData` under identical values, and its three extra buttons — Volunteer Application,
+Weather, Refresher/Training — are rows in Brighton's `menubuttons`. `(Members Only):` labels the
+members bar for everybody now, which Brighton alone used to show.
+
+`fragments/header.html` draws them in two places, from one `MenuButtonService.forHeader` call:
+**public** buttons in the light grey bar above the menu (drawn only when this viewer has one, so
+nobody gets an empty strip), and **Member Only** buttons in the members bar *between Directors and
+Logout*. The service is called straight from the template — `${@menuButtonService.forHeader(...)}` —
+because every page draws this header and threading a list through twenty controllers means the
+twenty-first forgets. It never throws: a header that cannot reach the database draws no custom
+buttons rather than taking the whole app down.
+
+Two things that bite tests: the header now depends on a **database table**, so
+`MonthCalendarGoldenTest` blanks the menu buttons for its run and restores them (a golden recorded
+while somebody had a button configured would fail when they removed it), and any test that writes
+buttons must **snapshot and restore** rather than blanking — a director's real configuration is not
+the test's to delete.
+
 ### Email
 
 `EmailService` sends via Spring's `JavaMailSender` (configured in `AsyncConfig` using `smtp.host` from `application.properties`). Director-triggered bulk emails are `@Async` on the `emailTaskExecutor` thread pool. Password reset emails use one-time tokens stored in `{resort}_password_reset_tokens` (24-byte random, 15-minute expiry, single-use). The lifetime lives in `PasswordResetToken.LIFETIME_MINUTES` and is quoted to the member in the email — change it in that one place.

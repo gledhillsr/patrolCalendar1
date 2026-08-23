@@ -130,8 +130,11 @@ public final class EventNameSanitizer {
    * An ordinary web address and nothing clever. The scheme has to be present literally, which is
    * what defeats the encoding tricks: "java&#115;cript:x" does not start with an allowed scheme,
    * so it never becomes a link, however the browser would later decode it.
+   *
+   * Public because anywhere a link is built from something a person typed needs this same test -
+   * the day comments this class sanitizes, and the menu buttons a director configures.
    */
-  private static boolean isSafeUrl(String url) {
+  public static boolean isSafeUrl(String url) {
     if (url == null) {
       return false;
     }

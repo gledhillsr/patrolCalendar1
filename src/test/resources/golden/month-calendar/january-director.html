@@ -88,30 +88,36 @@
         <div>
         <link rel="stylesheet" href="/css/header.css"/>
         
-        
-            
         <div id="banner">
             <div class="banner-top">
                 <a href="http://www.gledhills.com">
-                    <img border="0" src="/calendar-1/images/Coldbarnstar.png" height="80" alt="Sample Resort"/>
+                    <img border="0" src="/calendar-1/images/Coldbarnstar.png" height="80"
+                         alt="Sample Resort"/>
                 </a>
-                <h1 class="banner-title"><span class="banner-title-text"><span>Sample Resort Ski Patrol</span></span></h1>
-                <img class="banner-icon" src="/calendar-1/images/cadeuc4.gif" width="56" height="56" border="0" alt="NSP"/>
+                <h1 class="banner-title"><span class="banner-title-text">Sample Resort Ski Patrol</span></h1>
+                <img class="banner-icon" src="/calendar-1/images/cadeuc4.gif" width="56" height="56"
+                     border="0" alt="NSP"/>
             </div>
 
+            <!-- Public custom buttons. Drawn only when this resort has configured one, so nobody
+                 gets an empty grey strip. -->
+            
+
             <div class="nav-members">
+                <span class="nav-label">(Members Only):</span>
                 <a class="nav-btn" target="_self" href="/MonthCalendar?resort=Sample&amp;ID=123456">Calendar</a>
                 <a class="nav-btn" target="_self" href="/ListAssignments?resort=Sample&amp;ID=123456">My Assignments</a>
                 <a class="nav-btn" target="_self" href="/SubList?resort=Sample&amp;ID=123456">Sub List</a>
                 <a class="nav-btn" target="_self" href="/UpdateInfo?resort=Sample&amp;ID=123456">My Info</a>
                 <a class="nav-btn" target="_self" href="/MemberList?resort=Sample&amp;ID=123456">Patrollers</a>
                 <a class="nav-btn" target="_self" href="/Directors?resort=Sample&amp;ID=123456">Directors</a>
+                <!-- Member-only custom buttons sit here: after Directors, before Logout -->
+                
                 <a class="nav-btn nav-btn-logout"
                    target="_self" href="/MemberLogout?resort=Sample">Logout</a>
             </div>
         </div>
     
-        
     </div>
     </div>
 

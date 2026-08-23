@@ -87,31 +87,41 @@
     </style>
 </head>
 <body>
+    <!--
+      One header for every resort.
+
+      Brighton used to have its own copy, because it hardcoded a logo, a title and three extra
+      buttons. The logo and title were already in ResortData - identical values - and the buttons
+      now live in the menubuttons table (Directors -> Menu Configuration), so there is nothing
+      resort-specific left to fork over.
+    -->
     <div th:fragment="header(resort, resortFullName, patrollerId)">
         <link rel="stylesheet" th:href="@{/css/header.css}"/>
-        <div th:if="${resort == 'Brighton'}" th:remove="tag">
-            <div th:replace="~{fragments/header :: brighton-header(${resort}, ${resortFullName}, ${patrollerId})}"></div>
-        </div>
-        <div th:unless="${resort == 'Brighton'}" th:remove="tag">
-            <div th:replace="~{fragments/header :: standard-header(${resort}, ${resortFullName}, ${patrollerId})}"></div>
-        </div>
+        <div th:replace="~{fragments/header :: banner(${resort}, ${resortFullName}, ${patrollerId})}"></div>
     </div>
 
-    <!-- Brighton-specific header -->
-    <div th:fragment="brighton-header(resort, resortFullName, patrollerId)"
-         th:with="pid=${patrollerId != null ? patrollerId : ''}" th:remove="tag">
+    <div th:fragment="banner(resort, resortFullName, patrollerId)"
+         th:with="pid=${patrollerId != null ? patrollerId : ''},
+                  menu=${@menuButtonService.forHeader(resort, patrollerId)}"
+         th:remove="tag">
         <div id="banner">
             <div class="banner-top">
-                <a href="https://www.brightonresort.com">
-                    <img src="/calendar-1/images/Brighton.gif" width="261" height="60" border="0" alt="Brighton Ski Resort"/>
+                <a th:href="${resortUrl}">
+                    <img border="0" th:src="${resortImage}" th:height="${resortImgHeight}"
+                         th:alt="${resortFullName}"/>
                 </a>
-                <h1 class="banner-title"><span class="banner-title-text">Brighton Ski Patrol</span></h1>
-                <img class="banner-icon" src="/calendar-1/images/cadeuc4.gif" width="56" height="56" border="0" alt="NSP"/>
+                <h1 class="banner-title"><span class="banner-title-text"
+                    th:text="${resortFullName} + ' Ski Patrol'">Resort Ski Patrol</span></h1>
+                <img class="banner-icon" src="/calendar-1/images/cadeuc4.gif" width="56" height="56"
+                     border="0" alt="NSP"/>
             </div>
 
-            <div class="nav-public">
-                <a class="nav-btn" href="/Brighton/Volunteer.htm">Volunteer Application</a>
-                <a class="nav-btn" target="_blank" href="http://ccweather.com/w/index.php">Weather</a>
+            <!-- Public custom buttons. Drawn only when this resort has configured one, so nobody
+                 gets an empty grey strip. -->
+            <div class="nav-public" th:if="${!menu.publicButtons.isEmpty()}">
+                <a th:each="button : ${menu.publicButtons}" class="nav-btn"
+                   th:href="${button.url}" th:text="${button.text}"
+                   th:target="${button.url.startsWith('/') ? '_self' : '_blank'}">Button</a>
             </div>
 
             <div class="nav-members">
@@ -122,36 +132,15 @@
                 <a class="nav-btn" target="_self" th:href="@{/UpdateInfo(resort=${resort}, ID=${pid})}">My Info</a>
                 <a class="nav-btn" target="_self" th:href="@{/MemberList(resort=${resort}, ID=${pid})}">Patrollers</a>
                 <a class="nav-btn" target="_self" th:href="@{/Directors(resort=${resort}, ID=${pid})}">Directors</a>
-                <a class="nav-btn" target="_self" th:href="@{/RefresherTraining(resort=${resort}, ID=${pid})}">Refresher/Training</a>
+                <!-- Member-only custom buttons sit here: after Directors, before Logout -->
+                <a th:each="button : ${menu.memberButtons}" class="nav-btn"
+                   th:href="${button.url}" th:text="${button.text}"
+                   th:target="${button.url.startsWith('/') ? '_self' : '_blank'}">Button</a>
                 <a th:if="${pid != null and pid != ''}" class="nav-btn nav-btn-logout"
                    target="_self" th:href="@{/MemberLogout(resort=${resort})}">Logout</a>
             </div>
         </div>
     </div>
 
-    <!-- Standard header for non-Brighton resorts -->
-    <div th:fragment="standard-header(resort, resortFullName, patrollerId)"
-         th:with="pid=${patrollerId != null ? patrollerId : ''}" th:remove="tag">
-        <div id="banner">
-            <div class="banner-top">
-                <a th:href="${resortUrl}">
-                    <img border="0" th:src="${resortImage}" th:height="${resortImgHeight}" th:alt="${resortFullName}"/>
-                </a>
-                <h1 class="banner-title"><span class="banner-title-text"><span th:text="${resortFullName} + ' Ski Patrol'">Resort Ski Patrol</span></span></h1>
-                <img class="banner-icon" src="/calendar-1/images/cadeuc4.gif" width="56" height="56" border="0" alt="NSP"/>
-            </div>
-
-            <div class="nav-members">
-                <a class="nav-btn" target="_self" th:href="@{/MonthCalendar(resort=${resort}, ID=${pid})}">Calendar</a>
-                <a class="nav-btn" target="_self" th:href="@{/ListAssignments(resort=${resort}, ID=${pid})}">My Assignments</a>
-                <a class="nav-btn" target="_self" th:href="@{/SubList(resort=${resort}, ID=${pid})}">Sub List</a>
-                <a class="nav-btn" target="_self" th:href="@{/UpdateInfo(resort=${resort}, ID=${pid})}">My Info</a>
-                <a class="nav-btn" target="_self" th:href="@{/MemberList(resort=${resort}, ID=${pid})}">Patrollers</a>
-                <a class="nav-btn" target="_self" th:href="@{/Directors(resort=${resort}, ID=${pid})}">Directors</a>
-                <a th:if="${pid != null and pid != ''}" class="nav-btn nav-btn-logout"
-                   target="_self" th:href="@{/MemberLogout(resort=${resort})}">Logout</a>
-            </div>
-        </div>
-    </div>
 </body>
 </html>

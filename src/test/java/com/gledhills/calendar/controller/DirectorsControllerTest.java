@@ -87,7 +87,7 @@ class DirectorsControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString(
                         "Patrol Listings")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString(
-                        "Patrol Setup / Cleanup")))
+                        "Patrol/Calendar Configuration")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString(
                         "Add New Patroller")));
     }

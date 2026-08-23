@@ -54,12 +54,71 @@ class MonthCalendarGoldenTest {
   private BotBlockingFilter botBlockingFilter;
 
   private MockMvc mockMvc;
+  private java.util.List<com.gledhills.calendar.store.MenuButton> originalButtons;
 
   @BeforeEach
   void setUp() {
     mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
       .addFilters(botBlockingFilter)
       .build();
+    // The header now draws whatever menu buttons this resort has configured, so a golden recorded
+    // while somebody had one set up would fail the moment they removed it. Blank them for the run
+    // and put back exactly what was there - these goldens are about the calendar, not the menu.
+    originalButtons = menuButtons();
+    writeMenuButtons(blankButtons());
+  }
+
+  @org.junit.jupiter.api.AfterEach
+  void restoreMenuButtons() {
+    writeMenuButtons(originalButtons);
+  }
+
+  private java.util.List<com.gledhills.calendar.store.MenuButton> blankButtons() {
+    java.util.List<com.gledhills.calendar.store.MenuButton> blanks = new java.util.ArrayList<>();
+    for (int position = 1;
+         position <= com.gledhills.calendar.store.MenuButton.MAX_BUTTONS; position++) {
+      blanks.add(com.gledhills.calendar.store.MenuButton.empty(position));
+    }
+    return blanks;
+  }
+
+  private java.util.List<com.gledhills.calendar.store.MenuButton> menuButtons() {
+    java.util.List<com.gledhills.calendar.store.MenuButton> stored = new java.util.ArrayList<>();
+    withMenuButtonConnection(
+      (log, patrolData) -> stored.addAll(com.gledhills.calendar.store.MenuButton
+                                           .readAll(log, patrolData.getConnection())));
+    return stored;
+  }
+
+  private void writeMenuButtons(java.util.List<com.gledhills.calendar.store.MenuButton> buttons) {
+    withMenuButtonConnection(
+      (log, patrolData) -> com.gledhills.calendar.store.MenuButton
+                             .writeAll(log, patrolData.getConnection(), buttons));
+  }
+
+  private void withMenuButtonConnection(
+      java.util.function.BiConsumer<com.gledhills.calendar.utils.Logger,
+                                    com.gledhills.calendar.utils.PatrolData> work) {
+    org.springframework.mock.web.MockHttpServletRequest request =
+      new org.springframework.mock.web.MockHttpServletRequest();
+    org.springframework.mock.web.MockHttpSession session =
+      new org.springframework.mock.web.MockHttpSession();
+    session.setAttribute("loggedInUserId", "123456");
+    session.setAttribute("loggedInResort", "Sample");
+    request.setSession(session);
+    javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+    com.gledhills.calendar.utils.Logger log = new com.gledhills.calendar.utils.Logger(
+      MonthCalendarGoldenTest.class, javaxRequest, "GET", "Sample",
+      com.gledhills.calendar.utils.Logger.INFO);
+    com.gledhills.calendar.utils.PatrolData patrolData =
+      new com.gledhills.calendar.utils.PatrolData(
+        "Sample", new com.gledhills.calendar.utils.SessionData(javaxRequest, null, log), log);
+    try {
+      work.accept(log, patrolData);
+    }
+    finally {
+      patrolData.close();
+    }
   }
 
   /**

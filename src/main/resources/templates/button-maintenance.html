@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Customize Menu Buttons</title>
+    <th:block th:replace="~{fragments/head :: icons}"></th:block>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <style type="text/css">
+        body {
+            font-size: 10pt;
+            color: #000000;
+            background-color: #ffffff;
+        }
+        .frame {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .buttons-table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: #C0C0C0;
+        }
+        .buttons-table th, .buttons-table td {
+            border: 1px solid #808080;
+            padding: 6px 8px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .buttons-table th {
+            background-color: #003366;
+            color: #ffffff;
+            font-size: 10pt;
+        }
+        .buttons-table input[type="text"] {
+            width: 100%;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+        .slot {
+            text-align: center;
+            font-weight: bold;
+            width: 40px;
+        }
+        /* Button text is capped at 20 characters, so it needs far less room than a url.
+           Leaving the URL column unsized lets it take whatever is left. */
+        .text-col {
+            width: 170px;
+        }
+        .flag {
+            text-align: center;
+            width: 90px;
+        }
+        .success-message {
+            color: green;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .error-message {
+            color: #b91c1c;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .hint {
+            color: #444444;
+            font-size: 9pt;
+        }
+        .actions {
+            margin: 14px 0;
+        }
+    </style>
+    <script type="text/javascript">
+        /*
+          Tick "Enabled" as soon as a row that started out empty has both a name and a url, so the
+          box the director would otherwise forget is already right when they press Save. The server
+          applies the same rule, so this is only about showing it happen.
+
+          Never fights the director: once they touch the checkbox themselves, this leaves it alone.
+        */
+        function autoEnable(position) {
+            var text = document.getElementsByName("text_" + position)[0];
+            var url = document.getElementsByName("url_" + position)[0];
+            var enabled = document.getElementsByName("enabled_" + position)[0];
+            if (!text || !url || !enabled) {
+                return;
+            }
+            if (enabled.dataset.touched === "1" || enabled.dataset.startedBlank !== "1") {
+                return;
+            }
+            if (text.value.trim() !== "" && url.value.trim() !== "") {
+                enabled.checked = true;
+            }
+        }
+    </script>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <div class="frame">
+        <h2 th:text="'Customize Menu Buttons for ' + ${resortFullName}">Customize Menu Buttons</h2>
+
+        <div th:if="${saved}" class="success-message">Menu buttons saved.</div>
+
+        <div th:if="${problems}" class="error-message">
+            Nothing was saved:
+            <ul>
+                <li th:each="problem : ${problems}" th:text="${problem}">problem</li>
+            </ul>
+        </div>
+
+        <p>
+            These appear in this resort's header, beside the standard menu. Leave a row blank to
+            leave that slot unused. <b>Member only</b> hides a button from the public pages;
+            <b>Enabled</b> is the switch that puts it on screen. A button you fill in for the first
+            time is enabled for you; untick it and save if you would rather set one up now and turn
+            it on later.
+        </p>
+
+        <form th:action="@{/ButtonMaintenance}" method="post">
+            <input type="hidden" name="resort" th:value="${resort}"/>
+            <input type="hidden" name="ID" th:value="${patrollerId}"/>
+
+            <table class="buttons-table">
+                <tr>
+                    <th class="slot">#</th>
+                    <th class="text-col">Button Text</th>
+                    <th>URL</th>
+                    <th class="flag">Member Only</th>
+                    <th class="flag">Enabled</th>
+                </tr>
+                <tr th:each="button : ${buttons}">
+                    <td class="slot" th:text="${button.position}">1</td>
+                    <td class="text-col">
+                        <input type="text" maxlength="20"
+                               th:name="'text_' + ${button.position}"
+                               th:value="${button.text}"
+                               th:oninput="'autoEnable(' + ${button.position} + ')'"/>
+                    </td>
+                    <td>
+                        <input type="text" maxlength="255"
+                               th:name="'url_' + ${button.position}"
+                               th:value="${button.url}"
+                               th:oninput="'autoEnable(' + ${button.position} + ')'"
+                               placeholder="https://example.com  or  /Brighton/Volunteer.htm"/>
+                    </td>
+                    <td class="flag">
+                        <input type="checkbox" value="1"
+                               th:name="'memberOnly_' + ${button.position}"
+                               th:checked="${button.memberOnly}"/>
+                    </td>
+                    <td class="flag">
+                        <input type="checkbox" value="1"
+                               th:name="'enabled_' + ${button.position}"
+                               th:checked="${button.enabled}"
+                               th:data-started-blank="${button.blank} ? '1' : '0'"
+                               onchange="this.dataset.touched='1'"/>
+                    </td>
+                </tr>
+            </table>
+
+            <p class="hint">
+                A URL must start with <b>http://</b>, <b>https://</b>, <b>mailto:</b> or a
+                <b>/</b> path on this site. Anything else is refused, which is what keeps a
+                scripted link out of the menu.
+                <br>
+                If you want your static pages hosted here, contact
+                <a href="mailto:Steve@Gledhills.com">Steve@Gledhills.com</a>.
+                <br>
+                For a link back into this site, <b>{ID}</b> and <b>{RESORT}</b> are replaced with
+                the signed-in patroller and this resort - for example
+                <code>/calendar-1/RefresherTraining?resort={RESORT}&amp;ID={ID}</code>. Without
+                them the page will not know who is asking and will send them to the login screen.
+            </p>
+
+            <p class="actions">
+                <input type="submit" value="Save Menu Buttons"/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="button" value="Cancel"
+                       th:data-url="@{/Directors(resort=${resort}, ID=${patrollerId})}"
+                       onclick="window.location=this.dataset.url"/>
+            </p>
+        </form>
+
+        <p><a th:href="@{/Directors(resort=${resort}, ID=${patrollerId})}">Back to Directors Menu</a></p>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

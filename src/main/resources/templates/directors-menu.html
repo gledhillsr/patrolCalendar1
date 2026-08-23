@@ -167,7 +167,7 @@
                         </div>
                     </div>
 
-                    <!-- 3. Patrol Setup / Cleanup -->
+                    <!-- 3. Patrol/Calendar Configuration -->
                     <div class="card card-orange">
                         <div class="card-hdr">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
@@ -175,7 +175,7 @@
                                 <circle cx="16" cy="7" r="2.4"/>
                                 <circle cx="10" cy="17" r="2.4"/>
                             </svg>
-                            Patrol Setup / Cleanup
+                            Patrol/Calendar Configuration
                         </div>
                         <div class="card-body">
                             <p class="card-desc">Season configuration and end-of-season cleanup.</p>
@@ -185,6 +185,9 @@
                                        onclick="window.location=this.dataset.url">
                                 <input class="btn" type="button" value="Edit Shift Templates (for Calendar) ..."
                                        th:data-url="|EditShiftTemplates?resort=${resort}&ID=${patrollerId}|"
+                                       onclick="window.location=this.dataset.url">
+                                <input class="btn" type="button" value="Menu Configuration ..."
+                                       th:data-url="|ButtonMaintenance?resort=${resort}&ID=${patrollerId}|"
                                        onclick="window.location=this.dataset.url">
                             </div>
                         </div>
