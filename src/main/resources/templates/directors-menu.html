@@ -189,6 +189,12 @@
                                 <input class="btn" type="button" value="Menu Configuration ..."
                                        th:data-url="|ButtonMaintenance?resort=${resort}&ID=${patrollerId}|"
                                        onclick="window.location=this.dataset.url">
+                                <!-- Site owner only: these jobs run against every resort's
+                                     database, so they are not a per-resort director's tool. -->
+                                <input th:if="${isSiteOwner}" class="btn" type="button"
+                                       value="Site Wide Configuration ..."
+                                       th:data-url="|SiteWideConfiguration?resort=${resort}&ID=${patrollerId}|"
+                                       onclick="window.location=this.dataset.url">
                             </div>
                         </div>
                     </div>

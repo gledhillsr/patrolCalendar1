@@ -69,6 +69,54 @@
         .actions {
             margin: 14px 0;
         }
+        /* The example header, with the two kinds of button called out. The image is 721x94; the
+           outlines are positioned as percentages of it, so they hold at any width. */
+        .menu-example {
+            margin: 16px 0;
+            max-width: 700px;
+        }
+        .menu-shot {
+            position: relative;
+            display: inline-block;
+            width: 649px;
+            max-width: 100%;
+            line-height: 0;
+        }
+        .menu-shot img {
+            width: 100%;
+            height: auto;
+            border: 1px solid #c6cdd4;
+        }
+        .hl {
+            position: absolute;
+            box-sizing: border-box;
+            border-radius: 3px;
+            pointer-events: none;
+        }
+        .hl-public { border: 2px solid #0a7f2e; box-shadow: 0 0 0 2px rgba(10,127,46,0.25); }
+        .hl-member { border: 2px solid #00e676; box-shadow: 0 0 0 2px rgba(0,230,118,0.35); }
+        .menu-example-title {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #003366;
+            margin-bottom: 6px;
+        }
+        .menu-example figcaption {
+            font-size: 9pt;
+            color: #333333;
+            line-height: 1.6;
+            margin-top: 8px;
+        }
+        .key {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border-radius: 2px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .key-public { border: 2px solid #0a7f2e; }
+        .key-member { border: 2px solid #00e676; background: #00e676; }
     </style>
     <script type="text/javascript">
         /*
@@ -159,6 +207,29 @@
                 </tr>
             </table>
 
+            <!-- What the configured buttons look like once they are on. Measured from the real
+                 header, so the outlines sit on the actual buttons rather than near them. -->
+            <figure class="menu-example">
+                <div class="menu-example-title">Example Altered Menu</div>
+                <div class="menu-shot">
+                    <img th:src="@{/images/menu-example.png}"
+                         alt="A resort header: a grey bar with Volunteer Application and Weather, and
+                              a navy members bar ending in Refresher/Training and Logout"/>
+                    <span class="hl hl-public" style="left:1.94%; top:22.34%; width:16.09%; height:19.15%"></span>
+                    <span class="hl hl-public" style="left:18.86%; top:22.34%; width:7.77%; height:19.15%"></span>
+                    <span class="hl hl-member" style="left:74.20%; top:54.26%; width:14.29%; height:21.28%"></span>
+                </div>
+                <figcaption>
+                    <span class="key key-public"></span>
+                    <b>Member Only unticked</b> - in the grey bar, where anyone can see them,
+                    signed in or not.
+                    <br>
+                    <span class="key key-member"></span>
+                    <b>Member Only ticked</b> - in the members bar between Directors and Logout,
+                    and only once somebody has signed in.
+                </figcaption>
+            </figure>
+
             <p class="hint">
                 A URL must start with <b>http://</b>, <b>https://</b>, <b>mailto:</b> or a
                 <b>/</b> path on this site. Anything else is refused, which is what keeps a
@@ -166,11 +237,6 @@
                 <br>
                 If you want your static pages hosted here, contact
                 <a href="mailto:Steve@Gledhills.com">Steve@Gledhills.com</a>.
-                <br>
-                For a link back into this site, <b>{ID}</b> and <b>{RESORT}</b> are replaced with
-                the signed-in patroller and this resort - for example
-                <code>/calendar-1/RefresherTraining?resort={RESORT}&amp;ID={ID}</code>. Without
-                them the page will not know who is asking and will send them to the login screen.
             </p>
 
             <p class="actions">

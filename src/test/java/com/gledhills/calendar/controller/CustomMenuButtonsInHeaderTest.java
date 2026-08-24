@@ -23,6 +23,7 @@ import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -66,6 +67,21 @@ class CustomMenuButtonsInHeaderTest {
     void cleanUp() {
         withPatrolData((log, patrolData) ->
                            MenuButton.writeAll(log, patrolData.getConnection(), originalButtons));
+        // Prove it, rather than assume: these tests write to a table a director configures for
+        // real, and a restore that quietly failed would leave their menu as the test left it.
+        assertEquals(describe(originalButtons), describe(readStoredButtons()),
+                     "the resort's menu buttons must be exactly as they were found");
+    }
+
+    private String describe(List<MenuButton> buttons) {
+        StringBuilder text = new StringBuilder();
+        for (MenuButton button : buttons) {
+            text.append(button.getPosition()).append(':').append(button.getText())
+                .append('|').append(button.getUrl())
+                .append('|').append(button.isMemberOnly())
+                .append('|').append(button.isEnabled()).append('\n');
+        }
+        return text.toString();
     }
 
     /** Brighton's Volunteer Application and Weather are rows now, not markup. */

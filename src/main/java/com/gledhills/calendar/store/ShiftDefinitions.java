@@ -3,7 +3,12 @@ package com.gledhills.calendar.store;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
 
+import com.gledhills.calendar.utils.SqlWriter;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 
 /**
@@ -89,6 +94,55 @@ public class ShiftDefinitions {
 
   public boolean exists() {
     return existed;
+  }
+
+  /**
+   * Shift template rows whose name is empty.
+   *
+   * A row's position lives in a "_&lt;n&gt;" suffix on its name - "Saturday_0" - and
+   * {@link #createShiftName} appends that suffix to whatever it is handed. Saving the template
+   * editor with the name field blank therefore wrote rows called "_0", "_1", which show up as a
+   * blank entry in the template dropdown and belong to no template.
+   *
+   * Both routes that created them are closed now; this finds what they left behind.
+   *
+   * The underscore is escaped: unescaped, LIKE '_%' is a single-character wildcard that matches
+   * <em>every</em> template, so the delete below would take a resort's whole shift configuration.
+   */
+  private static final String UNNAMED_TEMPLATES =
+    "TRIM(EventName) = '' OR EventName LIKE '\\_%'";
+
+  /** How many unnamed template rows this resort is carrying. */
+  public static int countUnnamed(Logger LOG, Connection connection) {
+    String sql = "SELECT COUNT(*) FROM shiftdefinitions WHERE " + UNNAMED_TEMPLATES;
+    try {
+      LOG.logSqlStatement(sql);
+      PreparedStatement statement = connection.prepareStatement(sql);
+      ResultSet results = statement.executeQuery();
+      int count = results.next() ? results.getInt(1) : 0;
+      results.close();
+      statement.close();
+      return count;
+    }
+    catch (SQLException e) {
+      LOG.logException("counting unnamed shift templates", e);
+      return -1;   //-1 rather than 0: "could not tell" is not "none"
+    }
+  }
+
+  /**
+   * Delete them. Returns how many went, or -1 when the delete could not run.
+   */
+  public static int deleteUnnamed(Logger LOG, Connection connection) {
+    String sql = "DELETE FROM shiftdefinitions WHERE " + UNNAMED_TEMPLATES;
+    try {
+      int removed = SqlWriter.executeUpdate(LOG, connection, "deleteUnnamedShiftTemplates", sql);
+      LOG.info("removed " + removed + " unnamed shift template row(s)");
+      return removed;
+    }
+    catch (SQLException e) {
+      return -1; //already logged by SqlWriter
+    }
   }
 
   public static String createShiftName(String name, int i) {

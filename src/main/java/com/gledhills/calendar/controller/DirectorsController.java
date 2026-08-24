@@ -57,6 +57,10 @@ public class DirectorsController {
       model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
       model.addAttribute("patrollerId", patrollerId);
       model.addAttribute("isDirector", rosterData.isDirector);
+      // Site Wide Configuration walks every resort's database, so it is the owner's tool rather
+      // than a director's. The page only shows the button; the controller behind it checks again.
+      model.addAttribute("isSiteOwner",
+                         SiteWideConfigurationController.isSiteOwner(resort, patrollerId));
       model.addAttribute("myName", rosterData.myName);
       model.addAttribute("sortedRoster", rosterData.sortedRoster);
 

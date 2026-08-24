@@ -68,6 +68,21 @@ class ButtonMaintenanceTest {
     void cleanUp() {
         withPatrolData((log, patrolData) ->
                            MenuButton.writeAll(log, patrolData.getConnection(), originalButtons));
+        // Prove it, rather than assume: these tests write to a table a director configures for
+        // real, and a restore that quietly failed would leave their menu as the test left it.
+        assertEquals(describe(originalButtons), describe(readStoredButtons()),
+                     "the resort's menu buttons must be exactly as they were found");
+    }
+
+    private String describe(List<MenuButton> buttons) {
+        StringBuilder text = new StringBuilder();
+        for (MenuButton button : buttons) {
+            text.append(button.getPosition()).append(':').append(button.getText())
+                .append('|').append(button.getUrl())
+                .append('|').append(button.isMemberOnly())
+                .append('|').append(button.isEnabled()).append('\n');
+        }
+        return text.toString();
     }
 
     @Test
@@ -82,6 +97,32 @@ class ButtonMaintenanceTest {
             assertTrue(page.contains("name=\"enabled_" + position + "\""), "slot " + position + " switch");
         }
         assertFalse(page.contains("name=\"text_5\""), "and no fifth slot");
+    }
+
+    @Test
+    void thePageShowsWhereEachKindOfButtonEndsUp() throws Exception {
+        String page = body(request(get("/ButtonMaintenance"), DIRECTOR_ID));
+
+        //the example header, so a director can see the difference the Member Only tick makes
+        assertTrue(page.contains("/images/menu-example.png"), "the example image: " + page);
+        assertTrue(getClass().getResource("/static/images/menu-example.png") != null,
+                   "and the image it points at has to be packaged");
+
+        //two public buttons called out in the grey bar, one member-only button in the navy bar
+        assertEquals(2, countOf(page, "hl hl-public"), "public highlights");
+        assertEquals(1, countOf(page, "hl hl-member"), "member-only highlight");
+
+        assertTrue(page.contains("Example Altered Menu"), "the image is labelled: " + page);
+        assertTrue(page.contains("Member Only unticked"), "the caption explains the grey bar");
+        assertTrue(page.contains("Member Only ticked"), "and the members bar");
+    }
+
+    private int countOf(String page, String fragment) {
+        int count = 0;
+        for (int at = page.indexOf(fragment); at >= 0; at = page.indexOf(fragment, at + 1)) {
+            count++;
+        }
+        return count;
     }
 
     @Test

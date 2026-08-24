@@ -85,16 +85,24 @@ public class PasswordResetToken {
   }
 
   /**
-   * Create the per-resort token table if it does not exist yet.
-   * The multi-tenant table set is otherwise created manually per resort
-   * (see docs/migrations/password_reset_tokens.sql), which is easy to miss
-   * when adding a resort — so the code guarantees it here.
+   * Create a resort's token table up front, rather than waiting for somebody to reset a password.
    *
-   * @param LOG logger the write is audited to
-   * @param connection Database connection
-   * @param resort Resort identifier for table prefix
-   * @throws SQLException if database operation fails
+   * Site Wide Configuration on the Directors page runs this across every resort. It is the only
+   * caller: the read and write paths deliberately do not create anything, so this is what a newly
+   * added resort needs before anybody there can reset a password.
+   *
+   * @return whether the table is now there
    */
+  public static boolean createTable(Logger LOG, Connection connection, String resort) {
+    try {
+      ensureTableExists(LOG, connection, resort);
+      return true;
+    }
+    catch (SQLException e) {
+      return false; //already logged by SqlWriter
+    }
+  }
+
   private static void ensureTableExists(Logger LOG, Connection connection, String resort) throws SQLException {
     String sql = "CREATE TABLE IF NOT EXISTS " + resort + "_password_reset_tokens (" +
       "token VARCHAR(64) PRIMARY KEY, " +
@@ -118,8 +126,6 @@ public class PasswordResetToken {
    * @throws SQLException if database operation fails
    */
   public void save(Logger LOG, Connection connection, String resort) throws SQLException {
-    ensureTableExists(LOG, connection, resort);
-
     String sql = "INSERT INTO " + resort + "_password_reset_tokens " +
       "(token, member_id, created_at, expires_at, used) " +
       "VALUES (?, ?, ?, ?, ?)";
@@ -145,8 +151,6 @@ public class PasswordResetToken {
    */
   public static PasswordResetToken findByToken(Logger LOG, Connection connection, String resort,
                                                String token) throws SQLException {
-    ensureTableExists(LOG, connection, resort);
-
     String sql = "SELECT * FROM " + resort + "_password_reset_tokens WHERE token = ?";
 
     try (PreparedStatement stmt = connection.prepareStatement(sql)) {

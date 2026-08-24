@@ -47,9 +47,6 @@ public class ShiftTemplatePatrollers {
    */
   public static Map<String, List<String>> readAll(Logger LOG, Connection connection) {
     Map<String, List<String>> byShiftName = new HashMap<>();
-    if (!ensureTableExists(LOG, connection)) {
-      return byShiftName;
-    }
 
     String sql = "SELECT EventName, Position, PatrollerId FROM " + TABLE
       + " ORDER BY EventName ASC, Position ASC";
@@ -96,9 +93,6 @@ public class ShiftTemplatePatrollers {
    */
   public static void write(Logger LOG, Connection connection, String shiftName,
                            List<String> patrollerIds) {
-    if (!ensureTableExists(LOG, connection)) {
-      return;
-    }
     deleteShift(LOG, connection, shiftName);
 
     for (int position = 0; position < patrollerIds.size(); position++) {
@@ -119,9 +113,6 @@ public class ShiftTemplatePatrollers {
 
   /** Forget one template row's patrollers, e.g. when the row itself is deleted. */
   public static void deleteShift(Logger LOG, Connection connection, String shiftName) {
-    if (!ensureTableExists(LOG, connection)) {
-      return;
-    }
     String sql = "DELETE FROM " + TABLE + " WHERE EventName = '" + escape(shiftName) + "'";
     try {
       SqlWriter.executeUpdate(LOG, connection, "deleteShiftTemplatePatrollers", sql);
@@ -137,9 +128,6 @@ public class ShiftTemplatePatrollers {
    */
   public static void swap(Logger LOG, Connection connection, String firstShiftName,
                           String secondShiftName) {
-    if (!ensureTableExists(LOG, connection)) {
-      return;
-    }
     Map<String, List<String>> all = readAll(LOG, connection);
     List<String> first = all.getOrDefault(firstShiftName, new ArrayList<>());
     List<String> second = all.getOrDefault(secondShiftName, new ArrayList<>());
@@ -185,6 +173,19 @@ public class ShiftTemplatePatrollers {
   public static boolean isEmpty(String patrollerId) {
     return patrollerId == null || patrollerId.trim().isEmpty()
       || EMPTY_SLOT.equals(patrollerId.trim());
+  }
+
+  /**
+   * Create the table for a resort up front, rather than waiting for somebody to open the page.
+   *
+   * Site Wide Configuration on the Directors page runs this across every resort, so the per-call
+   * It is the only caller: the read and write paths no longer create anything, so this is what a
+   * newly added resort needs before its templates can hold patrollers.
+   *
+   * @return whether the table is now there
+   */
+  public static boolean createTable(Logger LOG, Connection connection) {
+    return ensureTableExists(LOG, connection);
   }
 
   /**

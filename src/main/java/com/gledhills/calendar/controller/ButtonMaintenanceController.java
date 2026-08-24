@@ -90,8 +90,18 @@ public class ButtonMaintenanceController {
                 if (problems.isEmpty()) {
                     buttons = enableNewlyDefined(
                         MenuButton.readAll(LOG, patrolData.getConnection()), buttons);
-                    MenuButton.writeAll(LOG, patrolData.getConnection(), buttons);
-                    model.addAttribute("saved", true);
+
+                    // Nothing creates this table on demand any more - Site Wide Configuration does
+                    // it for every resort at once. So a resort added since that ran has no table,
+                    // and a save that quietly failed must not report success.
+                    if (MenuButton.writeAll(LOG, patrolData.getConnection(), buttons)) {
+                        model.addAttribute("saved", true);
+                    }
+                    else {
+                        problems.add("Could not save. This resort's menu button table is missing - "
+                                       + "ask the site owner to run Site Wide Configuration.");
+                        model.addAttribute("problems", problems);
+                    }
                     //read back, so the page shows what is stored rather than what was typed
                     buttons = MenuButton.readAll(LOG, patrolData.getConnection());
                 }

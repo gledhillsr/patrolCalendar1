@@ -258,6 +258,31 @@ while somebody had a button configured would fail when they removed it), and any
 buttons must **snapshot and restore** rather than blanking — a director's real configuration is not
 the test's to delete.
 
+### Site Wide Configuration
+
+`SiteWideConfigurationController` (`/SiteWideConfiguration`) holds jobs that walk **every** resort
+in `PatrolData.resortMap`, not just the one whose page you are on. The Directors button and the
+controller both gate on `isSiteOwner` — resort `Brighton` **and** id `192443` together. "Is a
+director" would not do: every resort has directors, and none of them should reach into the other 47
+databases.
+
+Its one job creates the self-made tables everywhere — currently `menubuttons` and
+`shifttemplatepatrollers`, via each class's `createTable`. It is idempotent
+(`CREATE TABLE IF NOT EXISTS`) and reports per resort rather than stopping at the first failure — a
+resort in the map may have no database yet.
+
+**The migration this enables:** once every resort reports ok for a table, that class's
+create-on-first-use call can come out of its read and write paths. `MenuButton`,
+`ShiftTemplatePatrollers` and `PasswordResetToken` have all been through this — **nothing creates a
+table on demand any more**, so the job is the only thing that can give a resort one.
+**Keep every table in the job even after its migration** — a resort added to `resortMap` later needs
+all of them, and this is the only thing that can give it one.
+
+A resort whose table is missing degrades rather than failing: no menu buttons, no template
+patrollers. Verified by dropping each table and loading the pages. But **a write that silently did
+nothing must not report success** — that caught `MenuButton.writeAll` once, which is why it and its
+callers now return and check a boolean.
+
 ### Email
 
 `EmailService` sends via Spring's `JavaMailSender` (configured in `AsyncConfig` using `smtp.host` from `application.properties`). Director-triggered bulk emails are `@Async` on the `emailTaskExecutor` thread pool. Password reset emails use one-time tokens stored in `{resort}_password_reset_tokens` (24-byte random, 15-minute expiry, single-use). The lifetime lives in `PasswordResetToken.LIFETIME_MINUTES` and is quoted to the member in the email — change it in that one place.
@@ -311,6 +336,22 @@ the fallback and still holds every individual failure.
 ### Thymeleaf Templates
 
 Located in `src/main/resources/templates/`. Shared page chrome is in `templates/fragments/`. Static assets are in `src/main/resources/static/`.
+
+## Adding a New Resort
+
+`createTablesForNewResort.sql` in the project root holds every table a resort's database needs.
+Recorded from a working resort, so it is the real schema rather than a reconstruction, and every
+statement is `CREATE TABLE IF NOT EXISTS` — safe to re-run against a resort that is already up.
+
+    1. add it to PatrolData.resortMap
+    2. CREATE DATABASE `NewResort` DEFAULT CHARSET=utf8mb4;
+    3. mysql -u<user> -p NewResort < createTablesForNewResort.sql
+    4. replace {RESORT} with the resort name for the password-reset table
+    5. insert the resort's directors into `roster`, or nobody can sign in
+
+**`CreateTablesForNewResortSqlTest` compares the file against a live resort's schema and fails when
+they drift**, so adding a table to the app is what makes the file stale-and-noisy rather than
+stale-and-silent. Re-record it from a healthy resort and read the diff.
 
 ## Adding a New Endpoint
 

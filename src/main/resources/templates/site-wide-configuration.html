@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Site Wide Configuration</title>
+    <th:block th:replace="~{fragments/head :: icons}"></th:block>
+    <meta http-equiv="pragma" content="no-cache">
+    <style type="text/css">
+        body { font-size: 10pt; color: #000000; background-color: #ffffff; }
+        .frame { max-width: 900px; margin: 0 auto; }
+        .results { border-collapse: collapse; margin: 12px 0; }
+        .results th, .results td { border: 1px solid #808080; padding: 4px 10px; text-align: left; }
+        .results th { background-color: #003366; color: #ffffff; }
+        .ok { color: #006400; font-weight: bold; }
+        .bad { color: #b91c1c; font-weight: bold; }
+        .success-message { color: green; font-weight: bold; margin: 10px 0; }
+        .warning { border: 1px solid #b91c1c; background-color: #FFF8DC; padding: 8px 12px;
+                   max-width: 700px; }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <div class="frame">
+        <h2>Site Wide Configuration</h2>
+
+        <div class="warning">
+            These jobs touch <b th:text="${resortCount}">0</b> resort databases, not just
+            <span th:text="${resortFullName}">this one</span>.
+        </div>
+
+        <h3>Create the self-made tables everywhere</h3>
+        <p>
+            Runs <code>CREATE TABLE IF NOT EXISTS</code> for
+            <code>menubuttons</code>, <code>shifttemplatepatrollers</code> and
+            <code>&lt;resort&gt;_password_reset_tokens</code>
+            against every resort in <code>PatrolData.resortMap</code>. Safe to run more than once -
+            a resort that already has a table is left as it is.
+        </p>
+        <p>
+            Once every resort reports <b>ok</b>, that table's create-on-first-use call can come out
+            of its read and write paths. <code>menubuttons</code> and <code>shifttemplatepatrollers</code> have
+            been through this; <code>password_reset_tokens</code> still creates itself on demand
+            until this has run everywhere.
+        </p>
+        <p>
+            Both are listed even though only one is being migrated at a time: a resort added to the
+            map later needs all of them, and this is the only place that can give it one.
+        </p>
+
+        <form th:action="@{/SiteWideConfiguration}" method="post">
+            <input type="hidden" name="resort" th:value="${resort}"/>
+            <input type="hidden" name="ID" th:value="${patrollerId}"/>
+            <input type="hidden" name="action" value="createTables"/>
+            <input type="submit" value="Create these tables in every resort"/>
+        </form>
+
+        <h3>Remove shift templates with no event name</h3>
+        <p>
+            A template row's position lives in a <code>_&lt;n&gt;</code> suffix on its name, and the
+            template editor used to accept a blank name - writing rows called <code>_0</code> that
+            belong to no template and show as a blank entry in its dropdown. Nothing can create one
+            any more; this clears up what was left behind.
+        </p>
+        <p>
+            <b>Find</b> first. It only reports, so it is safe to press.
+        </p>
+
+        <form th:action="@{/SiteWideConfiguration}" method="post" style="display:inline">
+            <input type="hidden" name="resort" th:value="${resort}"/>
+            <input type="hidden" name="ID" th:value="${patrollerId}"/>
+            <input type="hidden" name="action" value="findUnnamed"/>
+            <input type="submit" value="Find unnamed templates"/>
+        </form>
+
+        <form th:action="@{/SiteWideConfiguration}" method="post" style="display:inline"
+              onsubmit="return confirm('Delete every shift template row with no event name, in all resorts.\n\nThis cannot be undone. Have you pressed Find first?');">
+            <input type="hidden" name="resort" th:value="${resort}"/>
+            <input type="hidden" name="ID" th:value="${patrollerId}"/>
+            <input type="hidden" name="action" value="removeUnnamed"/>
+            <input type="submit" value="Remove them"/>
+        </form>
+
+        <div th:if="${results}">
+            <h3 th:text="${resultsHeading}">Results</h3>
+            <p class="success-message">
+                <span th:text="${okCount}">0</span> of
+                <span th:text="${#lists.size(results)}">0</span> resorts reported success.
+            </p>
+            <table class="results">
+                <tr>
+                    <th>Resort</th>
+                    <th>Result</th>
+                </tr>
+                <tr th:each="result : ${results}">
+                    <td th:text="${result.resort}">resort</td>
+                    <td th:class="${result.created} ? 'ok' : 'bad'"
+                        th:text="${result.detail}">ok</td>
+                </tr>
+            </table>
+        </div>
+
+        <p><a th:href="@{/Directors(resort=${resort}, ID=${patrollerId})}">Back to Directors Menu</a></p>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

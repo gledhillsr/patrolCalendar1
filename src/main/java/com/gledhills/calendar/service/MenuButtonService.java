@@ -95,7 +95,12 @@ public class MenuButtonService {
             ServletAdapter.toJavaxRequest(attributes.getRequest());
 
         Logger LOG = new Logger(MenuButtonService.class, javaxRequest, "GET", resort, Logger.INFO);
-        PatrolData patrolData = new PatrolData(resort, new SessionData(javaxRequest, null, LOG), LOG);
+        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        //Logger only picks up an "ID" request parameter, and the header is drawn on requests that
+        //carry none - without this every line from here reads "id=UNKNON"
+        LOG.setId(sessionData.getLoggedInUserId());
+
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
         try {
             return MenuButton.readDisplayable(LOG, patrolData.getConnection());
         }

@@ -21,9 +21,12 @@ import java.util.List;
  * shows four rows whether or not they are filled in, so a position is a slot rather than a list
  * entry and nothing renumbers when a director clears the middle one.
  *
- * The table self-creates on first use, the same way {@link ShiftTemplatePatrollers} and
- * {@link PasswordResetToken} do, so no resort needs a manual migration. A failed create degrades
- * to "no custom buttons" rather than breaking the page.
+ * Unlike {@link ShiftTemplatePatrollers} and {@link PasswordResetToken}, this table is <b>not</b>
+ * created on first use - "Site Wide Configuration" on the Directors page creates it across every
+ * resort in one go, which keeps a CREATE off every read and write. A resort whose table is missing
+ * reads as "no custom buttons" and cannot save one, so **a resort added to
+ * {@code PatrolData.resortMap} needs that job run again** before its directors can configure a
+ * menu.
  *
  * @author Steve Gledhill
  */
@@ -102,9 +105,6 @@ public class MenuButton {
     for (int position = 1; position <= MAX_BUTTONS; position++) {
       buttons.add(empty(position));
     }
-    if (!ensureTableExists(LOG, connection)) {
-      return buttons;
-    }
 
     String sql = "SELECT Position, ButtonText, Url, MemberOnly, Enabled FROM " + TABLE
       + " ORDER BY Position ASC";
@@ -150,21 +150,15 @@ public class MenuButton {
    * table only ever holds buttons somebody meant to define.
    */
   public static boolean writeAll(Logger LOG, Connection connection, List<MenuButton> buttons) {
-    if (!ensureTableExists(LOG, connection)) {
-      return false;
-    }
+    boolean allWritten = true;
     for (MenuButton button : buttons) {
-      if (button.isBlank()) {
-        delete(LOG, connection, button.getPosition());
-      }
-      else {
-        write(LOG, connection, button);
-      }
+      allWritten &= button.isBlank() ? delete(LOG, connection, button.getPosition())
+                                     : write(LOG, connection, button);
     }
-    return true;
+    return allWritten;
   }
 
-  private static void write(Logger LOG, Connection connection, MenuButton button) {
+  private static boolean write(Logger LOG, Connection connection, MenuButton button) {
     String sql = "REPLACE INTO " + TABLE
       + " (Position, ButtonText, Url, MemberOnly, Enabled) VALUES ("
       + button.getPosition() + ", "
@@ -174,20 +168,35 @@ public class MenuButton {
       + (button.isEnabled() ? 1 : 0) + ")";
     try {
       SqlWriter.executeUpdate(LOG, connection, "writeMenuButton", sql);
+      return true;
     }
     catch (SQLException e) {
-      //already logged by SqlWriter
+      return false; //already logged by SqlWriter
     }
   }
 
-  private static void delete(Logger LOG, Connection connection, int position) {
+  private static boolean delete(Logger LOG, Connection connection, int position) {
     String sql = "DELETE FROM " + TABLE + " WHERE Position = " + position;
     try {
       SqlWriter.executeUpdate(LOG, connection, "deleteMenuButton", sql);
+      return true;
     }
     catch (SQLException e) {
-      //already logged by SqlWriter
+      return false; //already logged by SqlWriter
     }
+  }
+
+  /**
+   * Create the table for a resort up front, rather than waiting for somebody to open the page.
+   *
+   * Site Wide Configuration on the Directors page runs this across every resort. It is the only
+   * caller: the read and write paths deliberately do not create anything, so this is what a newly
+   * added resort needs before its menu can be configured.
+   *
+   * @return whether the table is now there
+   */
+  public static boolean createTable(Logger LOG, Connection connection) {
+    return ensureTableExists(LOG, connection);
   }
 
   /**

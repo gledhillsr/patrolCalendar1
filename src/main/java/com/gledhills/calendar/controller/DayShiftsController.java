@@ -51,20 +51,33 @@ public class DayShiftsController {
         LOG.setId(patrollerId);
 
         PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
-        if (patrollerId == null || patrollerId.trim().isEmpty()) {
-            response.sendRedirect("/calendar-1/MemberLogin?resort=" + resort + "&NSPgoto=MonthCalendar");
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+
+        // Every other page in this app checks credentials; this one never did. It took its identity
+        // from the "ID" *query parameter*, looked that member up, and handed the director view to
+        // whoever asked - so anyone who knew a director's member number could read and, through the
+        // POST, rewrite a day's shifts without logging in at all.
+        //
+        // Authority now comes from the session (or the remember-me cookie ValidateCredentials
+        // honours), never from a parameter. The month calendar only ever links directors here.
+        ValidateCredentialsRedirectIfNeeded credentials =
+                new ValidateCredentialsRedirectIfNeeded(sessionData, javaxRequest, javaxResponse,
+                                                        "DayShifts", patrolData, LOG);
+        if (credentials.hasInvalidCredentials()) {
+            patrolData.close();
+            return null; //redirect already sent
+        }
+
+        String loggedInUserId = sessionData.getLoggedInUserId();
+        Roster loggedInMember = patrolData.getMemberByID(loggedInUserId);
+        boolean isDirector = loggedInMember != null && loggedInMember.isDirector();
+        if (!isDirector) {
+            LOG.error("DENIED DayShifts: member " + loggedInUserId + " is not a director");
+            patrolData.close();
+            response.sendError(403, "Directors only");
             return null;
         }
-
-        Roster editorsMemberData = patrolData.getMemberByID(patrollerId);
-        boolean isDirector = patrollerId.equalsIgnoreCase(sessionData.getBackDoorUser()) ||
-                (editorsMemberData != null && editorsMemberData.isDirector());
-
-        if (!isDirector) {
-            // Non-directors can only view shift details
-            return showShiftDetailsView(resort, dayOfWeek, date, month, year, patrollerId,
-                    patrolData, sessionData, model, LOG);
-        }
+        patrollerId = loggedInUserId;   //the parameter is for links and logging, not for authority
 
         // Director view - can edit shifts
         return showEditShiftView(resort, dayOfWeek, date, month, year, patrollerId,
@@ -104,6 +117,33 @@ public class DayShiftsController {
         LOG.setId(patrollerId);
 
         PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+
+        // Every other page in this app checks credentials; this one never did. It took its identity
+        // from the "ID" *query parameter*, looked that member up, and handed the director view to
+        // whoever asked - so anyone who knew a director's member number could read and, through the
+        // POST, rewrite a day's shifts without logging in at all.
+        //
+        // Authority now comes from the session (or the remember-me cookie ValidateCredentials
+        // honours), never from a parameter. The month calendar only ever links directors here.
+        ValidateCredentialsRedirectIfNeeded credentials =
+                new ValidateCredentialsRedirectIfNeeded(sessionData, javaxRequest, javaxResponse,
+                                                        "DayShifts", patrolData, LOG);
+        if (credentials.hasInvalidCredentials()) {
+            patrolData.close();
+            return null; //redirect already sent
+        }
+
+        String loggedInUserId = sessionData.getLoggedInUserId();
+        Roster loggedInMember = patrolData.getMemberByID(loggedInUserId);
+        boolean isDirector = loggedInMember != null && loggedInMember.isDirector();
+        if (!isDirector) {
+            LOG.error("DENIED DayShifts: member " + loggedInUserId + " is not a director");
+            patrolData.close();
+            response.sendError(403, "Directors only");
+            return null;
+        }
+        patrollerId = loggedInUserId;   //the parameter is for links and logging, not for authority
 
         // Replacing the day's shift format is destructive - it removes the day's shifts and
         // everybody on them - so it arrives as a confirmed POST rather than a URL that a refresh
