@@ -236,7 +236,8 @@
                 scripted link out of the menu.
                 <br>
                 If you want your static pages hosted here, contact
-                <a href="mailto:Steve@Gledhills.com">Steve@Gledhills.com</a>.
+                <a th:href="'mailto:' + ${@site.supportEmail}"
+                   th:text="${@site.supportEmail}">support</a>.
             </p>
 
             <p class="actions">

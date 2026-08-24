@@ -4,7 +4,7 @@
 <body>
     <div th:fragment="footer">
         <footer>
-            <p>Please report bugs or suggest improvements at <a href="mailto:steve@gledhills.com">steve@gledhills.com</a></p>
+            <p>Please report bugs or suggest improvements at <a th:href="'mailto:' + ${@site.supportEmail}" th:text="${@site.supportEmail}">support</a></p>
             <p>&copy; Patrol Calendar</p>
         </footer>
     </div>

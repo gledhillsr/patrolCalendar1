@@ -64,7 +64,8 @@ public class RefresherTrainingController {
             model.addAttribute("patrollerId", patrollerId);
             model.addAttribute("memberName", memberName);
             model.addAttribute("refresherUrl",
-                               "http://gledhills.com/Brighton/training/index.php?id=" + patrollerId);
+                               SiteIdentity.HOSTED_CONTENT_BASE
+                                 + "/Brighton/training/index.php?id=" + patrollerId);
 
             // 7a. Add resort metadata for header
             ResortData resortData = PatrolData.getResortInfo(resort);

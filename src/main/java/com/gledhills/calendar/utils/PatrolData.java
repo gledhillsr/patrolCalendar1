@@ -30,7 +30,7 @@ public class PatrolData {
   // ***** start back door login stuff (works with ANY resort, and does NOT send any email confirmations)*****
   private static final String backDoorFakeFirstName = "System";
   private static final String backDoorFakeLastName = "Administrator";
-  private static final String backDoorEmail = "Steve@Gledhills.com";
+  private static final String backDoorEmail = SiteIdentity.SUPPORT_EMAIL;
 
   public static final HashMap<String, ResortData> resortMap = new HashMap<>();
   static private final int IMG_HEIGHT = 80;
@@ -49,8 +49,8 @@ public class PatrolData {
     resortMap.put("BigHorn", new ResortData("BigHorn", "Meadowlark", "Meadowlarkskipatrol@gmail.com",
                                             "https://www.lodgesofthebighorns.com/", "/calendar-1/images/Meadowlark.png",
                                             IMG_HEIGHT, 80));
-    resortMap.put("BigRock", new ResortData("BigRock", "BigRock", "null", "https://www.bigrockmaine.com",
-                                            "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+//    resortMap.put("BigRock", new ResortData("BigRock", "BigRock", "null", "https://www.bigrockmaine.com",
+//                                            "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     //note Black River Basin was BlackjackMountain
     resortMap.put("BlackjackMountain",
                   new ResortData("BlackjackMountain", "Black River Basin", "Teagan.knudson@snowriver.com",
@@ -70,9 +70,9 @@ public class PatrolData {
     resortMap.put("DetroitMountain",
                   new ResortData("DetroitMountain", "Detroit Mountain", null, "http://detroitmountain.com/",
                                  "/calendar-1/images/Coldbarnstar.png", 73, 121));
-    resortMap.put("DevilsHead", new ResortData("DevilsHead", "Devil's Head", "tim.theisen@ieee.org",
-                                               "https://www.devilsheadresort.com/", "/calendar-1/images/DevilsHeadSkiPatrol.png",
-                                               IMG_HEIGHT, 160));
+//    resortMap.put("DevilsHead", new ResortData("DevilsHead", "Devil's Head", "tim.theisen@ieee.org",
+//                                               "https://www.devilsheadresort.com/", "/calendar-1/images/DevilsHeadSkiPatrol.png",
+//                                               IMG_HEIGHT, 160));
     resortMap.put("GrandTarghee",
                   new ResortData("GrandTarghee", "Teton Valley Mountain", null, "http://www.GrandTarghee.com",
                                  "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
@@ -156,12 +156,12 @@ public class PatrolData {
     resortMap.put("Steeplechase",
                   new ResortData("Steeplechase", "Steeplechase", null, "http://www.steeplechaseevents.com",
                                  "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
-    resortMap.put("WhitePine",
-                  new ResortData("WhitePine", "White Pine", "gawilson@wyoming.com", "http://www.WhitePineSki.com",
-                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
-    resortMap.put("Willamette",
-                  new ResortData("Willamette", "Willamette Backcountry", null, "http://www.deetour.net/wbsp",
-                                 "/calendar-1/images/Willamette.jpeg", IMG_HEIGHT, 80));
+//    resortMap.put("WhitePine",
+//                  new ResortData("WhitePine", "White Pine", "gawilson@wyoming.com", "http://www.WhitePineSki.com",
+//                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+//    resortMap.put("Willamette",
+//                  new ResortData("Willamette", "Willamette Backcountry", null, "http://www.deetour.net/wbsp",
+//                                 "/calendar-1/images/Willamette.jpeg", IMG_HEIGHT, 80));
   }
 
   private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";

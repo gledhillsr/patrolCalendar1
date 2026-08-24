@@ -63,7 +63,7 @@ public class VolunteerFormController {
       MailMan mail = new MailMan(member.getEmailAddress(), sessionData, LOG);
 
       mail.sendMessage(subject, message, "brightonnsp@gmail.com");
-      mail.sendMessage(subject, message, "steve@gledhills.com");
+      mail.sendMessage(subject, message, SiteIdentity.SUPPORT_EMAIL);
 
       LOG.info("Volunteer application submitted for: " + firstName + " " + lastName);
 

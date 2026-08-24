@@ -2,6 +2,7 @@ package com.gledhills.calendar.service;
 
 import com.gledhills.calendar.dto.EmailRecipient;
 import com.gledhills.calendar.utils.Logger;
+import com.gledhills.calendar.utils.SiteIdentity;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -98,7 +99,7 @@ class EmailServiceSmtpConnectionTest {
         List<String> summaryRecipients = smtpServer.nonPatrollerRecipients();
         assertTrue(summaryRecipients.contains("director@example.com"),
             "the director who pressed Send should be told, got: " + summaryRecipients);
-        assertTrue(summaryRecipients.contains("steve@gledhills.com"),
+        assertTrue(summaryRecipients.contains(SiteIdentity.ADMIN_EMAIL),
             "the site admin should be told, got: " + summaryRecipients);
 
         String summary = smtpServer.lastBody();

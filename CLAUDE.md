@@ -333,6 +333,27 @@ director could watch a send half-fail and never know. The summary goes out on it
 connection, and when the mail server itself is the problem it cannot get through either; the log is
 the fallback and still holds every individual failure.
 
+### The Site's Own Identity
+
+`utils/SiteIdentity` holds the domain this site is served from and the addresses that speak for it.
+They used to be four hand-written copies of `steve@gledhills.com` — the from address, the admin
+address, the backdoor account's email, the footer's bug-report link — which is how a rename leaves
+half a site pointing at the old name.
+
+Each address is a separate constant rather than one shared string, because they do not have to move
+together: **`FROM_EMAIL` is the deliverability-critical one** — it has to be SPF/DKIM aligned with
+whatever account actually sends the batch, or a bulk send lands in spam, and the failure summary
+that would tell you goes out over that same broken path. `SUPPORT_EMAIL` is only ever somewhere a
+person replies to. `HOSTED_CONTENT_BASE` is separate again: Brighton's training tracker and donation
+PDF are static content that can stay where its links point while the application moves.
+
+The constants are static so `DailyReminder`, which runs with no Spring context, can use them;
+`@Component("site")` and the instance getters are for templates (`${@site.supportEmail}`).
+
+**`SiteIdentityTest` scans `src/main` for anyone writing the domain out by hand again.** Comments
+are ignored, and so are the `resortMap.put` lines — there the domain stands in as the website of a
+resort that has none of its own, which is resort data rather than site identity.
+
 ### Thymeleaf Templates
 
 Located in `src/main/resources/templates/`. Shared page chrome is in `templates/fragments/`. Static assets are in `src/main/resources/static/`.

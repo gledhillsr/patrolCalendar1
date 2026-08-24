@@ -6,6 +6,7 @@ import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
 import com.gledhills.calendar.utils.ResortData;
+import com.gledhills.calendar.utils.SiteIdentity;
 import com.gledhills.calendar.utils.StaticUtils;
 import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.MessagingException;
@@ -34,9 +35,9 @@ import java.util.Locale;
  */
 @Service
 public class EmailService {
-    private static final String FALLBACK_FROM_ADDRESS = "steve@gledhills.com";
+    private static final String FALLBACK_FROM_ADDRESS = SiteIdentity.FROM_EMAIL;
     /** Where a batch that did not go out cleanly gets reported, alongside the director. */
-    private static final String ADMIN_NOTIFICATION_ADDRESS = "steve@gledhills.com";
+    private static final String ADMIN_NOTIFICATION_ADDRESS = SiteIdentity.ADMIN_EMAIL;
 
     private final JavaMailSender mailSender;
 

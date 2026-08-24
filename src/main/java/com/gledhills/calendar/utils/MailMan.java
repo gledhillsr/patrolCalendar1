@@ -52,11 +52,11 @@ public class MailMan {
         this.fromAddress = resortInfo.getDirectorsVerifiedEmail();
       }
       else {
-        this.fromAddress = "steve@gledhills.com";
+        this.fromAddress = SiteIdentity.FROM_EMAIL;
       }
     }
     catch (NoClassDefFoundError e) {
-      this.fromAddress = "steve@gledhills.com";
+      this.fromAddress = SiteIdentity.FROM_EMAIL;
     }
 
     // Prefer the AWS keys from credentials.properties (loaded by SessionData);
