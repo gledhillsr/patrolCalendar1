@@ -42,6 +42,13 @@ public class DayShiftsController {
             HttpServletResponse response,
             Model model) throws IOException {
 
+        // Validate resort - an unknown one has no database, and building PatrolData for it
+        // dumps a stack trace into the log for what is only a bad URL parameter
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
+
         javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
         Logger LOG = new Logger(DayShiftsController.class, javaxRequest, "GET", resort, Logger.INFO);
         SessionData sessionData = new SessionData(javaxRequest, null, LOG);
@@ -107,6 +114,13 @@ public class DayShiftsController {
             HttpServletRequest request,
             HttpServletResponse response,
             Model model) throws IOException {
+
+        // Validate resort - an unknown one has no database, and building PatrolData for it
+        // dumps a stack trace into the log for what is only a bad URL parameter
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
 
         javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
         Logger LOG = new Logger(DayShiftsController.class, javaxRequest, "POST", resort, Logger.INFO);

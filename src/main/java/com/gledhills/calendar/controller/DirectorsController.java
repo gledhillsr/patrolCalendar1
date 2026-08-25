@@ -33,14 +33,22 @@ public class DirectorsController {
     // 1. Read resort parameter
     String resort = request.getParameter("resort");
 
-    // 2. Use ServletAdapter for legacy code compatibility
+    // 2. Validate resort - an unknown one has no database, and building PatrolData for it dumps
+    //    a stack trace into the log for what is only a bad URL parameter. A decommissioned resort
+    //    (there are several, commented out in resortMap) is the usual way somebody arrives here.
+    if (!PatrolData.isValidResort(resort)) {
+      response.sendError(400, "Resort not found: " + resort);
+      return null;
+    }
+
+    // 3. Use ServletAdapter for legacy code compatibility
     javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
     Logger LOG = new Logger(DirectorsController.class, javaxRequest, "GET", resort, Logger.INFO);
     SessionData sessionData = new SessionData(javaxRequest, null, LOG);
     PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 
     try {
-      // 3. Get logged-in user info
+      // 4. Get logged-in user info
       String patrollerId = sessionData.getLoggedInUserId();
 
       // TODO: Add proper Spring Security authentication check here

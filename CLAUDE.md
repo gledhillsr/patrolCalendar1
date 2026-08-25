@@ -470,6 +470,23 @@ statement is `CREATE TABLE IF NOT EXISTS` — safe to re-run against a resort th
 they drift**, so adding a table to the app is what makes the file stale-and-noisy rather than
 stale-and-silent. Re-record it from a healthy resort and read the diff.
 
+**Validate the resort before building `PatrolData`.** `PatrolData` cannot make a JDBC url for a
+resort that is not in `resortMap` and calls `Thread.dumpStack()` when asked to — fifty lines of
+stack trace in the log for a mistyped query string. Every page does this first:
+
+```java
+if (!PatrolData.isValidResort(resort)) {
+    response.sendError(400, "Resort not found: " + resort);
+    return null;
+}
+```
+
+This is not hypothetical: **several resorts are commented out of `resortMap`** rather than deleted,
+and their links still exist in bookmarks and on other people's pages. A visitor with an old
+`Directors?resort=DevilsHead` link is what found the two controllers that skipped the check.
+`UnknownResortIsRejectedTest` pins it, and asserts up front that its test resort really is absent —
+re-enabling that resort would otherwise make the test quietly meaningless.
+
 ## Adding a New Endpoint
 
 1. Create controller in `controller/` (plain `@Controller`, no base class)
