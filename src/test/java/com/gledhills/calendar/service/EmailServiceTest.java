@@ -88,6 +88,83 @@ class EmailServiceTest {
                      service.sanitizeEmailHeader("Subject\r\nBcc: evil@example.com"));
     }
 
+    /**
+     * A site-wide mailing is composed against whichever resort the owner was on, so naming that
+     * resort in the sign-off would tell a director at 46 other patrols that site news came from
+     * Brighton's web site.
+     */
+    @Test
+    void buildFooter_omitsTheResortLineForASiteWideBatch() {
+        String footer = service.buildFooter(batch(true), "Brighton Ski Patrol");
+
+        assertFalse(footer.contains("online scheduling web site"),
+                    "a site-wide send should not name one resort's web site: " + footer);
+        assertFalse(footer.contains("Brighton"), "nor the resort at all: " + footer);
+        assertTrue(footer.contains("This message sent by:"), "the sender line stays: " + footer);
+        assertTrue(footer.contains("Ski Patrol Web Site Auto Mailer"),
+                   "and so does the sign-off: " + footer);
+    }
+
+    /** An ordinary resort email is unchanged - it still says whose web site it came from. */
+    @Test
+    void buildFooter_keepsTheResortLineForAnOrdinaryBatch() {
+        String footer = service.buildFooter(batch(false), "Brighton Ski Patrol");
+
+        assertTrue(footer.contains("from Brighton Ski Patrol's online scheduling web site."),
+                   "the resort line belongs on a normal send: " + footer);
+    }
+
+    /**
+     * A site-wide mailing comes from the site's own address.
+     *
+     * That is also the account the SMTP session authenticates as, so it is the aligned choice, and
+     * it puts replies in the site administrator's inbox - which is why the mailing exists.
+     */
+    @Test
+    void verifiedFromAddress_usesTheSiteAddressForASiteWideSend() {
+        assertEquals("steve@gledhills.com", service.verifiedFromAddress("Brighton", true),
+                     "a site-wide send should not go out as one resort");
+    }
+
+    /** A resort with a verified address of its own still uses it. */
+    @Test
+    void verifiedFromAddress_usesTheResortAddressForAnOrdinarySend() {
+        assertEquals("brightonskipatrol@gmail.com", service.verifiedFromAddress("Brighton", false),
+                     "an ordinary Brighton email should come from Brighton");
+    }
+
+    /** A resort without one falls back to the site address, as it always has. */
+    @Test
+    void verifiedFromAddress_fallsBackForAResortWithoutOne() {
+        assertEquals("steve@gledhills.com", service.verifiedFromAddress("Afton", false),
+                     "a resort with no verified address falls back to the site's");
+    }
+
+    /**
+     * The stale apology is gone.
+     *
+     * Afton has no verified From address, which is what used to trigger "I am working on setting
+     * this 'From' address to be specific to your patrol" - along with an instruction not to reply
+     * that was wrong anyway, since the message carries a Reply-To for the sender.
+     */
+    @Test
+    void buildFooter_doesNotApologiseForTheFromAddress() {
+        String footer = service.buildFooter(
+            new EmailService.Batch("S", "B", "steve@gledhills.com", "director@example.com",
+                                   null, true, "Afton", java.util.List.of(), false),
+            "Afton Alps");
+
+        assertFalse(footer.contains("I am working on"), "the promise was kept: " + footer);
+        assertFalse(footer.contains("Don't respond"),
+                    "and replying works - there is a Reply-To: " + footer);
+    }
+
+    /** A batch with a sender who has a usable address, so the footer takes its plain form. */
+    private EmailService.Batch batch(boolean siteWide) {
+        return new EmailService.Batch("Subject", "Body", "from@example.com", "reply@example.com",
+                                      null, true, "Brighton", java.util.List.of(), siteWide);
+    }
+
     @Test
     void sanitizeEmailHeader_treatsNullAsEmpty() {
         assertEquals("", service.sanitizeEmailHeader(null));

@@ -82,6 +82,27 @@
             <input type="submit" value="Remove them"/>
         </form>
 
+        <h3>Email every resort's directors</h3>
+        <p>
+            Opens the usual email form with the <b>To:</b> list already filled in with every member
+            flagged as a director in every resort in <code>PatrolData.resortMap</code> - all of them
+            except the <code>Sample</code> demo, whose people are not real. Somebody who directs
+            more than one resort appears once. This is for announcing a new feature, or telling
+            everyone about a problem.
+        </p>
+        <p>
+            Everyone is selected to begin with. Deselect anybody you do not want before sending -
+            and note the send happens in the background, so the confirmation counts who was
+            <i>queued</i>, not who received it.
+        </p>
+
+        <form th:action="@{/EmailForm}" method="get">
+            <input type="hidden" name="resort" th:value="${resort}"/>
+            <input type="hidden" name="ID" th:value="${patrollerId}"/>
+            <input type="hidden" name="audience" value="siteDirectors"/>
+            <input type="submit" value="Email all directors, every resort"/>
+        </form>
+
         <div th:if="${results}">
             <h3 th:text="${resultsHeading}">Results</h3>
             <p class="success-message">

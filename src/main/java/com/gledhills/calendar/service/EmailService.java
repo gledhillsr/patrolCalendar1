@@ -60,8 +60,31 @@ public class EmailService {
     public int sendEmailsAsync(EmailCompositionForm form, PatrolData patrolData, Logger logger) {
         List<EmailRecipient> recipients = resolveRecipients(form, patrolData);
 
-        // Call via self (the proxied instance) so @Async takes effect
-        self.sendBatch(recipients, buildBatch(form, patrolData), logger);
+        self.sendBatch(recipients, buildBatch(form, patrolData, false), logger);
+
+        return recipients.size();
+    }
+
+    /**
+     * Send to a recipient list the caller has already worked out.
+     *
+     * The site-wide director mailing needs this: its people come from every resort's database,
+     * and {@link #resolveRecipients} looks each id up in the one resort the form was posted from.
+     * That would not merely miss them - Brighton has a member 192443 too, so an id belonging to
+     * another resort's director could quietly resolve to a different person and mail them instead.
+     *
+     * The list must be one the caller derived itself, never one built from what the browser sent:
+     * addresses arriving in a request and being mailed as-is is the definition of an open relay.
+     *
+     * @param recipients who to send to; the form's patrollerIds are ignored
+     */
+    public int sendEmailsAsync(EmailCompositionForm form, PatrolData patrolData, Logger logger,
+                               List<EmailRecipient> recipients) {
+        // Call via self (the proxied instance) so @Async takes effect.
+        // siteWide=true because this overload exists for exactly one caller - the cross-resort
+        // director mailing. Should anything else ever need a pre-resolved list, this has to
+        // become a parameter rather than stay an assumption.
+        self.sendBatch(recipients, buildBatch(form, patrolData, true), logger);
 
         return recipients.size();
     }
@@ -74,7 +97,7 @@ public class EmailService {
      */
     public String describeUnsentBatch(EmailCompositionForm form, PatrolData patrolData, Logger logger) {
         List<EmailRecipient> recipients = resolveRecipients(form, patrolData);
-        Batch batch = buildBatch(form, patrolData);
+        Batch batch = buildBatch(form, patrolData, false);
         String footer = buildFooter(batch, PatrolData.getResortFullName(batch.resort(), logger));
 
         StringBuilder description = new StringBuilder();
@@ -125,7 +148,7 @@ public class EmailService {
         return recipients;
     }
 
-    private Batch buildBatch(EmailCompositionForm form, PatrolData patrolData) {
+    private Batch buildBatch(EmailCompositionForm form, PatrolData patrolData, boolean siteWide) {
         Roster fromMember = patrolData.getMemberByID(form.getFromPatrollerId());
         boolean hasValidReturnEmail = fromMember != null &&
             StaticUtils.isValidEmailAddress(fromMember.getEmailAddress());
@@ -133,12 +156,13 @@ public class EmailService {
         return new Batch(
             sanitizeEmailHeader(form.getSubject()),
             form.getMessage(),
-            verifiedFromAddress(form.getResort()),
+            verifiedFromAddress(form.getResort(), siteWide),
             hasValidReturnEmail ? fromMember.getEmailAddress() : null,
             fromMember,
             hasValidReturnEmail,
             form.getResort(),
-            readAttachments(form));
+            readAttachments(form),
+            siteWide);
     }
 
     /**
@@ -147,7 +171,14 @@ public class EmailService {
      * outright ("554 5.7.1 [VI-101]"), and an attachment is usually what tips it over. The
      * member's own address goes in Reply-To instead, the same split MailMan has always used.
      */
-    private String verifiedFromAddress(String resort) {
+    String verifiedFromAddress(String resort, boolean siteWide) {
+        // A site-wide mailing is not from a patrol, it is from the site - and the SMTP session
+        // authenticates as exactly this address (hostEmailUser in credentials.properties), so it
+        // is the best-aligned From available rather than a compromise. It also means replies land
+        // with the site administrator, which is the whole point of sending one.
+        if (siteWide) {
+            return FALLBACK_FROM_ADDRESS;
+        }
         ResortData resortInfo = PatrolData.getResortInfo(resort);
         return hasDirectorsVerifiedEmail(resort)
             ? resortInfo.getDirectorsVerifiedEmail()
@@ -180,7 +211,7 @@ public class EmailService {
      */
     record Batch(String subject, String messageTemplate, String fromEmail, String replyToEmail,
                  Roster fromMember, boolean hasValidReturnEmail, String resort,
-                 List<Attachment> attachments) {
+                 List<Attachment> attachments, boolean siteWide) {
     }
 
     /** An uploaded file, already read into memory so the async send can use it. */
@@ -503,7 +534,14 @@ public class EmailService {
         return message;
     }
 
-    private String buildFooter(Batch batch, String fullPatrolName) {
+    /**
+     * The sign-off under every message.
+     *
+     * A site-wide mailing omits the "from <resort>'s online scheduling web site" line. That batch
+     * is composed against whichever resort the site owner happened to be on, so the line would
+     * tell a director at 46 other patrols that news about the whole site came from Brighton's.
+     */
+    String buildFooter(Batch batch, String fullPatrolName) {
         Roster fromMember = batch.fromMember();
         StringBuilder footer = new StringBuilder();
         footer.append("\n\n----------------------------------------------\n");
@@ -515,7 +553,12 @@ public class EmailService {
             footer.append("This message sent by: unknown sender\n");
         }
 
-        footer.append("from ").append(fullPatrolName).append("'s online scheduling web site.\n\n");
+        if (batch.siteWide()) {
+            footer.append("\n");
+        }
+        else {
+            footer.append("from ").append(fullPatrolName).append("'s online scheduling web site.\n\n");
+        }
 
         if (!batch.hasValidReturnEmail()) {
             footer.append("Please Don't respond to this email. SEND any responses\n");
@@ -523,11 +566,13 @@ public class EmailService {
                 footer.append("to: ").append(fromMember.getFullName())
                       .append(", who had an invalid email address in the system.\n\n");
             }
-        } else if (!hasDirectorsVerifiedEmail(batch.resort())) {
-            footer.append("Please Don't respond to this email. SEND any responses\n");
-            footer.append("to: ").append(fromMember.getEmailAddress())
-                  .append(". I am working on setting this 'From' address to be specific to your patrol.\n\n");
         }
+        // There was a second branch here, for a resort with no verified From address of its own:
+        // "Please Don't respond to this email... I am working on setting this 'From' address to be
+        // specific to your patrol." Both halves are obsolete. The promise was kept - resorts that
+        // wanted one have it - and the instruction was wrong regardless, because every message
+        // whose sender has a usable address carries a Reply-To pointing at them, so replying works
+        // and always did. It was telling 31 of the 43 resorts not to do the thing that works.
 
         footer.append("This was sent from the Ski Patrol Web Site Auto Mailer.\n");
         footer.append("--------------------------------------------------------\n");

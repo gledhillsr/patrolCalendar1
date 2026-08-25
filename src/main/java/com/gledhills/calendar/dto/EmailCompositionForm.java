@@ -32,6 +32,8 @@ public class EmailCompositionForm {
 
     private String resort;
     private String fromPatrollerId;
+    /** Which list the recipients came from; see EmailFormController.SITE_DIRECTORS. */
+    private String audience;
 
     // Getters and setters
     public String getSubject() { return subject; }
@@ -72,4 +74,7 @@ public class EmailCompositionForm {
 
     public String getFromPatrollerId() { return fromPatrollerId; }
     public void setFromPatrollerId(String fromPatrollerId) { this.fromPatrollerId = fromPatrollerId; }
+
+    public String getAudience() { return audience; }
+    public void setAudience(String audience) { this.audience = audience; }
 }

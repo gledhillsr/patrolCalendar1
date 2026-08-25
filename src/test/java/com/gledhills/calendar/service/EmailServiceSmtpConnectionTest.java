@@ -158,7 +158,7 @@ class EmailServiceSmtpConnectionTest {
 
         return new EmailService.Batch(
             "Season kickoff", "Hello $first$, please read the attached.",
-            "patrol@example.com", null, null, false, "Sample", attachments);
+            "patrol@example.com", null, null, false, "Sample", attachments, false);
     }
 
     /**
@@ -169,7 +169,8 @@ class EmailServiceSmtpConnectionTest {
     private EmailService.Batch batchFromDirector() {
         return new EmailService.Batch(
             "Season kickoff", "Hello $first$, please read the attached.",
-            "brightonskipatrol@gmail.com", "director@example.com", null, true, "Brighton", List.of());
+            "brightonskipatrol@gmail.com", "director@example.com", null, true, "Brighton", List.of(),
+            false);
     }
 
     /**

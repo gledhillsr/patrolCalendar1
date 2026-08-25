@@ -6,6 +6,7 @@ import com.gledhills.calendar.dto.EmailRecipient;
 import com.gledhills.calendar.service.EmailService;
 import com.gledhills.calendar.service.PatrolMemberFilterService;
 import com.gledhills.calendar.service.ShiftAssignmentService;
+import com.gledhills.calendar.service.SiteDirectorsService;
 import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.utils.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,7 +25,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Spring Boot controller for email form.
@@ -40,16 +43,26 @@ public class EmailFormController {
     private static final Comparator<EmailRecipient> BY_LAST_NAME =
         Comparator.comparing(EmailRecipient::getLastName).thenComparing(EmailRecipient::getFirstName);
 
+    /**
+     * The one audience that is not this resort's own roster: every director at every resort,
+     * for the site owner to announce a new feature or a problem. Reached only from
+     * SiteWideConfiguration, and gated the same way that page is.
+     */
+    public static final String SITE_DIRECTORS = "siteDirectors";
+
     private final PatrolMemberFilterService filterService;
     private final ShiftAssignmentService shiftAssignmentService;
     private final EmailService emailService;
+    private final SiteDirectorsService siteDirectorsService;
 
     public EmailFormController(PatrolMemberFilterService filterService,
                               ShiftAssignmentService shiftAssignmentService,
-                              EmailService emailService) {
+                              EmailService emailService,
+                              SiteDirectorsService siteDirectorsService) {
         this.filterService = filterService;
         this.shiftAssignmentService = shiftAssignmentService;
         this.emailService = emailService;
+        this.siteDirectorsService = siteDirectorsService;
     }
 
     /**
@@ -61,6 +74,7 @@ public class EmailFormController {
             @RequestParam String resort,
             @RequestParam(name = "ID") String id,
             @RequestParam(defaultValue = "false") boolean attachmentsTooLarge,
+            @RequestParam(defaultValue = "") String audience,
             @ModelAttribute EmailFormRequest filter,
             HttpServletRequest request,
             HttpServletResponse response,
@@ -93,13 +107,19 @@ public class EmailFormController {
         }
 
         try {
+            if (rejectUnknownAudience(audience, response, LOG)) {
+                return null;
+            }
+            if (isSiteDirectors(audience) && refuseNonOwner(resort, sessionData, response, LOG)) {
+                return null;
+            }
             if (attachmentsTooLarge) {
                 // bounced back here by UploadTooLargeAdvice - the POST never got parsed
                 model.addAttribute("attachmentError",
                     "Those attachments were too large to upload. The limit is " +
                     asMegabytes(EmailCompositionForm.MAX_ATTACHMENTS_TOTAL_BYTES) + " in total.");
             }
-            populateForm(model, resort, id, filter, patrolData, LOG);
+            populateForm(model, resort, id, filter, audience, sessionData, patrolData, LOG);
             return FORM_VIEW;
         } finally {
             patrolData.close();
@@ -144,6 +164,14 @@ public class EmailFormController {
         }
 
         try {
+            if (rejectUnknownAudience(form.getAudience(), response, LOG)) {
+                return null;
+            }
+            if (isSiteDirectors(form.getAudience())
+                    && refuseNonOwner(resort, sessionData, response, LOG)) {
+                return null;
+            }
+
             // Attachments are capped as a total, not per file
             if (form.getAttachmentsTotalBytes() > EmailCompositionForm.MAX_ATTACHMENTS_TOTAL_BYTES) {
                 bindingResult.reject("error.attachmentsTooLarge", describeAttachmentOverage(form));
@@ -162,12 +190,18 @@ public class EmailFormController {
             if (bindingResult.hasErrors()) {
                 // The submitted form and its errors are already in the model; the filters the
                 // recipient list was built from are not posted back, so redisplay everybody.
+                // The audience is posted back, and has to be honoured: rebuilding a site-wide
+                // director mailing as "everybody" would quietly turn it into Brighton's roster.
                 populateForm(model, resort, form.getFromPatrollerId(),
-                             EmailFormRequest.everybody(), patrolData, LOG);
+                             EmailFormRequest.everybody(), form.getAudience(), sessionData,
+                             patrolData, LOG);
                 return FORM_VIEW;
             }
 
-            int queuedCount = emailService.sendEmailsAsync(form, patrolData, LOG);
+            int queuedCount = isSiteDirectors(form.getAudience())
+                ? emailService.sendEmailsAsync(form, patrolData, LOG,
+                                               selectedDirectors(form, sessionData, LOG))
+                : emailService.sendEmailsAsync(form, patrolData, LOG);
 
             addPageChrome(model, resort, form.getFromPatrollerId(), LOG);
             model.addAttribute("totalRecipients", queuedCount);
@@ -184,10 +218,17 @@ public class EmailFormController {
      * redisplay after a validation error.
      */
     private void populateForm(Model model, String resort, String patrollerId,
-                              EmailFormRequest filter, PatrolData patrolData, Logger LOG) {
-        List<EmailRecipient> recipients = filterService.filterMembers(filter, patrolData);
-        if (filter.hasDateRange()) {
-            recipients = shiftAssignmentService.filterByShiftLimit(recipients, filter, patrolData);
+                              EmailFormRequest filter, String audience, SessionData sessionData,
+                              PatrolData patrolData, Logger LOG) {
+        List<EmailRecipient> recipients;
+        if (isSiteDirectors(audience)) {
+            recipients = siteDirectorsService.allDirectors(sessionData, LOG);
+        }
+        else {
+            recipients = filterService.filterMembers(filter, patrolData);
+            if (filter.hasDateRange()) {
+                recipients = shiftAssignmentService.filterByShiftLimit(recipients, filter, patrolData);
+            }
         }
 
         List<EmailRecipient> validRecipients = new ArrayList<>();
@@ -206,15 +247,101 @@ public class EmailFormController {
         model.addAttribute("validRecipients", validRecipients);
         model.addAttribute("invalidRecipients", invalidRecipients);
         model.addAttribute("attachmentLimit", asMegabytes(EmailCompositionForm.MAX_ATTACHMENTS_TOTAL_BYTES));
+        model.addAttribute("audience", isSiteDirectors(audience) ? SITE_DIRECTORS : "");
+        model.addAttribute("siteDirectors", isSiteDirectors(audience));
 
         // On the initial GET, start with every valid recipient selected
         if (!model.containsAttribute("compositionForm")) {
             EmailCompositionForm compositionForm = new EmailCompositionForm();
             compositionForm.setResort(resort);
             compositionForm.setFromPatrollerId(patrollerId);
-            compositionForm.setPatrollerIds(validRecipients.stream().map(EmailRecipient::getId).toList());
+            // the selection key, not the bare id: it is "Resort:id" once a list spans resorts
+            compositionForm.setPatrollerIds(
+                validRecipients.stream().map(EmailRecipient::getSelectionKey).toList());
             model.addAttribute("compositionForm", compositionForm);
         }
+    }
+
+    private boolean isSiteDirectors(String audience) {
+        return SITE_DIRECTORS.equals(audience);
+    }
+
+    /**
+     * Refuse an audience this controller does not recognise, instead of quietly treating it as
+     * the ordinary one.
+     *
+     * A blank audience is the normal case - every other page that reaches EmailForm sends none.
+     * But a value that is present and <em>not</em> understood means the request is not what the
+     * page thought it was, and the fallback would be to build the send from this resort's whole
+     * roster. That is how one duplicated parameter turned a mailing to 232 directors into a
+     * mailing to Brighton: the audience arrived as "siteDirectors,siteDirectors", missed the
+     * equality check, and the wrong list was assembled in silence. A 400 is the honest answer,
+     * and it is visible the first time it happens rather than the first time somebody notices
+     * the wrong people got an email.
+     *
+     * @return true when the response has been sent and the caller should stop
+     */
+    private boolean rejectUnknownAudience(String audience, HttpServletResponse response, Logger LOG)
+            throws IOException {
+        if (audience == null || audience.isEmpty() || isSiteDirectors(audience)) {
+            return false;
+        }
+        LOG.error("EmailForm: unrecognised audience [" + audience + "] - refusing rather than "
+                    + "falling back to this resort's roster");
+        response.sendError(400, "Unrecognised recipient list");
+        return true;
+    }
+
+    /**
+     * Send a 403 unless this is the site owner. Same gate as SiteWideConfiguration, and for the
+     * same reason: the director list of all 47 other resorts is nobody else's to see or mail.
+     *
+     * The check is against the <em>session</em>, never the ID parameter - that one is typed into
+     * the URL by whoever made the request.
+     *
+     * @return true when the response has been sent and the caller should stop
+     */
+    private boolean refuseNonOwner(String resort, SessionData sessionData,
+                                   HttpServletResponse response, Logger LOG) throws IOException {
+        String loggedInUserId = sessionData.getLoggedInUserId();
+        if (SiteWideConfigurationController.isSiteOwner(resort, loggedInUserId)) {
+            return false;
+        }
+        LOG.error("DENIED site wide director email: " + loggedInUserId + " at " + resort);
+        response.sendError(403, "Not authorized");
+        return true;
+    }
+
+    /**
+     * The directors the owner actually ticked, resolved against a freshly read list.
+     *
+     * The list is rebuilt here rather than trusted from the request. What comes back from the
+     * browser is only allowed to <em>narrow</em> it: an id that is not a director's, or belongs to
+     * a resort that no longer has one, matches nothing and is dropped. Nothing typed into the form
+     * can add an address to the send.
+     */
+    private List<EmailRecipient> selectedDirectors(EmailCompositionForm form,
+                                                   SessionData sessionData, Logger LOG) {
+        Map<String, EmailRecipient> byKey = new LinkedHashMap<>();
+        for (EmailRecipient director : siteDirectorsService.allDirectors(sessionData, LOG)) {
+            if (director.hasValidEmail()) {
+                byKey.put(director.getSelectionKey(), director);
+            }
+        }
+
+        List<EmailRecipient> chosen = new ArrayList<>();
+        List<String> selected = form.getPatrollerIds();
+        if (selected != null) {
+            for (String key : selected) {
+                EmailRecipient director = byKey.get(key);
+                if (director != null) {
+                    chosen.add(director);
+                }
+            }
+        }
+        LOG.info("site wide director email: " + chosen.size() + " of "
+                   + (selected == null ? 0 : selected.size()) + " selected resolved");
+        return chosen;
     }
 
     /** "Attachments total 3.4 MB - the limit is 2 MB. Attached: notes.pdf (3.4 MB)" */

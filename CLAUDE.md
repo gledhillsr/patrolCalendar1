@@ -283,9 +283,97 @@ patrollers. Verified by dropping each table and loading the pages. But **a write
 nothing must not report success** — that caught `MenuButton.writeAll` once, which is why it and its
 callers now return and check a boolean.
 
+### Emailing Every Resort's Directors
+
+"Email all directors, every resort" on SiteWideConfiguration opens the ordinary EmailForm with its
+**To:** list built by `SiteDirectorsService` instead of this resort's roster — every member flagged
+as a director in every resort in `PatrolData.resortMap`, for announcing a feature or a problem.
+`Sample` is skipped: its people are invented, and `EmailService` refuses to send from it anyway.
+Someone who directs two resorts is listed once (matched on email address, kept under whichever
+resort sorts first), because telling one person twice about one outage is just noise.
+
+**This is the only recipient list on the site that spans resorts, and that breaks an assumption
+everything else makes: that a patroller id names somebody.** Ids are unique only *within* a resort
+— Brighton has a 192443 and so might Afton — so `EmailService.resolveRecipients`, which looks every
+selected id up in the one resort the form was posted from, would not merely miss a cross-resort
+director but could **quietly resolve their id to a different person and mail them instead**.
+`EmailRecipient` therefore carries its `resort`, and `getSelectionKey()` is what the picker posts:
+a bare id as before for a single-resort list, `Resort:id` for this one. Anything reading those
+posted values must use the key, not `getId()` — `getId()` is still the plain id because `$id$` in a
+message body is the member's own number.
+
+The send takes the pre-resolved list through `sendEmailsAsync(form, patrolData, log, recipients)`,
+and **the controller re-derives that list rather than trusting the request** — what comes back from
+the browser may only *narrow* it. An id that is not a director's matches nothing and is dropped;
+nothing typed into the form can add an address. Mailing addresses that arrived in a request is the
+definition of an open relay, and this page is the one place where the recipients are not already
+bounded by a single resort's roster.
+
+Gated on `SiteWideConfigurationController.isSiteOwner` — the same two literals, checked against the
+**session**, never the `ID` parameter — on the GET *and* the POST, since 47 other resorts' director
+addresses are nobody else's to read or use. Non-owners get a 403 rather than a redirect.
+
+Two things that would break quietly and so are pinned by `SiteDirectorsEmailTest`:
+
+- **A rejected form must redisplay the same audience.** The filters behind an ordinary recipient
+  list are not posted back, so the error path rebuilds it as `EmailFormRequest.everybody()` — which
+  for this audience would silently swap in Brighton's whole roster while the owner fixed a typo in
+  the subject. The audience is a posted field for exactly this reason, and `UploadTooLargeAdvice`
+  carries it through the too-large-attachment bounce for the same one.
+- **Nothing in that test posts a valid message.** A successful POST hands the batch to the real
+  `EmailService` and mails every director at every resort for real. The only POSTs there are ones
+  that stop first: a 403, and a form that fails validation.
+
+**A site-wide mailing goes out as `SiteIdentity.FROM_EMAIL`, not the resort's address.** Every
+other send uses the resort's `directorsVerifiedEmail` for SPF/DKIM alignment, and that is still the
+rule — but the site's own address *is* the aligned one here: `hostEmailUser` in
+`/etc/patrolCalendar/credentials.properties` is that same mailbox, so the SMTP session authenticates
+as exactly the address being stamped. It also puts replies in the administrator's inbox, which is
+the reason for sending one.
+
+**The footer omits the "from `<resort>`'s online scheduling web site" line.** The batch is composed
+against whichever resort the owner happened to be on, so that line would tell a director at 46 other
+patrols that news about the whole site came from Brighton's. `Batch` carries a `siteWide` flag for
+this, set by the pre-resolved-recipients overload of `sendEmailsAsync` — **that overload being the
+site-wide path is an assumption**, true because it has exactly one caller; a second caller means the
+flag has to become a parameter. Note the `From` address is still the resort's verified sender, which
+is an SPF/DKIM constraint rather than a cosmetic one.
+
+**The audience is submitted exactly once, in the form action's query string.** It was briefly also
+a hidden `th:field`, and that shipped: **Spring joins duplicate parameter values with a comma**, so
+the controller received `"siteDirectors,siteDirectors"`, failed the equality check, fell through to
+the ordinary path, and tried to resolve `Brighton:192443` against Brighton's roster — `0 of 0
+emails sent`, while the confirmation page still reported a queued batch. The query string is the
+copy that survives a multipart body Tomcat refused to parse, so that is the one that stays;
+anything else this form needs on both paths belongs there too, **never as a second copy**.
+
+Two guards came out of that, both pinned by `SiteDirectorsSendTest`:
+
+- **An audience that is present but unrecognised is a 400, not a fallback.** Blank is normal — every
+  other page sends none — but a value that arrives and is not understood means the request is not
+  what the page thought it was, and guessing means assembling the wrong recipient list in silence.
+  Here it merely mailed nobody; with plain ids instead of `Resort:id` keys it would have mailed
+  Brighton.
+- **The overload actually chosen is asserted, with `EmailService` mocked.** That is the only way to
+  test a valid POST on this page at all — the real service would mail every director at every
+  resort — and asserting the *page renders* was exactly what let this through.
+
+Note the recipient count feeds straight into the Tomcat part limits described under **Email** — one
+multipart part per selected recipient, against `server.tomcat.max-part-count=2000`. A few hundred
+directors is comfortable; a list that ever approaches that number would come back as a bare 413.
+
 ### Email
 
 `EmailService` sends via Spring's `JavaMailSender` (configured in `AsyncConfig` using `smtp.host` from `application.properties`). Director-triggered bulk emails are `@Async` on the `emailTaskExecutor` thread pool. Password reset emails use one-time tokens stored in `{resort}_password_reset_tokens` (24-byte random, 15-minute expiry, single-use). The lifetime lives in `PasswordResetToken.LIFETIME_MINUTES` and is quoted to the member in the email — change it in that one place.
+
+**The footer no longer apologises for the From address.** A branch used to tell any resort without
+a verified address *"Please Don't respond to this email... I am working on setting this 'From'
+address to be specific to your patrol."* Both halves were obsolete: resorts that wanted their own
+address have one, and the instruction was wrong regardless — every message whose sender has a usable
+address carries a `Reply-To` pointing at them, so replying worked the whole time. It was telling 31
+of the 43 resorts not to do the thing that works. The remaining branch, for a sender with **no**
+usable address, is still correct: there is no `Reply-To` on those, so a reply really does go nowhere
+useful.
 
 **EmailForm posts one multipart part per selected recipient**, because the recipient picker is a
 multi-select bound to `patrollerIds`. Tomcat 11 caps a multipart request at **50 parts** and 1000

@@ -52,6 +52,12 @@
             background-color: #fff8e1;
             font-weight: bold;
         }
+        .site-directors-note {
+            border: 1px solid #b91c1c;
+            background-color: #FFF8DC;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+        }
     </style>
     <script type="text/javascript">
         function updateEmailCount() {
@@ -127,11 +133,22 @@
         <h1>Email Composition Form</h1>
     </div>
 
-    <!-- An upload too large to buffer never reaches the controller, so resort and sender
-         travel in the query string where they survive a rejected body -->
+    <div th:if="${siteDirectors}" class="site-directors-note">
+        Every <b>director</b> at every resort except the Sample demo - someone who directs more
+        than one is listed once. Use this to tell them about a new feature or a problem.
+    </div>
+
+    <!-- An upload too large to buffer never reaches the controller, so resort, sender and the
+         audience travel in the query string where they survive a rejected body -->
     <form method="post" enctype="multipart/form-data"
-          th:action="@{/EmailForm(resort=${resort},fromPatrollerId=${patrollerId})}"
+          th:action="@{/EmailForm(resort=${resort},fromPatrollerId=${patrollerId},audience=${audience})}"
           th:object="${compositionForm}" onsubmit="return attachmentsWithinLimit()">
+        <!-- The audience rides in the action's query string above and NOWHERE ELSE. It used to
+             also be a hidden th:field here, which posted it twice - and Spring joins duplicate
+             parameter values with a comma, so the controller saw "siteDirectors,siteDirectors",
+             failed the equality check and quietly rebuilt the send as this resort's own roster.
+             Anything else this form needs on both paths belongs in the query string too, not in
+             a second copy. -->
         <!-- Error Display Area -->
         <div th:if="${attachmentError}" class="error-box" th:text="${attachmentError}"></div>
         <div th:if="${#fields.hasErrors('*') or #fields.hasGlobalErrors()}" class="error-box">
@@ -169,9 +186,11 @@
                         <br/><br/>
                         <select id="recipientSelect" th:field="*{patrollerIds}" multiple="multiple" size="6"
                                 onchange="updateEmailCount()">
+                            <!-- selectionKey is the bare id for a single resort's list, and
+                                 "Resort:id" for the site-wide one, where ids are not unique -->
                             <option th:each="recipient : ${validRecipients}"
-                                    th:value="${recipient.id}"
-                                    th:text="${recipient.lastName} + ', ' + ${recipient.firstName}">
+                                    th:value="${recipient.selectionKey}"
+                                    th:text="${recipient.displayName}">
                             </option>
                         </select>
                         <br/>
@@ -182,7 +201,7 @@
                         <br/>
                         <select readonly="readonly" size="5">
                             <option th:each="recipient : ${invalidRecipients}"
-                                    th:text="${recipient.lastName} + ', ' + ${recipient.firstName}">
+                                    th:text="${recipient.displayName}">
                             </option>
                         </select>
                         <br/>

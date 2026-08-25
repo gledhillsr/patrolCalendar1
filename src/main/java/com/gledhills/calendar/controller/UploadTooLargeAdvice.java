@@ -35,8 +35,11 @@ public class UploadTooLargeAdvice {
         // resort/fromPatrollerId ride in the form action's query string, so they survive
         // even though the body was rejected
         String queryString = request.getQueryString();
+        // audience too: without it a site-wide director mailing that was rejected for size would
+        // come back as this resort's own roster, with no sign that the list had changed
         return "redirect:/EmailForm?resort=" + queryParameter(queryString, "resort")
              + "&ID=" + queryParameter(queryString, "fromPatrollerId")
+             + "&audience=" + queryParameter(queryString, "audience")
              + "&attachmentsTooLarge=true";
     }
 
