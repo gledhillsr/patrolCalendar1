@@ -79,22 +79,34 @@ public class ValidateCredentialsRedirectIfNeeded {
 
   private void attemptLoginViaCookie(SessionData sessionData, HttpServletRequest request, HttpServletResponse response,
                                      PatrolData patrolData, String idLoggedIn) {
-    String cookieValue = null;
+    boolean unusableCookie = false;
     String cookieResort = null;
     String cookiePatrollerId = null;
     Cookie[] cookies = request.getCookies();
     if (cookies != null) { //no cookies exist
       for (Cookie cookie : request.getCookies()) {
         if (NSP_TOKEN_NAME.equals(cookie.getName())) {
-          cookieValue = cookie.getValue();
           try {
             // Decode URL-encoded cookie value
-            String decodedValue = URLDecoder.decode(cookieValue, StandardCharsets.UTF_8.name());
+            String decodedValue = URLDecoder.decode(cookie.getValue(), StandardCharsets.UTF_8.name());
             //the signature proves this server issued the cookie; without this check anyone could
             //type a member id into their browser and be logged in as that member
             AuthCookie.Verified verified = AuthCookie.verify(sessionData, LOG, decodedValue);
-            if (verified != null && PatrolData.isValidResort(verified.resort()) &&
-              patrolData.getMemberByID(verified.memberId()) != null) {
+
+            if (verified == null || !PatrolData.isValidResort(verified.resort())) {
+              unusableCookie = true; //unsigned, expired, malformed, or names a resort we dropped
+            }
+            else if (!resort.equalsIgnoreCase(verified.resort())) {
+              //A cookie only authenticates on the resort it was issued for. It is not ours to use
+              //here - logging somebody into Sample while they are reading Brighton's pages is
+              //confusing - and, importantly, not ours to DELETE either: they are simply looking at
+              //another patrol's site, and their own login should still be waiting when they go back.
+              LOG.debug("ignoring login cookie for another resort, this=" + resort);
+            }
+            else if (patrolData.getMemberByID(verified.memberId()) == null) {
+              unusableCookie = true; //named member is no longer on this roster
+            }
+            else {
               cookieResort = verified.resort();
               cookiePatrollerId = verified.memberId();
             }
@@ -117,7 +129,7 @@ public class ValidateCredentialsRedirectIfNeeded {
         writeLoginCookie(sessionData, request, response, cookieResort, cookiePatrollerId);
         LOG.warn("using cookie for login to resort=" + cookieResort + ", as user=" + cookiePatrollerId);
       }
-      else if (cookieValue != null) { //signature, expiry, resort or patrollerId did not check out
+      else if (unusableCookie) { //signature, expiry, resort or patrollerId did not check out
         //not logged in, but bad cookie, so delete cookie
         try {
           response.addHeader("Set-Cookie", buildSetCookieHeader(request.isSecure(), "", 0));

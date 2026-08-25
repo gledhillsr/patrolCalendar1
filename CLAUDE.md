@@ -85,6 +85,14 @@ PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 - **Remember-me**: a signed `nspToken` cookie. `ValidateCredentialsRedirectIfNeeded` verifies the
   signature with `AuthCookie.verify` and, if the session is empty, logs the member back in from it.
   The signature is what stops someone typing another member's id into their browser
+- **A cookie authenticates on the resort it was issued for and nowhere else.** It used to be
+  checked with `patrolData.getMemberByID`, against whichever resort's database the *current page*
+  belonged to — so a Sample cookie was looked up in Brighton's roster, logged
+  `called getMemberByID with invalid memberID=[...]` on every request, and then fell into the
+  rejected-cookie branch, which **deleted it**. Glancing at another patrol's site logged you out of
+  your own. A cookie for another resort is now ignored: not used, and deliberately **not deleted** —
+  that branch is for cookies that are forged or expired, which a perfectly good cookie for somewhere
+  else is not. `LoginCookieIsResortScopedTest` pins both halves
 - Controllers gate access by constructing `ValidateCredentialsRedirectIfNeeded`, which redirects to
   `MemberLogin?resort=<name>&NSPgoto=<parent>` when credentials do not check out
 - Director-only pages check `Roster.isDirector` after loading the logged-in user's record
