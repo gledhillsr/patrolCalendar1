@@ -39,6 +39,7 @@ public class SessionData {
   private static final String AWS_SECRET_KEY_TAG = "AWSSecretKey";
   private static final String SALT_TAG = "salt";
   private static final String COOKIE_SIGNING_KEY_TAG = "cookieSigningKey";
+  private static final String LOCKER_ROOM_API_KEY_TAG = "lockerRoomApiKey";
 
   //don't store in session.  Afraid user may be able to see session data
   private String dbUser;
@@ -269,6 +270,28 @@ public class SessionData {
       LOG.error("could not decode '" + COOKIE_SIGNING_KEY_TAG + "', cookie login disabled");
       return null;
     }
+  }
+
+  /**
+   * Shared secret the locker-room software presents in the X-Locker-Key header
+   * (see {@link com.gledhills.calendar.controller.LockerRoomApiController}).
+   * <p>
+   * Returns null when 'lockerRoomApiKey' is absent from credentials.properties, which makes the
+   * endpoint fail closed - an unconfigured server refuses the request rather than serving today's
+   * roster to anyone who asks. Unlike the cookie key there is no fallback to 'salt': this secret is
+   * copied onto a machine at the mountain, so it should be separately revocable.
+   */
+  public String readLockerRoomApiKey() {
+    Properties properties = new Properties();
+    if (!loadPropertiesFile(properties, null)) {
+      LOG.error("could not read properties file, locker room API key unavailable");
+      return null;
+    }
+    String key = properties.getProperty(LOCKER_ROOM_API_KEY_TAG, "");
+    if (key.isEmpty()) {
+      return null;
+    }
+    return key;
   }
 
   public byte[] readSalt() {

@@ -1,5 +1,6 @@
 package com.gledhills.calendar.config;
 
+import com.gledhills.calendar.controller.LockerRoomApiController;
 import com.gledhills.calendar.controller.ServletAdapter;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.StaticUtils;
@@ -23,6 +24,15 @@ public class BotBlockingFilter extends OncePerRequestFilter {
   @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
     throws ServletException, IOException {
+    //The locker-room API authenticates with a shared key, which is a far stronger statement about
+    //who is calling than a User-Agent string. Its caller is a PHP script on a Mac at the mountain -
+    //exactly the shape this filter exists to reject - so checking it here would only ever produce a
+    //confusing 403 for a legitimate client.
+    if (request.getRequestURI() != null &&
+        request.getRequestURI().contains(LockerRoomApiController.API_PREFIX)) {
+      chain.doFilter(request, response);
+      return;
+    }
     String userAgent = request.getHeader("User-Agent");
     if (StaticUtils.isRequestFromBot(userAgent)) {
       Logger LOG = new Logger(BotBlockingFilter.class, ServletAdapter.toJavaxRequest(request),
