@@ -450,6 +450,29 @@ The constants are static so `DailyReminder`, which runs with no Spring context, 
 are ignored, and so are the `resortMap.put` lines — there the domain stands in as the website of a
 resort that has none of its own, which is resort data rather than site identity.
 
+**The site answers on a second domain, `patrolcalendar.com`.** Both names point at the same
+application; a visitor who arrived on that one gets a small *"Welcome to PatrolCalendar.com"* line in
+the header, above both menu bars, for every resort. On the primary domain nothing is drawn.
+
+It is deliberately **not** a second identity: nothing is sent *from* it and no link is built with it,
+so `DOMAIN` and every address on it are untouched — this is one greeting, not a rename.
+`isPatrolCalendarHost()` reads the host off the request in flight via `RequestContextHolder` rather
+than taking a parameter, because **Thymeleaf 3.1 removed `#request` from the expression context** and
+because every page draws this header — threading a flag through twenty controllers means the
+twenty-first forgets, the same reasoning as `${@menuButtonService.forHeader(...)}` beside it. With no
+request in flight (`DailyReminder`, a unit test) it answers false and draws nothing.
+
+The match is the domain itself plus its subdomains, **not an `endsWith`** — that would greet
+`notpatrolcalendar.com` as if it were us. `SiteIdentityTest`'s hand-written-domain scan now covers
+both names, and `SecondDomainWelcomeTest` pins all of it by rendering with a real host (MockMvc
+defaults to `localhost`, which is why every other render test is unaffected — set the host by asking
+for a full URI rather than a path).
+
+Two things depend on the deployment rather than the code: nginx must pass the original `Host`
+through (`server.forward-headers-strategy=native` is already set, so `X-Forwarded-*` is honoured),
+and the greeting's HTML **comment** ships on both domains — which is what made
+`MonthCalendarGoldenTest` need re-recording even though no visible output changed on `localhost`.
+
 ### Thymeleaf Templates
 
 Located in `src/main/resources/templates/`. Shared page chrome is in `templates/fragments/`. Static assets are in `src/main/resources/static/`.

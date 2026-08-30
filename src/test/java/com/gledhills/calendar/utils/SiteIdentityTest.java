@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -27,6 +28,10 @@ class SiteIdentityTest {
 
   private static final List<Path> SOURCE_ROOTS =
     List.of(Path.of("src/main/java"), Path.of("src/main/resources/templates"));
+
+  /** Both names the site answers on. Either one written out by hand is the bug this catches. */
+  private static final List<String> DOMAINS =
+    List.of(SiteIdentity.DOMAIN, SiteIdentity.PATROL_CALENDAR_DOMAIN);
 
   @Test
   void everyAddressIsBuiltFromTheOneDomain() {
@@ -51,7 +56,8 @@ class SiteIdentityTest {
           List<String> lines = Files.readAllLines(file);
           for (int number = 0; number < lines.size(); number++) {
             String line = lines.get(number);
-            if (!line.toLowerCase().contains(SiteIdentity.DOMAIN.toLowerCase())) {
+            if (DOMAINS.stream().noneMatch(
+                  domain -> line.toLowerCase().contains(domain.toLowerCase()))) {
               continue;
             }
             String trimmed = line.trim();
@@ -69,5 +75,30 @@ class SiteIdentityTest {
     assertEquals(List.of(), offenders,
                  "these should use SiteIdentity instead of writing the domain out:\n"
                    + String.join("\n", offenders));
+  }
+
+  /**
+   * The host match behind the header's greeting, tested without a request in flight.
+   *
+   * The lookalike case is the one worth having: an endsWith on the bare domain would greet
+   * notpatrolcalendar.com as if it were us.
+   */
+  @Test
+  void onlyTheSecondDomainAndItsSubdomainsMatch() {
+    assertTrue(SiteIdentity.isPatrolCalendarHost("patrolcalendar.com"));
+    assertTrue(SiteIdentity.isPatrolCalendarHost("www.patrolcalendar.com"));
+    assertTrue(SiteIdentity.isPatrolCalendarHost("PatrolCalendar.COM"), "a host is case-insensitive");
+
+    assertFalse(SiteIdentity.isPatrolCalendarHost(SiteIdentity.DOMAIN));
+    assertFalse(SiteIdentity.isPatrolCalendarHost("notpatrolcalendar.com"), "a lookalike is not us");
+    assertFalse(SiteIdentity.isPatrolCalendarHost("patrolcalendar.com.example.net"));
+    assertFalse(SiteIdentity.isPatrolCalendarHost("localhost"));
+    assertFalse(SiteIdentity.isPatrolCalendarHost(null), "no host at all draws no banner");
+  }
+
+  /** With no request in flight - DailyReminder, or any unit test - the answer is a quiet false. */
+  @Test
+  void noRequestInFlightIsNotTheSecondDomain() {
+    assertFalse(new SiteIdentity().isPatrolCalendarHost());
   }
 }

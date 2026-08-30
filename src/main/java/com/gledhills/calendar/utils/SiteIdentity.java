@@ -1,6 +1,11 @@
 package com.gledhills.calendar.utils;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.util.Locale;
 
 /**
  * Who this site is: its domain and the addresses that speak for it.
@@ -43,6 +48,17 @@ public class SiteIdentity {
    */
   public static final String HOSTED_CONTENT_BASE = "http://" + DOMAIN;
 
+  /**
+   * The second name this site answers on. Both domains point at the same application, and this one
+   * is deliberately <b>not</b> an identity anything is sent <i>from</i> - no mail, no links, nothing
+   * SPF/DKIM aligned - so it sits beside {@link #DOMAIN} rather than replacing it. It exists only so
+   * a visitor who typed it is told they arrived in the right place.
+   */
+  public static final String PATROL_CALENDAR_DOMAIN = "patrolcalendar.com";
+
+  /** The same name in the branded casing a visitor is shown. */
+  public static final String PATROL_CALENDAR_DISPLAY = "PatrolCalendar.com";
+
   //instance getters so a Thymeleaf template can ask: ${@site.supportEmail}
   public String getDomain() { return DOMAIN; }
 
@@ -53,4 +69,34 @@ public class SiteIdentity {
   public String getAdminEmail() { return ADMIN_EMAIL; }
 
   public String getHostedContentBase() { return HOSTED_CONTENT_BASE; }
+
+  public String getPatrolCalendarDisplay() { return PATROL_CALENDAR_DISPLAY; }
+
+  /**
+   * Whether the request being served came in on {@link #PATROL_CALENDAR_DOMAIN}.
+   *
+   * Read off the request in flight rather than passed in, because every page draws the header and
+   * threading a flag through twenty controllers means the twenty-first forgets - the same reason
+   * the header asks MenuButtonService for its buttons directly.
+   *
+   * Never throws. Asked with no request in flight - DailyReminder, a unit test - it answers false,
+   * which draws no banner.
+   */
+  public boolean isPatrolCalendarHost() {
+    RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+    if (!(attributes instanceof ServletRequestAttributes servletAttributes)) {
+      return false;
+    }
+    return isPatrolCalendarHost(servletAttributes.getRequest().getServerName());
+  }
+
+  /** The matching itself, package-private so it can be tested without a request. */
+  static boolean isPatrolCalendarHost(String serverName) {
+    if (serverName == null) {
+      return false;
+    }
+    String host = serverName.toLowerCase(Locale.ROOT);
+    //www.patrolcalendar.com is the same site
+    return host.equals(PATROL_CALENDAR_DOMAIN) || host.endsWith("." + PATROL_CALENDAR_DOMAIN);
+  }
 }

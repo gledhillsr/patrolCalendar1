@@ -116,6 +116,11 @@
                      border="0" alt="NSP"/>
             </div>
 
+            <!-- Two domains point here; a visitor who came in on the second one is told so,
+                 and on the primary domain this is absent. See SiteIdentity. -->
+            <div class="nav-welcome" th:if="${@site.isPatrolCalendarHost()}"
+                 th:text="'Welcome to ' + ${@site.patrolCalendarDisplay}">Welcome</div>
+
             <!-- Public custom buttons. Drawn only when this resort has configured one, so nobody
                  gets an empty grey strip. -->
             <div class="nav-public" th:if="${!menu.publicButtons.isEmpty()}">

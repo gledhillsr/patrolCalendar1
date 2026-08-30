@@ -43,6 +43,12 @@ footer {
     color: #b91c1c;
     vertical-align: middle;
 }
+.nav-welcome {
+    color: #003366;
+    font-size: 0.8em;
+    font-style: italic;
+    padding: 0 16px 8px;
+}
 .nav-public {
     background: #eeeeee;
     padding: 5px 14px;
