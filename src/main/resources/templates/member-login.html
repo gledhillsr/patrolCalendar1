@@ -156,6 +156,8 @@
             font-size: 0.9em;
         }
     </style>
+    <!-- The site's message box, in place of the browser's alert() -->
+    <script th:src="@{/js/dialogs.js}"></script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <!-- Reuse header fragment -->
@@ -229,7 +231,7 @@
 
     <!-- Popup for password-reset lookup failures -->
     <script th:if="${popupMessage}" th:inline="javascript">
-        alert(/*[[${popupMessage}]]*/ '');
+        showMessageDialog(/*[[${popupMessage}]]*/ '', null, 'Password reset');
     </script>
 </body>
 </html>

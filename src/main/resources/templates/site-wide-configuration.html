@@ -18,6 +18,8 @@
         .warning { border: 1px solid #b91c1c; background-color: #FFF8DC; padding: 8px 12px;
                    max-width: 700px; }
     </style>
+    <!-- The site's message and question boxes, in place of the browser's confirm() -->
+    <script th:src="@{/js/dialogs.js}"></script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
@@ -56,6 +58,48 @@
             <input type="submit" value="Create these tables in every resort"/>
         </form>
 
+        <h3>Add the shift Label column, and sort the old Start values into it</h3>
+        <p>
+            A shift row now carries a <b>Label</b> - what the calendar shows, such as
+            <code>TL</code>, <code>dir</code> or <code>mentee</code> - separately from its
+            <b>Start Time</b>. The Start field was free text for twenty years, so most resorts have
+            both real times and job names sitting in the one column.
+        </p>
+        <p>
+            This gives every resort the <code>Label</code> column, then sorts what is already there:
+            a Start value that reads as a time stays, rewritten in one canonical form
+            (<code>0800</code>, <code>8am</code> and <code>8:00</code> all become <code>8:00</code>);
+            a Start value that is <b>not</b> a time was always a label, so it moves to the Label and
+            the Start is emptied. End times are left exactly as they are.
+        </p>
+        <p>
+            <b>Safe to press again.</b> A resort that has already been done reports
+            <i>nothing to do</i> and nothing is written. It judges by the data rather than by
+            whether the column exists, so a resort left half-done by an interrupted run gets
+            finished rather than skipped.
+        </p>
+        <p style="color:#cc0000">
+            <b>This rewrites rows in two tables, in every resort, and there is no undo.</b> Take a
+            database backup of <code>shiftdefinitions</code> and <code>assignments</code> before
+            the first run.
+        </p>
+        <p>
+            <b>Until a resort has been through this, the shift editors and the daily reminder
+            cannot read its shifts</b> - they expect the Label column.
+        </p>
+
+        <form th:action="@{/SiteWideConfiguration}" method="post">
+            <input type="hidden" name="resort" th:value="${resort}"/>
+            <input type="hidden" name="ID" th:value="${patrollerId}"/>
+            <input type="hidden" name="action" value="shiftLabels"/>
+            <!-- The question is on the button rather than the form: answering yes replays the
+                 click, which is what keeps a submit button's name and value in the post. -->
+            <input type="submit" value="Add shift Labels in every resort"
+                   onclick="return confirmActionDialog(this,
+                       'Add the Label column to EVERY resort and sort their old Start values into it.\n\nThis rewrites shift rows and cannot be undone. Safe to run more than once. Continue?',
+                       'Add shift Labels everywhere?')"/>
+        </form>
+
         <h3>Remove shift templates with no event name</h3>
         <p>
             A template row's position lives in a <code>_&lt;n&gt;</code> suffix on its name, and the
@@ -74,12 +118,14 @@
             <input type="submit" value="Find unnamed templates"/>
         </form>
 
-        <form th:action="@{/SiteWideConfiguration}" method="post" style="display:inline"
-              onsubmit="return confirm('Delete every shift template row with no event name, in all resorts.\n\nThis cannot be undone. Have you pressed Find first?');">
+        <form th:action="@{/SiteWideConfiguration}" method="post" style="display:inline">
             <input type="hidden" name="resort" th:value="${resort}"/>
             <input type="hidden" name="ID" th:value="${patrollerId}"/>
             <input type="hidden" name="action" value="removeUnnamed"/>
-            <input type="submit" value="Remove them"/>
+            <input type="submit" value="Remove them"
+                   onclick="return confirmActionDialog(this,
+                       'Delete every shift template row with no event name, in all resorts.\n\nThis cannot be undone. Have you pressed Find first?',
+                       'Remove unnamed templates?')"/>
         </form>
 
         <h3>Email every resort's directors</h3>

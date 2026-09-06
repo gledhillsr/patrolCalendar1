@@ -11,6 +11,12 @@
         @import "/css/BrightonMenubar.css";
     </style>
     <style type="text/css">
+        /* Matches EditShiftTemplates, so a refused save reads the same on both shift editors */
+        .error-message {
+            color: #FF0000;
+            font-weight: bold;
+            margin: 10px 0;
+        }
         /* Deliberately no font-family here: EditShiftTemplates leaves the body font to the
            browser, and this page is meant to match it. Setting Verdana made the two shift
            editors look like different applications. */
@@ -41,6 +47,10 @@
             background-color: #C0C0C0;
         }
     </style>
+    <!-- The site's message and question boxes, then the shift-time rules that use them. Both
+         before the inline scripts below, which call into them. -->
+    <script th:src="@{/js/dialogs.js}"></script>
+    <script th:src="@{/js/shiftTime.js}"></script>
     <script type="text/javascript" th:if="${isDirector}" th:inline="javascript">
         var mustChangeName = true;
         var currName = /*[[${selectedShift}]]*/ '';
@@ -59,12 +69,14 @@
                 var warning = 'This day has ' + patrollersOnSchedule + ' patroller(s) scheduled.'
                     + '\n\nSwitching to "' + msg + '" will REMOVE them and replace the day\'s'
                     + ' shifts.\n\nContinue?';
-                if (!confirm(warning)) {
-                    location.reload();   // put the dropdown back as it was
-                    return;
-                }
-                document.getElementById('replaceShiftFormat').value = msg;
-                document.getElementById('editShiftForm').submit();
+                askQuestionDialog(warning, 'Replace this day\'s shifts?',
+                    function () {
+                        document.getElementById('replaceShiftFormat').value = msg;
+                        document.getElementById('editShiftForm').submit();
+                    },
+                    function () {
+                        location.reload();   // put the dropdown back as it was
+                    });
                 return;
             }
 
@@ -76,20 +88,26 @@
             return (keycode != 13);
         }
 
-        function confirmShiftDelete(count) {
+        function confirmShiftDelete(button, count) {
             if (count == 0) return true;
-            return confirm('This shift has patrollers assigned to it. \nAre you sure you want to DELETE it?');
+            return confirmActionDialog(button,
+                'This shift has patrollers assigned to it.\n\n'
+                    + 'Are you sure you want to DELETE it?',
+                'Delete this shift?');
         }
 
-        function confirmDeleteAll(count) {
+        function confirmDeleteAll(button, count) {
             if (count == 0) return true;
-            return confirm('Patrollers are on the schedule for this day.\nAre you sure you want to delete everything on this day?');
+            return confirmActionDialog(button,
+                'Patrollers are on the schedule for this day.\n\n'
+                    + 'Are you sure you want to delete everything on this day?',
+                'Delete everything on this day?');
         }
 
         function insertName(form, where) {
             var idx = form.NameList.selectedIndex;
             if (idx == -1) {
-                alert('Select a Name to Insert');
+                showMessageDialog('Select a Name to Insert', null, 'No name selected');
                 return;
             }
             var name = form.NameList.options[idx].text;
@@ -98,9 +116,10 @@
             // Slots are grouped by the times they show rather than by row, because a shift needing
             // more than 10 patrollers is entered as several rows sharing a start and end time.
             if (alreadyOnShift(form, where, name)) {
-                alert(name + ' is already assigned to the ' + where.dataset.shift + ' shift.\n\n'
+                showMessageDialog(name + ' is already assigned to the ' + where.dataset.shift
+                    + ' shift.\n\n'
                     + 'A patroller can work more than one shift in a day, but cannot be assigned '
-                    + 'to the same shift twice.');
+                    + 'to the same shift twice.', null, 'Already on that shift');
                 return;
             }
             where.value = name;
@@ -136,13 +155,14 @@
             if (filled == 0) {
                 return;
             }
-            if (!confirm('Remove all ' + filled + ' patroller(s) from this day\'s shifts?\n\n'
-                    + 'Nothing is saved until you press Save Assignment Changes.')) {
-                return;
-            }
-            for (i = 0; i < fields.length; i++) {
-                fields[i].value = '';
-            }
+            askQuestionDialog('Remove all ' + filled + ' patroller(s) from this day\'s shifts?\n\n'
+                    + 'Nothing is saved until you press Save Assignment Changes.',
+                'Remove every patroller?',
+                function () {
+                    for (var f = 0; f < fields.length; f++) {
+                        fields[f].value = '';
+                    }
+                });
         }
 
         function testName(str) {
@@ -204,6 +224,11 @@
 
     <!-- Director View - Edit Shifts -->
     <div th:if="${isDirector}">
+        <!-- A save the server refused: a row with neither a Label nor a Start Time. The browser
+             checks this first, so getting here means the form was posted around that check. -->
+        <div th:if="${errorMessage}" class="error-message">
+            <h4 th:text="${errorMessage}">Nothing was saved</h4>
+        </div>
         <!-- Group Assignment Option.
              The button belongs to the shift edit form below (form="editShiftForm"), so any
              pending row edits are submitted with it and saved before the assignment grid
@@ -217,11 +242,13 @@
         <div th:if="${!doAssignments}">
             <hr>
             <div align="center">
-                <table border="3" cellpadding="0" cellspacing="0" width="450" height="281">
+                <table border="3" cellpadding="0" cellspacing="0" width="990" height="281">
                     <tr>
-                        <td width="665" bgcolor="#C0C0C0" height="279">
+                        <td width="980" bgcolor="#C0C0C0" height="279">
                             <form id="editShiftForm" th:action="@{/DayShifts}"
-                                  onsubmit="return CheckEventName()" method="post">
+                                  onsubmit="return CheckEventName() &amp;&amp; checkAllStartTimes(this)
+                                            &amp;&amp; checkLabelOrStartTime(this)"
+                                  method="post">
                                 <input type="hidden" name="ID" th:value="${patrollerId}">
                                 <input type="hidden" name="dayOfWeek" th:value="${dayOfWeek}">
                                 <input type="hidden" name="date" th:value="${date}">
@@ -235,10 +262,10 @@
                                 <h2 align="center">Change Today's Shift</h2>
 
                                 <div align="center">
-                                    <table border="3" cellpadding="0" cellspacing="0" width="840" height="192">
+                                    <table border="3" cellpadding="0" cellspacing="0" width="980" height="192">
                                         <center>
                                             <tr>
-                                                <td height="150" width="780">
+                                                <td height="150" width="970">
                                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                                     Use Predefined Shift format:
                                                     <select onchange="reloadPage(this)" size="1" name="selectedShift">
@@ -262,9 +289,14 @@
                                                     <br>
                                                     &nbsp;&nbsp;
                                                     <div align="center">
-                                                        <table border="3" cellpadding="0" cellspacing="0" width="820" style="font-size: 12pt">
+                                                        <table border="3" cellpadding="0" cellspacing="0" width="960" style="font-size: 12pt">
                                                             <tr>
-                                                                <td colspan="6">
+                                                                <!-- align="center" rather than
+                                                                     relying on the input nearly
+                                                                     filling the row, which is what
+                                                                     centred this before the grid
+                                                                     grew a column -->
+                                                                <td colspan="7" align="center">
                                                                     Event Name/Comment:
                                                                     <input type="text" name="newName"
                                                                            onkeydown="javascript:return captureEnter(event.keyCode)"
@@ -281,7 +313,7 @@
                                                             </tr>
 
                                                             <!-- One row per shift, laid out like EditShiftTemplates:
-                                                                 Delete | Start: | End: | Patroller Count: | type -->
+                                                                 Delete | Label | Start Time | End Time | Patroller Count: | type -->
                                                             <th:block th:if="${!#lists.isEmpty(assignments)}">
                                                                 <th:block th:each="assignment, iterStat : ${assignments}">
                                                                     <tr>
@@ -289,24 +321,40 @@
                                                                             <input type="submit"
                                                                                    value="Delete"
                                                                                    th:name="'delete_' + ${iterStat.index}"
-                                                                                   th:onclick="'return confirmShiftDelete(' + ${assignment.getUseCount(resort)} + ')'">
+                                                                                   th:onclick="'return confirmShiftDelete(this, ' + ${assignment.getUseCount(resort)} + ')'">
                                                                         </td>
-                                                                        <td nowrap>
-                                                                            Start:
+                                                                        <td nowrap style="padding: 0 10px;">
+                                                                            Label:
                                                                             <input type="text"
+                                                                                   th:name="'label_' + ${iterStat.index}"
+                                                                                   th:value="${assignment.getLabel()}"
+                                                                                   maxlength="32"
+                                                                                   size="8"
+                                                                                   title="Shown on the calendar instead of the start time, e.g. TL or dir. Leave blank to show the time."
+                                                                                   onkeydown="javascript:return captureEnter(event.keyCode)">
+                                                                        </td>
+                                                                        <td nowrap style="padding: 0 10px;">
+                                                                            * Start Time:
+                                                                            <input type="text"
+                                                                                   class="shift-start-time"
                                                                                    th:name="'startTime_' + ${iterStat.index}"
                                                                                    th:value="${assignment.getStartingTimeString()}"
                                                                                    maxlength="11"
                                                                                    size="7"
+                                                                                   title="A time: 8:00, 8am, 16 or 16:30"
+                                                                                   onblur="checkStartTime(this)"
                                                                                    onkeydown="javascript:return captureEnter(event.keyCode)">
                                                                         </td>
-                                                                        <td nowrap>
-                                                                            End:
+                                                                        <td nowrap style="padding: 0 10px;">
+                                                                            * End Time:
                                                                             <input type="text"
+                                                                                   class="shift-end-time"
                                                                                    th:name="'endTime_' + ${iterStat.index}"
                                                                                    th:value="${assignment.getEndingTimeString()}"
                                                                                    maxlength="11"
                                                                                    size="7"
+                                                                                   title="A time: 8:00, 8am, 16 or 16:30"
+                                                                                   onblur="checkEndTime(this)"
                                                                                    onkeydown="javascript:return captureEnter(event.keyCode)">
                                                                         </td>
                                                                         <td nowrap>
@@ -347,14 +395,15 @@
 
                                                             <!-- New shift button -->
                                                             <tr>
-                                                                <td width="90">
+                                                                <td width="70">
                                                                     <input type="submit" value="New" name="newShift"
                                                                            th:disabled="${maxShiftsReached}">
                                                                 </td>
-                                                                <td width="205">&nbsp;</td>
-                                                                <td width="205">&nbsp;</td>
-                                                                <td width="240">&nbsp;</td>
-                                                                <td width="145">&nbsp;</td>
+                                                                <td width="140">&nbsp;</td>
+                                                                <td width="165">&nbsp;</td>
+                                                                <td width="155">&nbsp;</td>
+                                                                <td width="185">&nbsp;</td>
+                                                                <td width="150">&nbsp;</td>
                                                                 <td>&nbsp;</td>
                                                             </tr>
                                                         </table>
@@ -376,12 +425,15 @@
                                            onclick="window.location=this.dataset.url">
                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                     <input type="submit" value="Delete All (restore template)" name="deleteAllShiftsBtn"
-                                           th:onclick="'return confirmDeleteAll(' + ${patrollersOnSchedule} + ')'">
+                                           th:onclick="'return confirmDeleteAll(this, ' + ${patrollersOnSchedule} + ')'">
                                 </p>
                             </form>
                         </td>
                     </tr>
                 </table>
+
+                <!-- The notice about this change, sized to the frame above it -->
+                <div th:replace="~{fragments/notices :: labelSplitNotice(990)}"></div>
             </div>
         </div>
 
@@ -476,7 +528,7 @@
 
     <!-- Popup shown when a shift-format change is not allowed -->
     <script th:if="${popupMessage}" th:inline="javascript">
-        alert(/*[[${popupMessage}]]*/ '');
+        showMessageDialog(/*[[${popupMessage}]]*/ '', null, 'Shift format');
     </script>
 </body>
 </html>

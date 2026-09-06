@@ -10,13 +10,16 @@
             if (!document.form1.DAY_CNT.checked && !document.form1.SWING_CNT.checked &&
                 !document.form1.NIGHT_CNT.checked && !document.form1.TRAINING_CNT.checked &&
                 !document.form1.OTHER_CNT.checked && !document.form1.HOLIDAY_CNT.checked) {
-                alert("Must first check any combination of \nDay, Swing, Night, Training, Other, and/or Holiday!");
+                showMessageDialog("Must first check any combination of \nDay, Swing, Night, Training, Other, and/or Holiday!",
+                                  null, "Choose at least one shift type");
                 document.form1.MIN_DAYS.checked = false;
             } else {
                 document.form1.MinDays.disabled = false;
             }
         }
     </script>
+    <!-- The site's message box, in place of the browser's alert() -->
+    <script th:src="@{/js/dialogs.js}"></script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${userId})}"></div>

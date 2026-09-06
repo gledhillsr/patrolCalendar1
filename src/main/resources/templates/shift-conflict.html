@@ -11,6 +11,8 @@
                   border-radius: 8px; padding: 20px 24px; white-space: pre-line;
                   box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     </style>
+    <!-- The site's message box, in place of the browser's alert() -->
+    <script th:src="@{/js/dialogs.js}"></script>
 </head>
 <body style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <!-- Fallback content in case JavaScript is disabled -->
@@ -21,8 +23,10 @@
     </div>
 
     <script th:inline="javascript">
-        alert(/*[[${conflictMessage}]]*/ '');
-        window.location = /*[[${calendarUrl}]]*/ '/calendar-1/';
+        //the navigation waits for the box to close: alert() blocked here, a dialog does not
+        showMessageDialog(/*[[${conflictMessage}]]*/ '', function () {
+            window.location = /*[[${calendarUrl}]]*/ '/calendar-1/';
+        }, 'Shift conflict');
     </script>
 </body>
 </html>

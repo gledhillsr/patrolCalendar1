@@ -23,12 +23,14 @@ import java.text.SimpleDateFormat;
 public class ShiftDefinitions {
   private final Logger LOG;
 
-  public static final String[] tags = { "EventName", "StartTime", "EndTime", "Count", "ShiftType" };  //string on form
+  public static final String[] tags =
+    { "EventName", "StartTime", "EndTime", "Count", "ShiftType", "Label" };  //string on form
   private static final int EVENT_NAME_INDEX = 0;
   private static final int START_TIME_INDEX = 1;
   private static final int END_TIME_INDEX = 2;
   private static final int COUNT_INDEX = 3;
   private static final int TYPE_INDEX = 4;
+  private static final int LABEL_INDEX = 5;
 
   private static final SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm");
   public final static int MAX = 35;  //maximum # of different shifts on any single day
@@ -37,6 +39,8 @@ public class ShiftDefinitions {
   private String eventName;
   private String startTime;
   private String endTime;
+  /** What the calendar shows in place of the start time, when a director has given the slot one. */
+  private String label;
   private int count;
   private int type;
   private boolean existed;
@@ -46,16 +50,23 @@ public class ShiftDefinitions {
     eventName = null;
     startTime = null;
     endTime = null;
+    label = "";
     count = 0;
     type = 0;  //day shift
     existed = false;
   }
 
   public ShiftDefinitions(String name, String start, String end, int cnt, int typ, Logger parentLogger) {
+    this(name, start, end, cnt, typ, "", parentLogger);
+  }
+
+  public ShiftDefinitions(String name, String start, String end, int cnt, int typ, String slotLabel,
+                          Logger parentLogger) {
     LOG = parentLogger; //new Logger(this.getClass(), parentLogger, null, Logger.INFO);
     eventName = name;
     startTime = start;
     endTime = end;
+    label = slotLabel == null ? "" : slotLabel;
     count = cnt;
     type = typ;
     if (type < 0 || type >= Assignments.MAX_SHIFT_TYPES) {
@@ -68,6 +79,7 @@ public class ShiftDefinitions {
     return other.eventName.equals(eventName) &&
       other.startTime.equals(startTime) &&
       other.endTime.equals(endTime) &&
+      other.getLabel().equals(getLabel()) &&
       (other.count == count) &&
       (other.type == type);
   }
@@ -80,6 +92,7 @@ public class ShiftDefinitions {
       endTime = shiftResults.getString(tags[END_TIME_INDEX]);
       count = shiftResults.getInt(tags[COUNT_INDEX]);
       type = shiftResults.getInt(tags[TYPE_INDEX]);
+      label = shiftResults.getString(tags[LABEL_INDEX]);
       if (type < 0 || type >= Assignments.MAX_SHIFT_TYPES) {
         type = 0;  //reset to default, if invalid
       }
@@ -174,6 +187,58 @@ public class ShiftDefinitions {
     return endTime;
   }
 
+  /** Never null, so a template row written before the split reads as "no label". */
+  public String getLabel() {
+    return label == null ? "" : label;
+  }
+
+  public void setLabel(String label) {
+    this.label = label == null ? "" : label;
+  }
+
+  /**
+   * A shift as a heading - {@code "(dir) 8:00 - 16:30"}.
+   *
+   * <p>The label is bracketed so it reads as a name for the shift rather than as part of the
+   * times, and is left out altogether when there is not one: empty brackets would look like a
+   * missing value rather than a shift that simply has no label. Every part is optional, because
+   * the rows really are - a template row may carry a label and no times, or times and no label.
+   *
+   * <p>Static and shared: {@link Assignments#describeLabelAndTimes()} is the same heading for a
+   * scheduled day, and a heading that differed between the two would be a bug nobody could see.
+   */
+  public static String describeLabelAndTimes(String label, String start, String end) {
+    String trimmedLabel = label == null ? "" : label.trim();
+    String trimmedStart = start == null ? "" : start.trim();
+    String trimmedEnd = end == null ? "" : end.trim();
+
+    //The dash is drawn whenever there is a time at all, so a half-filled shift shows which half
+    //is missing: "18:00 -" is a shift with no end, "- 18:00" a shift with no start. Without it
+    //the two are indistinguishable from each other and from a complete shift.
+    String times = (trimmedStart + " - " + trimmedEnd).trim();
+    if (trimmedStart.isEmpty() && trimmedEnd.isEmpty()) {
+      times = "";                                   //no times at all: no dash either
+    }
+
+    if (trimmedLabel.isEmpty()) {
+      return times;
+    }
+    return times.isEmpty() ? "(" + trimmedLabel + ")" : "(" + trimmedLabel + ") " + times;
+  }
+
+  /** This template row as a heading - see {@link #describeLabelAndTimes(String, String, String)}. */
+  public String describeLabelAndTimes() {
+    return describeLabelAndTimes(getLabel(), startTime, endTime);
+  }
+
+  /**
+   * What the calendar draws for this slot: the label when there is one, the start time otherwise.
+   * The same rule lives in {@link Assignments#getDisplayStartString()} for a scheduled day.
+   */
+  public String getDisplayStartString() {
+    return getLabel().isEmpty() ? startTime : getLabel();
+  }
+
   public int getCount() {
     return count;
   }
@@ -188,13 +253,19 @@ public class ShiftDefinitions {
       "', " + tags[END_TIME_INDEX] + "='" + endTime +
       "', " + tags[COUNT_INDEX] + "='" + count +
       "', " + tags[TYPE_INDEX] + "='" + type +
+      "', " + tags[LABEL_INDEX] + "='" + getLabel() +
       "' WHERE " + tags[EVENT_NAME_INDEX] + "= '" + eventName + "'";
     return qryString; //logged by SqlWriter when it is executed
   }
 
   public String getInsertShiftDefinitionsQueryString(String resort) {
-    String qryString = "INSERT INTO shiftdefinitions " +
-      " Values('" + eventName + "','" + startTime + "','" + endTime + "','" + count + "'," + type + ")";
+    //named columns rather than positional VALUES: a table that gains a column - Label did -
+    //silently breaks a positional insert, and the error names the count rather than the cause
+    String qryString = "INSERT INTO shiftdefinitions (" +
+      tags[EVENT_NAME_INDEX] + ", " + tags[START_TIME_INDEX] + ", " + tags[END_TIME_INDEX] + ", " +
+      tags[COUNT_INDEX] + ", " + tags[TYPE_INDEX] + ", " + tags[LABEL_INDEX] + ")" +
+      " Values('" + eventName + "','" + startTime + "','" + endTime + "','" + count + "'," + type +
+      ",'" + getLabel() + "')";
     return qryString; //logged by SqlWriter when it is executed
   }
 
@@ -207,7 +278,8 @@ public class ShiftDefinitions {
   public String toString() {
     //        int start = startTime.get(Calendar.HOUR)*startTime.get(Calendar.MINUTE);
     //        int end = endTime.get(Calendar.HOUR)*endTime.get(Calendar.MINUTE);
-    return eventName + " starts: " + startTime + " ends: " + endTime + " count=" + count + " type=" +
+    return eventName + " label: " + getLabel() + " starts: " + startTime + " ends: " + endTime +
+      " count=" + count + " type=" +
       Assignments.getShiftName(type) + " existed=" + existed;
   }
 

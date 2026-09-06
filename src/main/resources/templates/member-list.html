@@ -53,6 +53,8 @@
             user-select: none;
         }
     </style>
+    <!-- The site's message box, in place of the browser's alert() -->
+    <script th:src="@{/js/dialogs.js}"></script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
@@ -90,7 +92,7 @@
                    onclick="window.location=this.getAttribute('data-url')"/>
             <!-- Only alongside "Show Trimmed Roster", to say what trimming leaves out -->
             <span th:if="${fullRoster}" class="help-dot" title="What is a trimmed roster?"
-                  onclick="alert('Trimmed roster does not show Inactive or \'Other\' patrollers.\n\nPro and Alumni are controlled by the boxes above.');">?</span>
+                  onclick="showMessageDialog('Trimmed roster does not show Inactive or \'Other\' patrollers.\n\nPro and Alumni are controlled by the boxes above.', null, 'What is a trimmed roster?');">?</span>
         </span>
     </div>
 

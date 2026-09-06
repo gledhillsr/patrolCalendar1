@@ -292,12 +292,44 @@ public class EditShiftTemplatesController {
 
         // Read existing shifts and process updates
         List<ShiftDefinitions> shifts = patrolData.readShiftDefinitions();
+
+        // Both row rules, checked before the loop below, because that loop writes as it goes - a
+        // row rejected halfway through would leave the earlier ones saved. Delete is exempt from
+        // both: it is how a director gets rid of the offending row.
+        if (!deleteShift) {
+            for (int i = 0; i < shiftCount; i++) {
+                if (request.getParameter("startTime_" + i) == null
+                        || request.getParameter("count_" + i) == null) {
+                    continue;
+                }
+                StartAndLabel row = StartAndLabel.of(request.getParameter("startTime_" + i),
+                                                     request.getParameter("label_" + i), LOG);
+                if (row.hasNeitherLabelNorStart()) {
+                    LOG.info("refusing to save template '" + selectedShift + "': shift " + (i + 1)
+                             + " has neither a Label nor a Start Time");
+                    return new ProcessResult(originalSelectedShift, false, false,
+                                             StartAndLabel.rowNeedsLabelOrStartMessage(i + 1));
+                }
+
+                //an End Time left alone keeps whatever history put there; an edited one is a time
+                String typedEnd = request.getParameter("endTime_" + i);
+                EndTimeEdit end = EndTimeEdit.of(typedEnd,
+                        storedEndTime(shifts, ShiftDefinitions.createShiftName(eventName, i)));
+                if (end.rejected()) {
+                    LOG.info("refusing to save template '" + selectedShift + "': shift " + (i + 1)
+                             + " end time was changed to something that is not a time");
+                    return new ProcessResult(originalSelectedShift, false, false,
+                                             EndTimeEdit.rowNeedsATimeMessage(i + 1, typedEnd));
+                }
+            }
+        }
         ShiftDefinitions[] todaysData = new ShiftDefinitions[shiftCount];
 
         // Read shift data from form
         for (int i = 0; i < shiftCount; i++) {
             String tStart = request.getParameter("startTime_" + i);
             String tEnd = request.getParameter("endTime_" + i);
+            String tLabel = request.getParameter("label_" + i);
             String tCount = request.getParameter("count_" + i);
             String tType = request.getParameter("shift_" + i);
 
@@ -309,7 +341,10 @@ public class EditShiftTemplatesController {
             int tTyp = parseShiftType(tType);
             String tEvent = ShiftDefinitions.createShiftName(eventName, i);
 
-            todaysData[i] = new ShiftDefinitions(tEvent, tStart, tEnd, tCnt, tTyp, LOG);
+            StartAndLabel split = StartAndLabel.of(tStart, tLabel, LOG);
+            String endValue = EndTimeEdit.of(tEnd, storedEndTime(shifts, tEvent)).value();
+            todaysData[i] = new ShiftDefinitions(tEvent, split.start(), endValue, tCnt, tTyp,
+                                                 split.label(), LOG);
 
             if (newShift) {
                 patrolData.writeShift(todaysData[i]);
@@ -640,6 +675,16 @@ public class EditShiftTemplatesController {
      * time, and those are one shift as far as the person working it is concerned. This has to match
      * the time the grid shows, since that is what the browser check groups by.
      */
+    /** The End Time currently stored for this template row, or "" when the row is new. */
+    private static String storedEndTime(List<ShiftDefinitions> shifts, String eventName) {
+        for (ShiftDefinitions shift : shifts) {
+            if (eventName.equals(shift.getEventName())) {
+                return shift.getEndString();
+            }
+        }
+        return "";
+    }
+
     private static String shiftKey(ShiftDefinitions shift) {
         return shift.getStartString() + " - " + shift.getEndString();
     }

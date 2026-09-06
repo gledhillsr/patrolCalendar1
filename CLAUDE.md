@@ -185,6 +185,90 @@ a refresh cannot repeat it). `processReplaceShiftFormat` deletes the day's rows 
 them — and applies the chosen template. A name matching no template leaves the day empty, reverting
 it to the day-of-week template. There is deliberately **no bulk replace** across a date range.
 
+### Shift Labels: Start is a Label plus a Time
+
+A shift row carries a **Label** — what the calendar shows (`TL`, `dir`, `mentee`) — and a
+**Start Time**, the real start. `getDisplayStartString()` on both `ShiftDefinitions` and
+`Assignments` is the rule: label when there is one, start time otherwise. The point of splitting
+them is a personal-calendar sync, which needs a machine-readable start; the field had been free
+text for twenty years and directors typed roles into it.
+
+**Both tables carry a `Label` column** (`shiftdefinitions`, `assignments`). `ShiftLabelMigration`
+adds it and sorts the old values: a StartTime that parses as a time stays, rewritten canonically; a
+StartTime that does not was always a label and moves.
+
+**Run it from Directors → Site Wide Configuration**, the "Add shift Labels in every resort" button,
+which walks every resort in `PatrolData.resortMap`. It rewrites rows in two tables and there is no
+undo, so take a `mysqldump` of `shiftdefinitions` and `assignments` before the first run. The
+resort list is behind `SiteWideConfigurationController.shiftLabelResorts()` rather than inlined,
+because it was held to `Sample` alone while being proved on the live site — that is the one place to
+narrow it again. `ShiftLabelMigration.main` does one resort from the command line. **Until a resort has been through it, the shift editors and `DailyReminder`
+cannot read its shifts** — `Assignments.read` expects the column, and without it the read fails.
+
+**It is idempotent by looking at the data, not at whether the column exists.** That matters: the
+`ALTER` and the row moves cannot share a transaction, because MySQL commits DDL on the spot, so a
+run that died between them leaves a resort with the column and its rows still in the old shape — and
+a column-existence check would skip that resort forever. Judging on the data makes a second press
+write nothing ("nothing to do") *and* finishes an interrupted run. `ShiftLabelSiteWideJobTest` builds
+a throwaway database in the pre-migration shape for both cases, because Brighton and Sample are
+already migrated and would let a `migrateResort` that did nothing at all pass every other test.
+
+**`ShiftTime` is the single answer to "is this a time?"**, used by the migration, by both
+controllers through `StartAndLabel`, and mirrored in `static/js/shiftTime.js` for the browser.
+It accepts what people actually type — `8:00`, `08:00`, `0800`, `800`, `8`, `8am`, `8:00am`,
+`4:00 pm`, `1900` — and **normalizes everything to `H:MM`**. That is not tidiness: `shiftKey`
+identifies one shift by its start and end strings, so `0800` and `8am` on two rows of the same
+shift would otherwise be two different shifts and nobody would notice a double booking.
+
+**The match is anchored and whole-string.** `PMExtra` is a real label in Brighton's data; anything
+that searches for "pm" inside the string turns it into noon and loses a label. `ShiftTimeTest` is
+built from values taken out of the real columns for exactly this reason.
+
+Things worth knowing:
+
+- **`MonthCalendarService` renders the start string in two places, not one** — `:357` for a day
+  drawn from its day-of-week template and `:378` for a day with saved assignments. Both now call
+  `getDisplayStartString()`. Change one and not the other and the same calendar shows labels on
+  empty days and times on filled ones. The goldens will not tell you: their fixture dates carry no
+  labels, which is why `ShiftLabelOnCalendarTest` pins both paths directly.
+- **`shiftKey` keys on the time, never the label.** A shift needing more than 10 patrollers is
+  several rows sharing a time, and those rows need not share a label — keying on the label would
+  split one real shift into two and let somebody be booked twice on it.
+- **The browser's duplicate check groups by `data-shift="${slot.time}"`, which the *server*
+  renders** from `shiftKey`. It never reads the Start input, so the split did not disturb it.
+- **A non-time typed into Start moves to the Label** (`StartAndLabel`) rather than being rejected,
+  which is the same rule the migration applied to twenty years of them. The browser says so first;
+  the server is the backstop for a form posted around it.
+- **A row must carry a Label or a Start Time; a save with neither is refused.** A slot renders as
+  its label or, failing that, its start time, so a row with neither is a blank line on the calendar
+  for a shift somebody is meant to work. Both editors check it — DayShifts before it acts on any
+  button, EditShiftTemplates before its write loop starts, since that loop writes as it goes and a
+  row rejected halfway would leave the earlier ones saved. **Delete is exempt**: it is how a
+  director gets rid of the offending row, and blocking it would be a trap. This is also why a new
+  DayShifts row is seeded `8:00`/`16:00` rather than blank — a row born unsaveable is the same
+  trap. **A row whose patroller count is 0 is also exempt on DayShifts**: nobody works it, so it
+  cannot leave a blank line for somebody to turn up to, and a director laying a day out needs to be
+  able to leave such a row empty. EditShiftTemplates does not carry that exemption — its rows are
+  what future days are built from. `ShiftNeedsLabelOrStartTest` pins all of it, including the
+  delete exemption.
+- **EndTime keeps its history, but an edit has to be a time** (`EndTimeEdit`). It was never
+  migrated: Brighton has 373 assignment rows whose End is not a time (`end time`, `5:30-9`, the
+  literal `empty`) and there is no End label to move them into, so emptying or rejecting them would
+  be loss for nothing. The rule is therefore about **editing**, not storing — a value the director
+  did not touch survives whatever it says, a value they did touch is normalized like a Start Time,
+  and a value they changed to another non-time is refused with the old one kept. **Whether it
+  changed is decided against the stored row, never a hidden field**, so nothing posted can talk the
+  server into accepting a new non-time. The browser compares against `defaultValue`, which is what
+  the server rendered into the box. Clearing it is allowed — End is not required.
+- **The store classes' INSERTs are named-column now.** Both were positional `VALUES(...)`, which a
+  new column silently breaks with an error that names the count rather than the cause.
+- Pre-migration copies of all four tables are in the `patrolCalendarPreLabelBackup` database.
+
+The red notice announcing this is still on both pages, from `fragments/notices.html` with its
+example image at `static/images/labelSplitExample.png`. **Delete the fragment and both
+`th:replace` lines once directors have seen it** — a notice that outlives its change is worse than
+no notice.
+
 ### Roster Listing & Download
 
 `RosterQueryService` turns the ListPatrollers query parameters (filters, column choices, sort) into
@@ -476,6 +560,37 @@ and the greeting's HTML **comment** ships on both domains — which is what made
 ### Thymeleaf Templates
 
 Located in `src/main/resources/templates/`. Shared page chrome is in `templates/fragments/`. Static assets are in `src/main/resources/static/`.
+
+**Dialogs are `static/js/dialogs.js`, not the browser's `alert()` and `confirm()`.**
+`showMessageDialog(text, whenClosed, title)` tells; `askQuestionDialog(message, title, onYes, onNo)`
+and `confirmActionDialog(button, message, title)` ask. They draw a native `<dialog>` centred by
+`showModal()`, and set their text with `textContent` — these messages quote back what a director
+typed, and a shift label is somewhere a person can put a tag.
+
+**`confirm()` answers synchronously and a `<dialog>` does not**, so a check written as
+`onclick="return confirm(...)"` cannot simply be swapped. `confirmActionDialog` returns false and
+opens the box; answering OK marks the element and **clicks it again**, which re-runs the same
+onclick, finds the mark and lets the action through. Replaying through the element's own click is
+what keeps a submit button's name and value in the post — `form.submit()` drops them, and several of
+these actions are dispatched on exactly that name. That is also why a check on a form's `onsubmit`
+moves to its submit button.
+
+`shiftTime.js` builds its validation messages on top of `dialogs.js` and **needs it loaded first**;
+pages with nothing to do with shifts (PurgeAssignments, Site Wide Configuration) load `dialogs.js`
+alone.
+
+**Scripts and stylesheets are served under a content hash** — `/js/shiftTime-<hash>.js` — so an
+edited file gets a new URL and no browser can answer from a stale copy. That needs **both** halves:
+`spring.web.resources.chain.strategy.content` in `application.properties` serves the hashed URL, and
+`config/StaticAssetConfig` registers the `ResourceUrlEncodingFilter` that rewrites `@{/js/...}` links
+to it. **Boot does not register that filter on its own**, so the property alone is set, serves
+hashed URLs, and changes nothing — every page goes on asking for the unhashed name.
+
+This is here because it bit: `shiftTime.js` gained the End Time check while browsers held the copy
+from the Start Time work, so `onblur="checkEndTime(this)"` called a function that did not exist. The
+failure is silent, the submit check let the bad value through, and the first thing to object was the
+server at save time — which reads as "the validation is in the wrong place" rather than "your
+browser has an old file". `StaticAssetVersioningTest` pins both halves.
 
 ## Adding a New Resort
 

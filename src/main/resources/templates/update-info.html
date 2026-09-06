@@ -30,18 +30,20 @@
             var lastName = document.getElementById('lastName').value;
 
             if (firstName == null || firstName.trim() == '') {
-                alert('First name is required');
+                showMessageDialog('First name is required', null, 'Missing name');
                 return false;
             }
 
             if (lastName == null || lastName.trim() == '') {
-                alert('Last name is required');
+                showMessageDialog('Last name is required', null, 'Missing name');
                 return false;
             }
 
             return true;
         }
     </script>
+    <!-- The site's message box, in place of the browser's alert() -->
+    <script th:src="@{/js/dialogs.js}"></script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>

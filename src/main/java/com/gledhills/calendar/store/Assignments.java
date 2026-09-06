@@ -35,8 +35,10 @@ public class Assignments {
   //private fields
   final private static String[] szShiftTypes =
     { "Day Shift", "Swing Shift", "Night Shift", "Training Shift", "Other Shift", "Holiday Shift" };
+  //Label is last on purpose: the patroller columns are reached as tag[P0_INDEX + i], so anything
+  //inserted ahead of them silently reads the wrong column
   final private static String[] tag = { "Date", "StartTime", "EndTime", "EventName", "ShiftType",
-    "Count", "P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9" }; //string on form
+    "Count", "P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "Label" }; //string on form
   //NOTE: the Date string is in this format "2001-11-03_1"  where _1 is the FIRST record
   final private static int DATE_INDEX = 0;
   final private static int START_INDEX = 1;
@@ -45,6 +47,7 @@ public class Assignments {
   final private static int TYPE_INDEX = 4;
   final private static int COUNT_INDEX = 5;
   final private static int P0_INDEX = 6;
+  final private static int LABEL_INDEX = 16;
   // Format the current time.
   //E=day of Week (ie. Tuesday), y=year, M=month, d=day, H=hour (24 hour clock), m=minute, s=second
   final private static SimpleDateFormat expandedDateTimeFormatter = new SimpleDateFormat("EEEE, MMMM d yyyy");
@@ -54,6 +57,8 @@ public class Assignments {
   // ALL the following global data MUST be initialized in the constructor
   private String szDate;
   private String szStartTime, szEndTime, szEventName;
+  /** What the calendar shows in place of the start time, when this slot has been given one. */
+  private String szLabel;
   private int type;
   private int count;
   private String[] patrollerID;           //patroller ID for each assignment
@@ -72,6 +77,7 @@ public class Assignments {
     szDate = myDate;        //date of this shift
     szStartTime = shift.getStartString();
     szEndTime = shift.getEndString();
+    szLabel = shift.getLabel();   //a day built from a template inherits the template's label
     type = shift.getType();
     count = shift.getCount();
   }
@@ -86,6 +92,7 @@ public class Assignments {
     count = 0;
     type = DAY_TYPE;
     szDate = szStartTime = szEndTime = szEventName = null;
+    szLabel = "";
     for (i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
       patrollerID[i] = "0";   //no patroller assigned
     }
@@ -118,6 +125,7 @@ public class Assignments {
     szDate = readString(sessionData, assignmentResults, tag[DATE_INDEX]);
     szStartTime = readString(sessionData, assignmentResults, tag[START_INDEX]);
     szEndTime = readString(sessionData, assignmentResults, tag[END_INDEX]);
+    szLabel = readString(sessionData, assignmentResults, tag[LABEL_INDEX]);
     szEventName = sqlDecode(readString(sessionData, assignmentResults, tag[EVENT_INDEX]));
     LOG.debug("szEventName=(" + szEventName + ")");
     if (szEventName == null || szEventName.equals("null")) {
@@ -163,6 +171,62 @@ public class Assignments {
 
   public String getEndingTimeString() {
     return szEndTime;
+  }
+
+  /** Never null, so a row written before the split reads as "no label". */
+  public String getLabel() {
+    return szLabel == null ? "" : szLabel;
+  }
+
+  public void setLabel(String label) {
+    this.szLabel = label == null ? "" : label;
+  }
+
+  /**
+   * What the calendar draws for this slot: the label when there is one, the start time otherwise.
+   * The same rule lives in {@link ShiftDefinitions#getDisplayStartString()} for a template row.
+   */
+  public String getDisplayStartString() {
+    return getLabel().isEmpty() ? szStartTime : getLabel();
+  }
+
+  /**
+   * This shift as a heading - {@code "(dir) 8:00 - 16:30"}. The rule lives on
+   * {@link ShiftDefinitions#describeLabelAndTimes(String, String, String)} because a day drawn
+   * from its template has to read identically to a day that has been scheduled.
+   */
+  public String describeLabelAndTimes() {
+    return ShiftDefinitions.describeLabelAndTimes(getLabel(), szStartTime, szEndTime);
+  }
+
+  /**
+   * This shift as it reads in a sentence - " from Helper 8am to 4:30pm" - including the leading
+   * space, or "" when there is nothing to say.
+   *
+   * <p>Unlike the calendar, an email has room for both: the label names the job and the times say
+   * when to turn up, so a reminder gives the patroller both rather than choosing.
+   *
+   * <p>Every part is optional, which is the point. Pasting the three together unconditionally is
+   * what produced "from Helper to ." in a real reminder - a label with no times, rendered as
+   * though the label were the start time and the end had gone missing.
+   */
+  public String describeShiftTimes() {
+    String label = getLabel().trim();
+    String start = szStartTime == null ? "" : szStartTime.trim();
+    String end = szEndTime == null ? "" : szEndTime.trim();
+
+    String from = (label + " " + start).trim();   //"Helper 8am", or just one of them, or ""
+
+    if (from.isEmpty() && end.isEmpty()) {
+      return "";
+    }
+    if (end.isEmpty()) {
+      return " from " + from;
+    }
+    if (from.isEmpty()) {
+      return " until " + end;
+    }
+    return " from " + from + " to " + end;
   }
 
   public String getEventName() {
@@ -327,7 +391,8 @@ public class Assignments {
     String encodedEndTime = sqlStrip(szEndTime);
 
     String qryString = "UPDATE assignments SET StartTime =\"" + encodedStartTime + "\", EndTime =\"" + encodedEndTime +
-      "\", EventName=\"" + encodedEventName + "\", ShiftType=" + type + ", Count=" + count;
+      "\", EventName=\"" + encodedEventName + "\", ShiftType=" + type + ", Count=" + count +
+      ", " + tag[LABEL_INDEX] + "=\"" + sqlStrip(getLabel()) + "\"";
     // +
     for (i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
       if (i >= count) {
@@ -346,12 +411,18 @@ public class Assignments {
     String encodedStartTime = sqlStrip(szStartTime);
     String encodedEndTime = sqlStrip(szEndTime);
 
-    String qryString = "INSERT INTO assignments Values('" + szDate + "', \"" +
+    //named columns rather than positional VALUES: a table that gains a column - Label did -
+    //silently breaks a positional insert, and the error names the count rather than the cause
+    StringBuilder columns = new StringBuilder();
+    for (int c = 0; c < tag.length; ++c) {
+      columns.append(c == 0 ? "" : ", ").append(tag[c]);
+    }
+    String qryString = "INSERT INTO assignments (" + columns + ") Values('" + szDate + "', \"" +
       encodedStartTime + "\", \"" + encodedEndTime + "\", \"" + encodedEventName + "\", \"" + type + "\", " + count;
     for (i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
       qryString += ", '" + getPosID(i) + "'";
     }
-    qryString += ")";
+    qryString += ", \"" + sqlStrip(getLabel()) + "\")";
 
     return qryString; //logged by SqlWriter when it is executed
   }

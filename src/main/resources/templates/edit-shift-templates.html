@@ -56,6 +56,10 @@
             font-size: 10pt;
         }
     </style>
+    <!-- The site's message and question boxes, then the shift-time rules that use them. Both
+         before the inline scripts below, which call into them. -->
+    <script th:src="@{/js/dialogs.js}"></script>
+    <script th:src="@{/js/shiftTime.js}"></script>
     <script type="text/javascript" th:inline="javascript">
         /*<![CDATA[*/
         var currName = /*[[${selectedShift}]]*/ "";
@@ -67,8 +71,10 @@
             return (keycode != 13);
         }
 
-        function confirmDelete() {
-            return confirm("Are you sure you want to delete the shift template named '" + currName + "'.");
+        function confirmDelete(button) {
+            return confirmActionDialog(button,
+                "Are you sure you want to delete the shift template named '" + currName + "'?",
+                "Delete this template?");
         }
 
         function reloadPage(list) {
@@ -124,17 +130,17 @@
             testName(name);
 
             if (name == "" || name == newShiftStyle) {
-                alert("The 'Event Name/Day of Week' field must have a valid value to continue.\n\n"
-                    + "Enter a name for this shift template, then try again.");
-                field.focus();
+                showMessageDialog("The 'Event Name/Day of Week' field must have a valid value to continue."
+                    + "\n\nEnter a name for this shift template, then try again.",
+                    function () { field.focus(); }, "This template needs a name");
                 return false;
             }
             // The row position is stored as a "_<n>" suffix on the shift name, so an underscore in
             // the name itself makes the two indistinguishable.
             if (name.indexOf("_") >= 0) {
-                alert("Shift template names cannot contain an underscore ('_'). '" + name
-                    + "' is invalid.");
-                field.focus();
+                showMessageDialog("Shift template names cannot contain an underscore ('_'). '"
+                    + name + "' is invalid.",
+                    function () { field.focus(); }, "Invalid template name");
                 return false;
             }
             return true;
@@ -143,7 +149,7 @@
         function insertName(form, where) {
             var idx = form.NameList.selectedIndex;
             if (idx == -1) {
-                alert("Select a Name to Insert");
+                showMessageDialog("Select a Name to Insert", null, "No name selected");
                 return;
             }
             var name = form.NameList.options[idx].text;
@@ -152,9 +158,10 @@
             // Slots are grouped by the times they show rather than by row, because a shift needing
             // more than 10 patrollers is entered as several rows sharing a start and end time.
             if (alreadyOnShift(form, where, name)) {
-                alert(name + " is already assigned to the " + where.dataset.shift + " shift.\n\n"
+                showMessageDialog(name + " is already assigned to the " + where.dataset.shift
+                    + " shift.\n\n"
                     + "A patroller can be on more than one shift, but cannot be assigned to the "
-                    + "same shift twice.");
+                    + "same shift twice.", null, "Already on that shift");
                 return;
             }
             where.value = name;
@@ -190,13 +197,14 @@
             if (filled == 0) {
                 return;
             }
-            if (!confirm("Remove all " + filled + " patroller(s) from the '" + currName
-                    + "' template?\n\nNothing is saved until you press Save Patroller Assignments.")) {
-                return;
-            }
-            for (i = 0; i < fields.length; i++) {
-                fields[i].value = "";
-            }
+            askQuestionDialog("Remove all " + filled + " patroller(s) from the '" + currName
+                    + "' template?\n\nNothing is saved until you press Save Patroller Assignments.",
+                "Remove every patroller?",
+                function () {
+                    for (var f = 0; f < fields.length; f++) {
+                        fields[f].value = "";
+                    }
+                });
         }
 
         function goHome() {
@@ -206,17 +214,21 @@
         // Apply is harmless until the director picks Overwrite on the conflict question. That one
         // deletes shifts people are already on, so it is asked a second time with the dates spelled
         // out - the same treatment the DayShifts format change gets.
-        function confirmApply(form) {
+        // On the Apply button rather than the form's onsubmit: answering yes replays the click,
+        // and it is the button's name that tells the controller this is the apply.
+        function confirmApply(button) {
             var dialog = document.getElementById("conflictDialog");
-            var chosen = form.querySelector('input[name="conflictMode"]:checked');
+            var chosen = button.form.querySelector('input[name="conflictMode"]:checked');
 
             if (!dialog || !chosen || chosen.value != "overwrite") {
                 return true;
             }
-            return confirm("This will DELETE the existing shifts on " + dialog.dataset.dates
-                + " and rebuild them from the '" + currName + "' template.\n\n"
-                + dialog.dataset.removed + " patroller(s) scheduled on those days will lose that"
-                + " shift. This cannot be undone.\n\nOverwrite them?");
+            return confirmActionDialog(button,
+                "This will DELETE the existing shifts on " + dialog.dataset.dates
+                    + " and rebuild them from the '" + currName + "' template.\n\n"
+                    + dialog.dataset.removed + " patroller(s) scheduled on those days will lose"
+                    + " that shift. This cannot be undone.\n\nOverwrite them?",
+                "Overwrite these days?");
         }
         window.addEventListener("DOMContentLoaded", syncNewButton);
         /*]]>*/
@@ -257,11 +269,13 @@
     </div>
 
     <div align="center" th:unless="${assignPatrollers or applyToCalendar}">
-        <table border="3" cellpadding="0" cellspacing="0" width="900">
+        <table border="3" cellpadding="0" cellspacing="0" width="1020">
             <tr>
-                <td width="785" bgcolor="#C0C0C0">
+                <td width="1000" bgcolor="#C0C0C0">
                     <form id="templateForm" th:action="@{/EditShiftTemplates}"
-                          onsubmit="return CheckEventName()" method="post">
+                          onsubmit="return CheckEventName() &amp;&amp; checkAllStartTimes(this)
+                                    &amp;&amp; checkLabelOrStartTime(this)"
+                          method="post">
                         <input type="hidden" name="resort" th:value="${resort}" />
                         <input type="hidden" name="ID" th:value="${patrollerId}" />
                         <input type="hidden" name="shiftCount" th:value="${#lists.size(selectedShifts)}" />
@@ -276,7 +290,7 @@
                             has patrollers</p>
 
                         <div align="center">
-                            <table border="3" cellpadding="0" cellspacing="0" width="860">
+                            <table border="3" cellpadding="0" cellspacing="0" width="980">
                                 <tr>
                                     <td>
                                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -295,9 +309,13 @@
                                         <br>
                                         &nbsp;&nbsp;
                                         <div align="center">
-                                            <table border="3" cellpadding="0" cellspacing="0" width="820" style="font-size: 12pt">
+                                            <table border="3" cellpadding="0" cellspacing="0" width="960" style="font-size: 12pt">
                                                 <tr>
-                                                    <td colspan="6">
+                                                    <!-- align="center" rather than relying on
+                                                         the input nearly filling the row, which is
+                                                         what centred this before the grid grew a
+                                                         column -->
+                                                    <td colspan="7" align="center">
                                                         Event Name/Day of Week:
                                                         <!-- Blank rather than "--New Shift Style--"
                                                              when starting from scratch: that string
@@ -326,22 +344,38 @@
                                                                value="Delete"
                                                                th:name="|delete_${shiftWithIndex.index}|" />
                                                     </td>
-                                                    <td nowrap>
-                                                        Start:
+                                                    <td nowrap style="padding: 0 10px;">
+                                                        Label:
                                                         <input type="text"
+                                                               th:name="|label_${shiftWithIndex.index}|"
+                                                               th:value="${shiftWithIndex.shift.label}"
+                                                               maxlength="32"
+                                                               size="8"
+                                                               title="Shown on the calendar instead of the start time, e.g. TL or dir. Leave blank to show the time."
+                                                               onkeydown="javascript:return captureEnter(event.keyCode)" />
+                                                    </td>
+                                                    <td nowrap style="padding: 0 10px;">
+                                                        * Start Time:
+                                                        <input type="text"
+                                                               class="shift-start-time"
                                                                th:name="|startTime_${shiftWithIndex.index}|"
                                                                th:value="${shiftWithIndex.shift.startString}"
                                                                maxlength="11"
                                                                size="7"
+                                                               title="A time: 8:00, 8am, 16 or 16:30"
+                                                               onblur="checkStartTime(this)"
                                                                onkeydown="javascript:return captureEnter(event.keyCode)" />
                                                     </td>
-                                                    <td nowrap>
-                                                        End:
+                                                    <td nowrap style="padding: 0 10px;">
+                                                        * End Time:
                                                         <input type="text"
+                                                               class="shift-end-time"
                                                                th:name="|endTime_${shiftWithIndex.index}|"
                                                                th:value="${shiftWithIndex.shift.endString}"
                                                                maxlength="11"
                                                                size="7"
+                                                               title="A time: 8:00, 8am, 16 or 16:30"
+                                                               onblur="checkEndTime(this)"
                                                                onkeydown="javascript:return captureEnter(event.keyCode)" />
                                                     </td>
                                                     <td nowrap>
@@ -379,14 +413,15 @@
 
                                                 <!-- New button row -->
                                                 <tr>
-                                                    <td width="90">
+                                                    <td width="70">
                                                         <input type="submit" value="New" name="addShift"
                                                                id="addShiftBtn" />
                                                     </td>
-                                                    <td width="205">&nbsp;</td>
-                                                    <td width="205">&nbsp;</td>
-                                                    <td width="240">&nbsp;</td>
-                                                    <td width="145">&nbsp;</td>
+                                                    <td width="140">&nbsp;</td>
+                                                    <td width="165">&nbsp;</td>
+                                                    <td width="155">&nbsp;</td>
+                                                    <td width="185">&nbsp;</td>
+                                                    <td width="150">&nbsp;</td>
                                                     <td>&nbsp;</td>
                                                 </tr>
                                             </table>
@@ -403,12 +438,15 @@
                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                             <input type="button" value="Cancel" onclick="goHome()" />
                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                            <input type="submit" value="Delete Template" name="DeleteTemplateBtn" onclick="return confirmDelete()" />
+                            <input type="submit" value="Delete Template" name="DeleteTemplateBtn" onclick="return confirmDelete(this)" />
                         </p>
                     </form>
                 </td>
             </tr>
         </table>
+
+        <!-- The notice about this change, sized to the frame above it -->
+        <div th:replace="~{fragments/notices :: labelSplitNotice(1020)}"></div>
     </div>
 
     <p th:unless="${assignPatrollers or applyToCalendar}">-- NOTE: The Shift names '<B>Sunday</B>', '<B>Monday</B>', etc. are <B>Special</B>. If defined here, they will
@@ -511,8 +549,7 @@
          Same 900px centred frame as the template editor above it. -->
     <div align="center" th:if="${applyToCalendar}">
         <hr>
-        <form th:action="@{/EditShiftTemplates}" method="post"
-              onsubmit="return confirmApply(this)">
+        <form th:action="@{/EditShiftTemplates}" method="post">
             <input type="hidden" name="resort" th:value="${resort}">
             <input type="hidden" name="ID" th:value="${patrollerId}">
             <input type="hidden" name="selectedShift" th:value="${selectedShift}">
@@ -606,7 +643,7 @@
                     <td bgcolor="#C0C0C0">
                         &nbsp;&nbsp;&nbsp;
                         <input th:unless="${applyDone}" type="submit" name="confirmApply"
-                               value="Apply">
+                               value="Apply" onclick="return confirmApply(this)">
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                         <input type="button" th:value="${applyDone} ? 'Done' : 'Cancel'"
                                th:data-url="@{/EditShiftTemplates(resort=${resort}, ID=${patrollerId}, selectedShift=${selectedShift})}"

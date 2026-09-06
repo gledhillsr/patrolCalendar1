@@ -52,7 +52,12 @@ class DayShiftsControllerTest {
   private static final int SCRATCH_DATE = 15;
   private static final int SCRATCH_DAY_OF_WEEK = 6; //0 based: Saturday
 
+  /**
+   * Typed as "06:15" and stored as "6:15": StartAndLabel puts every time into one canonical form,
+   * so two rows of the same shift typed differently still count as one shift in shiftKey.
+   */
   private static final String EDITED_START_TIME = "06:15";
+  private static final String EDITED_START_TIME_AS_STORED = "6:15";
 
   @Autowired
   private WebApplicationContext webApplicationContext;
@@ -110,8 +115,11 @@ class DayShiftsControllerTest {
     String markup = row.group().replaceAll("\\s+", " ");
 
     assertTrue(markup.contains("value=\"Delete\""), "the delete button reads Delete: " + markup);
-    assertTrue(markup.contains("Start: <input"), "the start time carries an inline label");
-    assertTrue(markup.contains("End: <input"), "the end time carries an inline label");
+    assertTrue(markup.contains("Label: <input"), "the label carries an inline caption");
+    assertTrue(markup.contains("Start Time: <input"), "the start time carries an inline caption");
+    assertTrue(markup.contains("End Time: <input"), "the end time carries an inline caption");
+    assertTrue(markup.indexOf("Label: <input") < markup.indexOf("Start Time: <input"),
+               "Label comes before Start Time: " + markup);
     assertTrue(markup.contains("Patroller&nbsp;Count:&nbsp;"), "the count carries an inline label");
     assertTrue(markup.contains("maxlength=\"11\" size=\"7\""),
                "the time fields match the template editor's size");
@@ -235,11 +243,12 @@ class DayShiftsControllerTest {
 
     assertTrue(grid.contains("Change Today's Assignments"),
                "we should have landed on the group assignment grid");
-    assertTrue(grid.contains(EDITED_START_TIME),
-               "the grid should show the edited start time: expected " + EDITED_START_TIME);
+    assertTrue(grid.contains(EDITED_START_TIME_AS_STORED),
+               "the grid should show the edited start time, canonically: expected "
+                 + EDITED_START_TIME_AS_STORED);
 
-    assertEquals(EDITED_START_TIME, savedStartTimeOnDisk(),
-                 "and the edit should have been written to the database");
+    assertEquals(EDITED_START_TIME_AS_STORED, savedStartTimeOnDisk(),
+                 "and the edit should have been written to the database in canonical form");
   }
 
   private static final String MEMBER_ID = "200401";

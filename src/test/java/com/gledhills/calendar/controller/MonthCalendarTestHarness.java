@@ -92,10 +92,19 @@ final class MonthCalendarTestHarness {
    * Both are whole-line replacements: a substring match missed the timestamp once the template
    * started wrapping it in a span.
    */
+  /**
+   * Removes the parts of the page that change on their own, so a golden records the calendar and
+   * not the day it was recorded.
+   *
+   * <p>The home button is scrubbed <b>anchor and all</b>, not just its image line. Its href is
+   * "go to today", built from the real clock - {@code month=7} in August, {@code month=8} in
+   * September - so scrubbing only the {@code <img>} line left the volatile month sitting on the
+   * line above it and every golden failed on the first of the month.
+   */
   static String scrubVolatile(String html) {
     return html
       .replaceAll("(?m)^.*As of:.*$", "[AS OF LINE SCRUBBED]")
-      .replaceAll("(?m)^.*ncgohome\\.gif.*$", "[HOME BUTTON SCRUBBED]");
+      .replaceAll("<a[^>]*><img[^>]*ncgohome\\.gif[^>]*></a>", "[HOME BUTTON SCRUBBED]");
   }
 
   /** Named cases the golden test records, kept in one place so both tests agree on them. */

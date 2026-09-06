@@ -1,5 +1,6 @@
 package com.gledhills.calendar.controller;
 
+import com.gledhills.calendar.ShiftLabelMigration;
 import com.gledhills.calendar.store.MenuButton;
 import com.gledhills.calendar.store.PasswordResetToken;
 import com.gledhills.calendar.store.ShiftDefinitions;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 
 /**
@@ -129,6 +131,10 @@ public class SiteWideConfigurationController {
                 results = unnamedTemplates(sessionData, LOG, false);
                 heading = "Unnamed shift templates found";
             }
+            else if ("shiftLabels".equals(action)) {
+                results = shiftLabels(sessionData, LOG);
+                heading = "Shift Label column added and old Start values sorted";
+            }
             else {
                 results = createTables(sessionData, LOG);
                 heading = "Tables created";
@@ -165,6 +171,66 @@ public class SiteWideConfigurationController {
      * stop the run - the point is a list of what worked, not an all-or-nothing migration. Sorted
      * so the report reads the same way twice.
      */
+    /**
+     * Which resorts the shift-label migration touches: all of them.
+     *
+     * <p>It was held to Sample alone while it was being proved on the live site, which is why this
+     * is a named method rather than the map inlined into the loop - it is the one place to narrow
+     * again if a resort ever needs doing on its own.
+     */
+    static Set<String> shiftLabelResorts() {
+        return PatrolData.resortMap.keySet();
+    }
+
+    /**
+     * Gives every resort the shift {@code Label} column and sorts the old free-text Start values
+     * into it - the migration described on {@link ShiftLabelMigration}.
+     *
+     * <p>Idempotent, and safe to press again: a resort that has already been done writes nothing
+     * and reports "nothing to do". It is judged on the data rather than on whether the column
+     * exists, so a resort whose column was added but whose rows were not moved - a run that died
+     * in between, which no transaction can prevent because MySQL commits DDL immediately - is
+     * finished rather than skipped forever.
+     *
+     * <p>A resort with no database is reported and stepped over, the same as the other jobs here:
+     * several entries in resortMap have never had one.
+     */
+    private List<ResortResult> shiftLabels(SessionData sessionData, Logger LOG) {
+        List<ResortResult> results = new ArrayList<>();
+
+        for (String resort : new TreeSet<>(shiftLabelResorts())) {
+            PatrolData patrolData = null;
+            try {
+                patrolData = new PatrolData(resort, sessionData, LOG);
+                if (patrolData.getConnection() == null) {
+                    results.add(new ResortResult(resort, false, "no database"));
+                    continue;
+                }
+                ShiftLabelMigration.ResortOutcome outcome =
+                    ShiftLabelMigration.migrateResort(patrolData.getConnection());
+                if (!outcome.ok()) {
+                    LOG.error("shift label migration failed for " + resort + ": " + outcome.detail());
+                }
+                results.add(new ResortResult(resort, outcome.ok(), outcome.detail()));
+            }
+            catch (Exception e) {
+                LOG.logException("shift label migration failed for " + resort, e);
+                results.add(new ResortResult(resort, false, e.getClass().getSimpleName()));
+            }
+            finally {
+                if (patrolData != null) {
+                    try {
+                        patrolData.close();
+                    }
+                    catch (Exception ignored) {
+                        //closing a connection we are finished with cannot fail the job
+                    }
+                }
+            }
+        }
+        return results;
+    }
+
     private List<ResortResult> createTables(SessionData sessionData, Logger LOG) {
         List<ResortResult> results = new ArrayList<>();
 

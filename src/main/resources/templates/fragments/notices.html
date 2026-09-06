@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Notices about changes that have not shipped yet.
+
+  Kept here rather than in each page because DayShifts and EditShiftTemplates both edit the same
+  shift rows and so carry the same notice - two copies is how the wording drifts, and how one of
+  them outlives the change it was announcing.
+-->
+
+<!-- The Start: field becoming Label + Time. Delete this fragment and both th:replace lines when
+     that ships.
+
+     Sits directly under the grey editing frame and is sized to match it, so the caller passes the
+     width of its own frame - the two pages frame at slightly different widths. -->
+<div th:fragment="labelSplitNotice(boxWidth)"
+     th:style="'width:' + ${boxWidth} + 'px; margin:8px auto 16px auto; box-sizing:border-box;'
+               + ' border:2px solid #cc0000; border-radius:4px; padding:8px 12px;'
+               + ' background:#ffffff; color:#333333; font-size:9pt; line-height:1.4;'
+               + ' text-align:left;'">
+    <b style="color:#cc0000;">Notice &mdash; New Feature. Allow patroller to sync this calendar
+    to their personal (Google, Apple, Outlook) calendar.</b>
+    <br>
+    * - required fields to enable syncing with patrollers calendar.
+
+    <!-- Two pictures of the same three shifts: what a director types, then what the calendar
+         draws from it. These carry the explanation now that the prose has gone - the middle row
+         has a time and no label, the others have both or a label only. -->
+    <div style="margin-top:8px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <b style="white-space:nowrap;">e.g.</b>
+        <img th:src="@{/images/labelSplitFields.png}" width="660" height="82"
+             style="max-width:100%; height:auto;"
+             alt="The shift editor: Label 'dir' starting 8:00, a row with only a start time of
+                  8:00, and Label 'mentee' with no start time, each with a patroller count">
+        <img th:src="@{/images/labelSplitExample.png}" width="233" height="83"
+             style="max-width:100%; height:auto;"
+             alt="The same three shifts on the calendar: dir, 8:00 and mentee">
+    </div>
+</div>
+
+</body>
+</html>

@@ -24,7 +24,10 @@
     <a name="TOP"></a>
     <table border="0" cellspacing="0" cellpadding="0" width="100%">
         <tr>
-            <td>
+            <!-- The three cells are given equal-ish widths so the middle one is centred in the
+                 window. Without them the left cell takes only its content's width and the centred
+                 heading lands well right of centre. -->
+            <td width="30%">
                 <font size="6" color="000000" face="arial,helvetica">
                     <b th:text="${dayOfWeekName}">Day</b>
                 </font><br>
@@ -32,7 +35,16 @@
                     <b th:text="${monthFullName + ' ' + dayOfMonth + ', ' + year}">Date</b>
                 </font>
             </td>
-            <td valign="MIDDLE" align="RIGHT" nowrap>
+            <!-- Which shift is being changed. Drawn only when there is something to say: a row
+                 with no label and no times would otherwise leave an empty cell that reads as a
+                 missing value. -->
+            <td width="40%" valign="MIDDLE" align="CENTER" nowrap>
+                <font size="5" color="000000" face="arial,helvetica">
+                    <b th:if="${shiftHeading != null and !shiftHeading.isEmpty()}"
+                       th:text="${shiftHeading}">(dir) 8:00 - 16:30</b>
+                </font>
+            </td>
+            <td width="30%" valign="MIDDLE" align="RIGHT" nowrap>
                 <font size="2" face="Arial, Helvetica">
                     <a target="_self" th:href="@{/MonthCalendar(resort=${resort}, month=${month}, year=${year})}">
                         <img src="/calendar-1/images/ncgohome.gif" border="0"

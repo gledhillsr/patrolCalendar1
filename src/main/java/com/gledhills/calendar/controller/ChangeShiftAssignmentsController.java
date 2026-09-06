@@ -22,6 +22,26 @@ public class ChangeShiftAssignmentsController {
   private static final String LIMIT_DAY_SHIFTS_FOR_RESORT = "Brightonzz"; // currently disabled
   private static final int MAX_DAY_SHIFTS_PER_MONTH = 30;
 
+  /**
+   * Which shift this page is changing, as "(dir) 8:00 - 16:30", for the heading.
+   *
+   * <p><b>Falls back to the day-of-week template.</b> A day nobody has been scheduled on yet has no
+   * {@code assignments} rows - the calendar draws it from the template for that weekday - and that
+   * is exactly the day somebody is most likely to be opening this page on, to put the first name
+   * in. Reading only the assignments table left the heading blank on every empty day.
+   *
+   * <p>{@code pos} is 1-based and comes off the URL, so it is checked rather than trusted: a
+   * hand-typed one out of range gives no heading rather than an exception on a page that is
+   * otherwise perfectly able to do its job.
+   */
+  static String shiftHeading(List<Assignments> assignmentGroups, int pos,
+                             ShiftDefinitions templateShift) {
+    if (assignmentGroups != null && pos >= 1 && pos <= assignmentGroups.size()) {
+      return assignmentGroups.get(pos - 1).describeLabelAndTimes();
+    }
+    return templateShift == null ? "" : templateShift.describeLabelAndTimes();
+  }
+
   @GetMapping("/ChangeShiftAssignments")
   public String showChangeShiftForm(HttpServletRequest request, HttpServletResponse response,
                                     Model model) throws IOException {
@@ -141,6 +161,12 @@ public class ChangeShiftAssignmentsController {
       }
     }
 
+    // Worked out while the connection is still open: an unscheduled day's heading comes from the
+    // shift templates, which is another read. Building it after the close below found no
+    // templates and silently left the heading blank on exactly those days.
+    String shiftHeading = shiftHeading(assignmentGroups, pos,
+                                       templateShiftFor(patrolData, dayOfWeek, pos));
+
     patrolData.close();
 
     String date1 = buildDateAndPosString(year, month, dayOfMonth, pos);
@@ -148,6 +174,7 @@ public class ChangeShiftAssignmentsController {
     model.addAttribute("resort", resort);
     model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
     model.addAttribute("dayOfWeekName", StaticUtils.szDays[dayOfWeek]);
+    model.addAttribute("shiftHeading", shiftHeading);
     model.addAttribute("monthFullName", StaticUtils.szMonthsFull[month]);
     model.addAttribute("dayOfMonth", dayOfMonth);
     model.addAttribute("month", month);
@@ -174,6 +201,27 @@ public class ChangeShiftAssignmentsController {
     model.addAttribute("replaceWithSomeoneElseRadioIndex", replaceWithSomeoneElseRadioIndex);
 
     return "change-shift-assignments";
+  }
+
+  /**
+   * The day-of-week template row for this slot, or null when there is not one.
+   *
+   * <p>Looked up by its exact name - "Thursday_0" - which is how {@link #isNightShift} has always
+   * found the same row. That is deliberate: the alternative walks every template counting
+   * positions and depends on rows of one weekday being adjacent in whatever order the database
+   * returns them, which is an assumption this does not need to make.
+   */
+  private ShiftDefinitions templateShiftFor(PatrolData patrol, int dayOfWeek, int pos) {
+    if (dayOfWeek < 0 || dayOfWeek >= StaticUtils.szDays.length || pos < 1) {
+      return null;
+    }
+    String eventName = StaticUtils.szDays[dayOfWeek] + "_" + (pos - 1);
+    for (ShiftDefinitions shift : patrol.readShiftDefinitions()) {
+      if (eventName.equals(shift.getEventName())) {
+        return shift;
+      }
+    }
+    return null;
   }
 
   private boolean isNightShift(PatrolData patrol, List<Assignments> assignmentGroups,

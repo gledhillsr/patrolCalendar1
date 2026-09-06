@@ -354,7 +354,8 @@ public class MonthCalendarService {
         String editLink = editable
           ? changeShiftUrl(resort, dayOfWeekZeroBased, day, month, year, patrollerId,
                            shiftIndex + 1, slotIndex) : null;
-        slots.add(new CalendarMonth.Slot(shift.getStartString(), "", "", false, false, editLink));
+        //label when the template row has one, start time otherwise - see getDisplayStartString
+        slots.add(new CalendarMonth.Slot(shift.getDisplayStartString(), "", "", false, false, editLink));
       }
     }
     return slots;
@@ -373,7 +374,8 @@ public class MonthCalendarService {
 
     for (int shiftIndex = 0; shiftIndex < assignmentCount; shiftIndex++) {
       Assignments assignment = monthData[day][shiftIndex];
-      String time = assignment.getStartingTimeString() + " ";
+      //label when this row has one, start time otherwise - the same rule as the template path
+      String time = assignment.getDisplayStartString() + " ";
 
       for (int slotIndex = 0; slotIndex < assignment.getCount(); slotIndex++) {
         String rawId = assignment.getPosID(slotIndex);

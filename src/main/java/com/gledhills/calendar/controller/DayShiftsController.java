@@ -182,7 +182,24 @@ public class DayShiftsController {
 
                 readAssignmentsAndShifts(resort, dayOfWeek, date, month, year,
                         patrolData, sessionData, pendingFromDisk, javaxRequest);
-                readParameterShifts(javaxRequest, shiftCount, newName, pendingShifts, LOG);
+                int badEnd = readParameterShifts(javaxRequest, shiftCount, newName, pendingShifts,
+                        pendingFromDisk, LOG);
+                if (badEnd > 0) {
+                    model.addAttribute("errorMessage", EndTimeEdit.rowNeedsATimeMessage(badEnd,
+                            javaxRequest.getParameter("endTime_" + (badEnd - 1))));
+                    return showEditShiftView(resort, dayOfWeek, date, month, year, patrollerId,
+                            null, null, false, patrolData, sessionData, model, LOG);
+                }
+
+                int emptyRow = firstRowWithNeitherLabelNorStart(pendingShifts);
+                if (emptyRow > 0) {
+                    LOG.error("DayShifts save refused: shift " + emptyRow
+                            + " has neither a Label nor a Start Time");
+                    model.addAttribute("errorMessage", StartAndLabel.rowNeedsLabelOrStartMessage(emptyRow));
+                    return showEditShiftView(resort, dayOfWeek, date, month, year, patrollerId,
+                            null, null, false, patrolData, sessionData, model, LOG);
+                }
+
                 processSaveShiftChanges(patrolData, pendingFromDisk, pendingShifts,
                         newName, date, month, year, resort,
                         templatePatrollersForFreshDay(patrolData, pendingFromDisk, selectedShift,
@@ -200,8 +217,31 @@ public class DayShiftsController {
         readAssignmentsAndShifts(resort, dayOfWeek, date, month, year,
                 patrolData, sessionData, assignmentsFromDisk, javaxRequest);
 
-        readParameterShifts(javaxRequest, shiftCount != null ? shiftCount : 0,
-                newName, parameterShifts, LOG);
+        int badEndTimeRow = readParameterShifts(javaxRequest, shiftCount != null ? shiftCount : 0,
+                newName, parameterShifts, assignmentsFromDisk, LOG);
+
+        // An End Time that was edited has to be a time. Delete is exempt for the same reason the
+        // label rule exempts it: it is how a director gets rid of the row.
+        if (badEndTimeRow > 0 && !isDeleteRequested(javaxRequest, shiftCount)) {
+            model.addAttribute("errorMessage", EndTimeEdit.rowNeedsATimeMessage(badEndTimeRow,
+                    javaxRequest.getParameter("endTime_" + (badEndTimeRow - 1))));
+            return showEditShiftView(resort, dayOfWeek, date, month, year, patrollerId,
+                    null, null, false, patrolData, sessionData, model, LOG);
+        }
+
+        // A row must carry a Label or a Start Time. Checked before any button is acted on, since
+        // every one of them below writes the displayed rows back - except Delete, which is how a
+        // director gets rid of the offending row in the first place.
+        if (!isDeleteRequested(javaxRequest, shiftCount)) {
+            int emptyRow = firstRowWithNeitherLabelNorStart(parameterShifts);
+            if (emptyRow > 0) {
+                LOG.error("DayShifts save refused: shift " + emptyRow
+                        + " has neither a Label nor a Start Time");
+                model.addAttribute("errorMessage", StartAndLabel.rowNeedsLabelOrStartMessage(emptyRow));
+                return showEditShiftView(resort, dayOfWeek, date, month, year, patrollerId,
+                        null, null, false, patrolData, sessionData, model, LOG);
+            }
+        }
 
         // Handle different button actions
         if (saveAssignmentBtn != null) {
@@ -410,12 +450,25 @@ public class DayShiftsController {
 //        }
     }
 
-    private void readParameterShifts(javax.servlet.http.HttpServletRequest request, int shiftCount,
-            String newName, ArrayList<ShiftDefinitions> parameterShifts, Logger LOG) {
+    /**
+     * Read the posted rows.
+     *
+     * <p>{@code fromDisk} is what is currently stored, row for row, and is only used to tell an
+     * End Time the director edited from one they merely echoed back - see {@link EndTimeEdit}. A
+     * row beyond the end of it is new, so its End Time counts as edited.
+     *
+     * @return the 1-based row whose End Time was changed to something that is not a time, or 0
+     */
+    private int readParameterShifts(javax.servlet.http.HttpServletRequest request, int shiftCount,
+            String newName, ArrayList<ShiftDefinitions> parameterShifts,
+            ArrayList<Assignments> fromDisk, Logger LOG) {
+
+        int badEndTimeRow = 0;
 
         for (int i = 0; i < shiftCount; i++) {
             String startTime = request.getParameter("startTime_" + i);
             String endTime = request.getParameter("endTime_" + i);
+            String label = request.getParameter("label_" + i);
             String countStr = request.getParameter("count_" + i);
             String shiftType = request.getParameter("shift_" + i);
 
@@ -427,8 +480,20 @@ public class DayShiftsController {
             SessionData sessionData = new SessionData(request, null, LOG);
             int typeId = Assignments.getTypeID(sessionData, shiftType);
 
-            parameterShifts.add(new ShiftDefinitions(newName, startTime, endTime, count, typeId, LOG));
+            String storedEnd = (fromDisk != null && i < fromDisk.size())
+                    ? fromDisk.get(i).getEndingTimeString() : "";
+            EndTimeEdit end = EndTimeEdit.of(endTime, storedEnd);
+            if (end.rejected() && badEndTimeRow == 0) {
+                badEndTimeRow = i + 1;
+                LOG.error("DayShifts: end time for shift " + badEndTimeRow
+                        + " was changed to something that is not a time");
+            }
+
+            StartAndLabel split = StartAndLabel.of(startTime, label, LOG);
+            parameterShifts.add(new ShiftDefinitions(newName, split.start(), end.value(), count,
+                    typeId, split.label(), LOG));
         }
+        return badEndTimeRow;
     }
 
     /**
@@ -527,6 +592,44 @@ public class DayShiftsController {
      * A shift needing more than 10 patrollers is entered as several rows sharing a start and end
      * time, and those are one shift as far as the person working it is concerned.
      */
+    /**
+     * The 1-based number of the first row carrying neither a Label nor a Start Time, or 0 when
+     * every row has one.
+     *
+     * <p>A slot renders as its label, or failing that its start time, so a row with neither is a
+     * blank line on the calendar for a shift somebody is meant to work. The browser refuses first
+     * and explains; this is the backstop for a form posted around it.
+     */
+    static int firstRowWithNeitherLabelNorStart(List<ShiftDefinitions> rows) {
+        for (int row = 0; row < rows.size(); row++) {
+            ShiftDefinitions shift = rows.get(row);
+            if (shift.getCount() == 0) {
+                //nobody works a shift with no patroller slots, so there is no blank line on the
+                //calendar to strand anyone - the rule exists to stop that, and here it cannot
+                //happen. A director laying a day out needs to be able to leave a row empty.
+                continue;
+            }
+            if (shift.getStartString().trim().isEmpty() && shift.getLabel().trim().isEmpty()) {
+                return row + 1;
+            }
+        }
+        return 0;
+    }
+
+    /** Deleting is how a bad row is got rid of, so it is never blocked by the rule above. */
+    private boolean isDeleteRequested(javax.servlet.http.HttpServletRequest request,
+            Integer shiftCount) {
+        if (shiftCount == null) {
+            return false;
+        }
+        for (int i = 0; i < shiftCount; i++) {
+            if (request.getParameter("delete_" + i) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private String shiftKey(Assignments assignment) {
         return assignment.getStartingTimeString() + " - " + assignment.getEndingTimeString();
     }
@@ -546,7 +649,11 @@ public class DayShiftsController {
         saveShiftInfo(patrolData, assignments, parameterShifts, newName, date, month, year, LOG);
 
         int assignmentSize = assignments.size();
-        ShiftDefinitions sData = new ShiftDefinitions(newName, "start time", "end time",
+        //A real time rather than the old words "start time"/"end time", which are not times and
+        //would fail their own validation. It cannot be blank either: a row needs a Label or a
+        //Start Time to be saved, and a new row that could not be saved would be a trap.
+        //EditShiftTemplates seeds a new row the same way.
+        ShiftDefinitions sData = new ShiftDefinitions(newName, "8:00", "16:00",
                 1, Assignments.DAY_TYPE, LOG);
 
         String szAssignmentDate = getTodaysAssignmentString(date, month, year, assignmentSize + 1);
@@ -799,7 +906,11 @@ public class DayShiftsController {
             String szAssignmentDate = getTodaysAssignmentString(date, month, year, shiftIndex + 1);
 
             Assignments assignment = new Assignments(szAssignmentDate, sh, LOG);
-            assignment.setEventName(newName);
+            if (newName != null) {
+                //a request that omits newName keeps the constructor's default rather than storing
+                //a null, which reached sqlEncode() and came back as a 500
+                assignment.setEventName(newName);
+            }
 
             Assignments prevAssignment = patrolData.readAssignment(assignment.getDate());
             patrolData.deleteAssignment(assignment);

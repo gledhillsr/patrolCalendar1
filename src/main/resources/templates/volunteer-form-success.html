@@ -6,6 +6,8 @@
     <title>Application Submitted - Patrol Calendar</title>
     <th:block th:replace="~{fragments/head :: icons}"></th:block>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <!-- The site's message box, in place of the browser's alert() -->
+    <script th:src="@{/js/dialogs.js}"></script>
 </head>
 <body>
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${null})}"></div>
@@ -19,8 +21,10 @@
 
     <script type="text/javascript" th:inline="javascript">
         var timer = setTimeout(function() {
-            window.alert("Application submitted");
-            window.location = /*[[${redirectUrl}]]*/ '';
+            //the navigation waits for the box to close: alert() blocked here, a dialog does not
+            showMessageDialog("Application submitted", function () {
+                window.location = /*[[${redirectUrl}]]*/ '';
+            }, "Thank you");
         }, 2000);
     </script>
 </body>

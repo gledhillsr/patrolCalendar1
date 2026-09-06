@@ -116,13 +116,16 @@
         function attachmentsWithinLimit() {
             if (attachmentBytes() > MAX_ATTACHMENT_BYTES) {
                 showAttachmentSummary();
-                window.alert('Attachments total ' + asMegabytes(attachmentBytes()) +
-                             '. The limit is ' + asMegabytes(MAX_ATTACHMENT_BYTES) + '.');
+                showMessageDialog('Attachments total ' + asMegabytes(attachmentBytes())
+                             + '. The limit is ' + asMegabytes(MAX_ATTACHMENT_BYTES) + '.',
+                             null, 'Attachments are too large');
                 return false;
             }
             return true;
         }
     </script>
+    <!-- The site's message box, in place of the browser's alert() -->
+    <script th:src="@{/js/dialogs.js}"></script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <!-- Reuse header fragment -->

@@ -9,17 +9,21 @@
         function goHome() {
             window.location = /*[[${directorsUrl}]]*/ '#';
         }
-        function validate() {
-            return confirm("Delete ALL shift assignments before the selected date?");
+        function validate(button) {
+            return confirmActionDialog(button,
+                "Delete ALL shift assignments before the selected date?",
+                "Delete old assignments?");
         }
     </script>
+    <!-- The site's message and question boxes, in place of the browser's confirm() -->
+    <script th:src="@{/js/dialogs.js}"></script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${userId})}"></div>
 
     <h1 align="center" th:text="'Delete Old Assignments for ' + ${resortFullName}">Delete Old Assignments</h1>
 
-    <form target="_self" th:action="@{/PurgeAssignments}" method="POST" onsubmit="return validate()">
+    <form target="_self" th:action="@{/PurgeAssignments}" method="POST">
         <input type="hidden" name="resort" th:value="${resort}">
         <input type="hidden" name="ID" th:value="${userId}">
 
@@ -49,7 +53,8 @@
         </p>
 
         <p>
-            <input type="submit" value="Delete Old Assignments...">
+            <!-- On the button, not the form's onsubmit: answering yes replays this click -->
+            <input type="submit" value="Delete Old Assignments..." onclick="return validate(this)">
             &nbsp;&nbsp;&nbsp;&nbsp;
             <input type="button" value="Cancel" onclick="goHome()">
         </p>

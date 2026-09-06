@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS `assignments` (
   `P7` varchar(7) DEFAULT NULL,
   `P8` varchar(7) DEFAULT NULL,
   `P9` varchar(7) DEFAULT NULL,
+  `Label` varchar(32) NOT NULL DEFAULT '',
   PRIMARY KEY (`Date`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 CREATE TABLE IF NOT EXISTS `directorsettings` (
@@ -131,6 +132,7 @@ CREATE TABLE IF NOT EXISTS `shiftdefinitions` (
   `EndTime` varchar(16) NOT NULL DEFAULT '',
   `Count` tinyint NOT NULL DEFAULT '0',
   `ShiftType` tinyint NOT NULL DEFAULT '0',
+  `Label` varchar(32) NOT NULL DEFAULT '',
   PRIMARY KEY (`EventName`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 CREATE TABLE IF NOT EXISTS `shifttemplatepatrollers` (

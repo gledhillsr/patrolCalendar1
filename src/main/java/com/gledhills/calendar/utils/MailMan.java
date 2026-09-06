@@ -141,22 +141,5 @@ public class MailMan {
       LOG.info("DEBUG_DONT_SEND-Mailman: " + msg);
     }
   }
-
-  //  public static void main(String[] args) throws MailManException {
-  //    if (args.length < 5) {
-  //      Log.log("Invalid arguments");
-  //      Log.log("java com.gledhills.MailMan <host> <from address> <subject> <message> <recipient address>");
-  //      return;
-  //    }
-  //    String smtpHost = args[0];      //zimbra.xmission.com
-  //    String fromAddress = args[1];   //nancy@gledhills.com
-  //    String fromName = "Nancy Gledhill";
-  //    String subject = args[2];       //"subject text"
-  //    String message = args[3];       //"body text\n line 2"
-  //    String toAddress = args[4];     //gledhillsr@familysearch.org
-  //    MailMan mailMan = new MailMan(smtpHost, fromAddress, fromName);
-  //    mailMan.sendMessage(subject, message, toAddress);
-  //    mailMan.close();
-  //  }
 }
 
