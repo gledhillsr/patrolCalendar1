@@ -178,13 +178,13 @@ public class EmailFormController {
             }
 
             // Sending is disabled in the demo resort; log what would have gone out instead
-            if ("Sample".equalsIgnoreCase(resort)) {
+            if (PatrolData.isDemoResort(resort)) {
                 if (!bindingResult.hasErrors()) {
-                    LOG.info("Sample resort - email NOT sent. Would have sent:\n" +
+                    LOG.info("demo resort " + resort + " - email NOT sent. Would have sent:\n" +
                              emailService.describeUnsentBatch(form, patrolData, LOG));
                 }
                 bindingResult.rejectValue("subject", "error.sample",
-                    "Email sending is disabled in the Sample resort");
+                    "Email sending is disabled in the demo resort");
             }
 
             if (bindingResult.hasErrors()) {

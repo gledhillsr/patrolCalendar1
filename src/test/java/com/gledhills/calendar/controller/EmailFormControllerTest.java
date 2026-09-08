@@ -133,7 +133,7 @@ class EmailFormControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("email-form"))
                 .andExpect(model().attributeExists("validRecipients"))
-                .andExpect(content().string(containsString("Email sending is disabled in the Sample resort")));
+                .andExpect(content().string(containsString("Email sending is disabled in the demo resort")));
     }
 
     @Test
@@ -201,7 +201,7 @@ class EmailFormControllerTest {
                 .param("patrollerIds", "123456")
                 .session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Email sending is disabled in the Sample resort")))
+                .andExpect(content().string(containsString("Email sending is disabled in the demo resort")))
                 // the phrase only the server-side overage message produces
                 .andExpect(content().string(not(containsString("the limit is 2.0 MB"))));
     }

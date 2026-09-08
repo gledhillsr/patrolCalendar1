@@ -97,3 +97,10 @@ footer {
     background: rgba(255,255,255,0.22) !important;
     border-color: rgba(255,255,255,0.5) !important;
 }
+/* Directors only, and further from Logout than the menu buttons are from each other, so the two
+   do not read as a pair - one ends your session, the other is reading material. */
+.nav-btn-new-features {
+    margin-left: 28px;
+    background: rgba(255,214,102,0.28) !important;
+    border-color: rgba(255,214,102,0.75) !important;
+}

@@ -439,4 +439,33 @@ class TemplatePatrollerFlowTest {
       .matcher(select.group());
     return option.find() ? option.group(1) : "";
   }
+
+  /**
+   * The assign grid shows a slot's label, but must not group by it.
+   *
+   * <p>The label is prefixed to the times a director sees - "(dir) 8:00 - 16:30" - while
+   * {@code data-shift}, which the browser's duplicate check groups by, stays keyed on the times
+   * alone. A shift needing more than 10 patrollers is several rows sharing a time and those rows
+   * need not share a label, so a label in the key would split one real shift into two and let
+   * somebody be booked on both.
+   */
+  @Test
+  void theGridShowsTheLabelButDoesNotGroupByIt() {
+    ShiftDefinitions labelled =
+      new ShiftDefinitions("Saturday_0", "8:00", "16:30", 2, Assignments.DAY_TYPE, "dir",
+                           org.mockito.Mockito.mock(Logger.class));
+    ShiftDefinitions sameShiftNoLabel =
+      new ShiftDefinitions("Saturday_1", "8:00", "16:30", 2, Assignments.DAY_TYPE, "",
+                           org.mockito.Mockito.mock(Logger.class));
+
+    assertEquals("(dir) 8:00 - 16:30", labelled.describeLabelAndTimes(),
+                 "the label is shown, in brackets, before the times");
+    assertEquals("8:00 - 16:30", sameShiftNoLabel.describeLabelAndTimes(),
+                 "and a row with no label shows just the times");
+
+    //the two rows are one shift: same times, different labels, so they must group together
+    assertEquals(sameShiftNoLabel.getStartString() + " - " + sameShiftNoLabel.getEndString(),
+                 labelled.getStartString() + " - " + labelled.getEndString(),
+                 "the grouping key is the times, so these two rows are the same shift");
+  }
 }

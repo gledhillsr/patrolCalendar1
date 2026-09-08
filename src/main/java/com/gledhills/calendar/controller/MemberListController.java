@@ -222,17 +222,14 @@ public class MemberListController {
             //   - trimmed: LISTED_CLASSIFICATIONS, and no Inactive=1 since commitment "0" is skipped
             //   - full:    ALL_CLASSIFICATIONS plus Inactive=1, matching "everybody"
             //   - ALL=1 either way, because the loop applies no director/instructor filter
-            StringBuilder emailFormUrl =
-                new StringBuilder("EmailForm?resort=" + resort + "&ID=" + patrollerId);
-            for (String classification : listedClassifications) {
-                emailFormUrl.append("&").append(classification).append("=1");
-            }
-            emailFormUrl.append("&FullTime=1&PartTime=1");
-            if (fullRoster) {
-                emailFormUrl.append("&Inactive=1");
-            }
-            emailFormUrl.append("&ALL=1");
-            model.addAttribute("emailFormUrl", emailFormUrl.toString());
+            String selection = selectionQuery(listedClassifications, fullRoster);
+            model.addAttribute("emailFormUrl",
+                               "EmailForm?resort=" + resort + "&ID=" + patrollerId + selection);
+
+            // The download has to pick the same members for the same reason, so it is built from
+            // the same string rather than a second copy of the rules.
+            model.addAttribute("downloadRosterUrl",
+                               "DownloadRoster?resort=" + resort + "&ID=" + patrollerId + selection);
 
             // The toggle: its label describes where it goes, not where you are.
             //carry "filters" too, or the toggle would reset Pro back to ticked
@@ -249,5 +246,31 @@ public class MemberListController {
         } finally {
             patrolData.close();
         }
+    }
+
+    /**
+     * The query string that selects exactly the members this page listed.
+     *
+     * <p>Shared by the "e-mail THESE patrollers" and "Download to Excel" buttons, which must both
+     * act on the people actually on screen. They were separate strings once and drifted three
+     * times, every time mailing people the page never showed.
+     *
+     * <ul>
+     *   <li>trimmed: the listed classifications, and no {@code Inactive=1} since the loop skips
+     *       commitment "0" anyway</li>
+     *   <li>full: those plus {@code Inactive=1}, matching "everybody"</li>
+     *   <li>{@code ALL=1} either way, because the loop applies no director/instructor filter</li>
+     * </ul>
+     */
+    private static String selectionQuery(List<String> listedClassifications, boolean fullRoster) {
+        StringBuilder query = new StringBuilder();
+        for (String classification : listedClassifications) {
+            query.append("&").append(classification).append("=1");
+        }
+        query.append("&FullTime=1&PartTime=1");
+        if (fullRoster) {
+            query.append("&Inactive=1");
+        }
+        return query.append("&ALL=1").toString();
     }
 }

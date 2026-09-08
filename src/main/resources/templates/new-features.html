@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  What has been added lately, for directors.
+
+  Static prose on purpose: adding a feature is an edit to this file and nothing else. Newest at the
+  top. The contents list is hand-written rather than generated so the order and the wording stay
+  under an author's control - and so a feature can be described in the words a director would use
+  rather than the name of the screen it lives on.
+
+  Bug fixes are deliberately left out. This answers "what can I do now that I could not before",
+  which is a different question from "what was broken".
+-->
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title th:text="|What's New - ${resortFullName}|">What's New</title>
+    <th:block th:replace="~{fragments/head :: icons}"></th:block>
+    <style>
+        .features {
+            max-width: 900px;
+            margin: 0 auto 40px auto;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #222;
+        }
+        .features h1 {
+            font-size: 1.6em;
+            color: #003366;
+            margin-bottom: 4px;
+        }
+        .features .intro {
+            color: #555;
+            margin-top: 0;
+        }
+        .contents {
+            background: #ffffff;
+            border: 2px solid #003366;
+            border-radius: 6px;
+            padding: 12px 18px;
+            margin: 18px 0 28px 0;
+        }
+        .contents h2 {
+            font-size: 1.05em;
+            margin: 0 0 8px 0;
+            color: #003366;
+        }
+        .contents ol {
+            margin: 0;
+            padding-left: 22px;
+        }
+        .contents li {
+            margin: 3px 0;
+        }
+        .feature {
+            background: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+        }
+        .feature h3 {
+            margin: 0 0 6px 0;
+            font-size: 1.15em;
+            color: #003366;
+        }
+        /* The path to the screen, which is the first thing a director needs and the thing they
+           are most likely to come back for. */
+        .where {
+            background: #eef3f8;
+            border-left: 4px solid #003366;
+            padding: 6px 10px;
+            margin: 0 0 10px 0;
+            font-size: 0.95em;
+        }
+        .where b {
+            color: #003366;
+        }
+        .feature p {
+            margin: 8px 0;
+        }
+        .feature ul {
+            margin: 8px 0;
+            padding-left: 22px;
+        }
+        .coming {
+            border-color: #cc0000;
+        }
+        .coming h3 {
+            color: #cc0000;
+        }
+        .back-to-top {
+            font-size: 0.85em;
+        }
+        /* The three groupings. A director reading this wants to know straight away whether a
+           feature is something their members can already see, or something only they can reach. */
+        .category {
+            font-size: 1.25em;
+            color: #003366;
+            border-bottom: 2px solid #003366;
+            padding-bottom: 4px;
+            margin: 30px 0 4px 0;
+        }
+        .category-note {
+            color: #555;
+            font-size: 0.95em;
+            margin: 0 0 14px 0;
+        }
+        .contents-group {
+            font-size: 0.95em;
+            color: #003366;
+            margin: 12px 0 4px 0;
+        }
+        .contents-group:first-of-type {
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <div class="features">
+        <a id="top"></a>
+        <h1>What&rsquo;s new on the patrol calendar</h1>
+        <p class="intro">
+            Everything below was added over the past few months. Each entry says where to find it,
+            what it does, and how to use it. Newest first.
+        </p>
+
+        <div class="contents">
+            <h2>Contents</h2>
+
+            <h3 class="contents-group">Available to everyone</h3>
+            <ol>
+                    <li><a href="#patrolcalendar">The site now answers at <span th:text="${@site.patrolCalendarDisplay}">the new domain</span></a></li>
+                    <li><a href="#password-reset">Members can reset their own password</a></li>
+                    <li><a href="#attachments">You can now add an attachment to emails</a></li>
+                    <li><a href="#download-roster">Download the patroller list to Excel</a></li>
+                    <li><a href="#print-calendar">Print the month calendar</a></li>
+                    <li><a href="#sample-resort">A sample resort to experiment in</a></li>
+            </ol>
+
+            <h3 class="contents-group">Available to directors</h3>
+            <ol>
+                    <li><a href="#shift-labels">Shift labels, and real start and end times</a></li>
+                    <li><a href="#menu-buttons">Your own buttons in the page header</a></li>
+                    <li><a href="#template-patrollers">Assign &lsquo;teams&rsquo; of patrollers to any shift template</a></li>
+                    <li><a href="#apply-template">Apply &lt;day of week&gt; named template (with assigned patrollers) across a range of dates</a></li>
+                    <li><a href="#replace-format">Change a single day&rsquo;s shift format</a></li>
+                    <li><a href="#reorder-shifts">Reorder the shifts on a day</a></li>
+                    <li><a href="#patroller-history">Directors can see any patroller&rsquo;s shift history</a></li>
+                    <li><a href="#full-roster">Show the full roster, or a trimmed one</a></li>
+                    <li><a href="#day-comments">Bold text and links in a day&rsquo;s comment</a></li>
+                    <li><a href="#phone-format">A standard format for phone numbers</a></li>
+                    <li><a href="#no-double-booking">Nobody can be put on the same shift twice</a></li>
+            </ol>
+
+            <h3 class="contents-group">Upcoming features</h3>
+            <ol>
+                <li><a href="#coming-soon">What is coming next</a></li>
+                <li><a href="#what-is-missing">What is missing &mdash; tell me</a></li>
+            </ol>
+        </div>
+
+        <h2 class="category">Available to everyone</h2>
+        <p class="category-note">Every patroller sees these, whether or not they hold a director role.</p>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="patrolcalendar">The site now answers at
+                <span th:text="${@site.patrolCalendarDisplay}">the new domain</span></h3>
+            <div class="where"><b>Where:</b> any page &mdash; just the web address</div>
+            <p>
+                The same site, the same login, the same data, now reachable at
+                <b th:text="${@site.patrolCalendarDisplay}">the new domain</b> as well as the old address.
+                Both keep working, so nothing
+                you have linked or bookmarked breaks. It is simply an easier address to give out.
+            </p>
+            <p>
+                When you arrive on the new address a small welcome line appears at the top of the
+                page, so you can tell which one you came in on.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="password-reset">Members can reset their own password</h3>
+            <div class="where">
+                <b>Where:</b> the login page &rarr; <i>If you forgot your password</i>
+            </div>
+            <p>
+                A member enters their member number or email address and is sent a link that lets
+                them set a new password. The link works once and expires after fifteen minutes.
+            </p>
+            <p>
+                This is the one to point people at when they write to you locked out &mdash; they no
+                longer need you to do anything.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="attachments">You can now add an attachment to emails</h3>
+            <div class="where">
+                <b>Where:</b> Directors &rarr; <i>Email Patrollers</i>, or the
+                <i>e-mail THESE patrollers</i> button on a patroller list
+            </div>
+            <p>
+                You can attach files to an email to your roster &mdash; a refresher schedule, a
+                sign-up sheet, a map. The total of all attachments must be 2&nbsp;MB or less, and
+                the page tells you the running total as you add them.
+            </p>
+            <p>
+                The confirmation page reports how many people the message was <i>queued</i> for.
+                Sending happens in the background, and if anything goes wrong you are emailed a
+                summary saying how many got through and which addresses failed.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="download-roster">Download the patroller list to Excel</h3>
+            <div class="where">
+                <b>Where:</b> the <i>Patrollers</i> tab &rarr; <b>Download to Excel</b>, or
+                Directors &rarr; <i>List Patrollers</i> &rarr; the download button
+            </div>
+            <p>
+                The spreadsheet holds exactly the people the page is showing &mdash; the same
+                filters, the same classifications, the same sort order. Narrow the list on screen
+                first and the download follows. On the Patrollers tab that means the trimmed or
+                full roster, whichever you are looking at.
+            </p>
+            <p>
+                It opens straight into Excel, so it is a good starting point for a roster you need
+                to hand somebody outside the calendar.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="print-calendar">Print the month calendar</h3>
+            <div class="where"><b>Where:</b> Calendar &rarr; the print button</div>
+            <p>
+                Prints the month as it appears, for a patrol room notice board or a paper copy at a
+                meeting.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="sample-resort">A sample resort to experiment in</h3>
+            <div class="where">
+                <b>Where:</b> the front page of the site &rarr; the <b>Sample Resort</b> card
+            </div>
+            <p>
+                A complete patrol with invented people, for trying anything you are unsure of
+                without touching your own data. Everything in it is reset every night at 2am, so
+                nothing you do there lasts and nothing you break matters.
+            </p>
+            <p>
+                A good place to practise the shift template screens before doing it for real.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+
+        <h2 class="category">Available to directors</h2>
+        <p class="category-note">These need a director login. Members never see them.</p>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="shift-labels">Shift labels, and real start and end times</h3>
+            <div class="where">
+                <b>Where:</b> Calendar &rarr; click a date &rarr; <i>Change Today&rsquo;s Shift</i>,
+                and Directors &rarr; <i>Edit Shift Templates (for Calendar) &hellip;</i>
+            </div>
+            <p>
+                A shift row used to have one <b>Start:</b> box, and most patrols typed a job name
+                into it &mdash; &ldquo;dir&rdquo;, &ldquo;mentee&rdquo;, &ldquo;swing&rdquo;. That
+                box is now three: <b>Label</b>, <b>Start Time</b> and <b>End Time</b>.
+            </p>
+            <p>
+                The <b>Label</b> is what the calendar shows. The <b>Start Time</b> and
+                <b>End Time</b> are the real times. A shift labelled &ldquo;mentor&rdquo; running
+                8:00 to 16:30 still shows simply <i>mentor</i> on the calendar, exactly as before
+                &mdash; but underneath, the calendar now knows when it starts and ends.
+            </p>
+            <ul>
+                <li>Leave the Label blank and the calendar shows the start time instead.</li>
+                <li>Times can be typed loosely &mdash; <code>8</code>, <code>8am</code>,
+                    <code>0800</code>, <code>16</code>, <code>4:30pm</code> &mdash; and are tidied
+                    into one consistent form when you leave the box.</li>
+                <li>Type a name into Start Time by mistake and it moves itself to the Label.</li>
+                <li>A shift needs a Label or a Start Time to be saved. A row with neither would be
+                    a blank line on the calendar for a shift somebody is meant to work.</li>
+            </ul>
+            <p>
+                <b>Why it matters:</b> this is the groundwork for patrollers syncing their shifts to
+                their own phone calendar. That needs a time a computer can read, which free text
+                never was.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="menu-buttons">Your own buttons in the page header</h3>
+            <div class="where">
+                <b>Where:</b> Directors &rarr; <i>Menu Configuration</i>
+            </div>
+            <p>
+                Add up to four of your own buttons to the header every member sees &mdash; your
+                patrol&rsquo;s website, a weather page, a volunteer application, a training
+                document. Each button has:
+            </p>
+            <ul>
+                <li><b>Text</b> &mdash; what the button says.</li>
+                <li><b>Url</b> &mdash; where it goes. A full web address opens in a new window.</li>
+                <li><b>Member Only</b> &mdash; tick this and the button appears in the blue members
+                    bar, visible only to people who have logged in. Leave it unticked and it sits in
+                    the grey bar above, for everybody.</li>
+                <li><b>Enabled</b> &mdash; untick to hide a button without losing what you typed.</li>
+            </ul>
+            <p>
+                Clear a button&rsquo;s text and url to remove it. The four slots are independent, so
+                emptying the middle one does not shuffle the others along.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="template-patrollers">Assign &lsquo;teams&rsquo; of patrollers to any shift template</h3>
+            <div class="where">
+                <b>Where:</b> Directors &rarr; <i>Edit Shift Templates (for Calendar) &hellip;</i>
+                &rarr; choose the template in <i>Use Predefined Shift format</i>
+                &rarr; <i>Assign Patrollers to this template</i>
+            </div>
+            <p>
+                If your patrol schedules by teams, you can now pencil people into a template rather
+                than into one day at a time. Pick a template, press <i>Assign Patrollers to this
+                template</i>, and fill in the slots from the roster list.
+            </p>
+            <p>
+                Those names are a starting point, not a schedule. They become real when the template
+                is used to build a day &mdash; either because the calendar filled an empty
+                day-of-week from it, or because you applied it to a date range. Names already on a
+                day are never overwritten by a template.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="apply-template">Apply &lt;day of week&gt; named template (with assigned patrollers) across a range of dates</h3>
+            <div class="where">
+                <b>Where:</b> Directors &rarr; <i>Edit Shift Templates (for Calendar) &hellip;</i>
+                &rarr; choose the template in <i>Use Predefined Shift format</i>
+                &rarr; <i>Apply &lsquo;day of week&rsquo; named templates with assigned patrollers
+                to calendar</i>
+            </div>
+            <p>
+                Put a template onto every matching day between two dates in one go, instead of a day
+                at a time. Choose the from and to dates and press <b>Apply</b>.
+            </p>
+            <p>
+                <b>The button is greyed out unless both of these are true.</b>
+            </p>
+            <ul>
+                <li><b>The template must be named for a day of the week</b> &mdash;
+                    <i>Sunday</i>, <i>Monday</i>, <i>Tuesday</i> and so on. That name is what picks
+                    the days out of your range: a <b>Monday</b> template lands on every Monday
+                    between your two dates and nowhere else. The button is greyed out for any other
+                    name, because nothing else has a weekday to match.</li>
+                <li><b>The template must have patrollers assigned to it.</b> Those patrollers
+                    are the whole point &mdash; applying is what puts the <i>people</i> onto real
+                    days. A day-of-week template with nobody on it does not need applying: the
+                    calendar already draws its shifts on every matching day between your
+                    <i>Season start date</i> and <i>Season end date</i> (Directors &rarr;
+                    <i>Web Site Preferences &hellip;</i>). So if the button is greyed out on a
+                    Monday template, assign the team to it first
+                    (<i>Assign Patrollers to this template</i>) and it will come alive.</li>
+            </ul>
+            <p>
+                Any patrollers you have assigned to that template come with it, which is the point:
+                a &ldquo;Sunday&rdquo; team is put onto every Sunday in one go. A template with
+                shifts but nobody on them still works &mdash; it lays out the day&rsquo;s shifts and
+                leaves them empty for people to sign up to.
+            </p>
+            <p>
+                <b>Days that are already scheduled are never quietly rewritten.</b> If any matching
+                day already has shifts, the page stops and lists those dates, and asks whether to
+                skip them or overwrite them. Skip is chosen for you. Overwriting deletes those
+                days&rsquo; shifts and the patrollers on them, so it is only offered when the
+                template actually has patrollers to put there. Press Apply again to confirm.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="replace-format">Change a single day&rsquo;s shift format</h3>
+            <div class="where">
+                <b>Where:</b> Calendar &rarr; click a date &rarr;
+                <i>Use Predefined Shift format</i> dropdown
+            </div>
+            <p>
+                Swap one day over to a different set of shifts &mdash; a holiday layout, a race day,
+                a night operation. Choose the template from the dropdown and the day is rebuilt from
+                it.
+            </p>
+            <p>
+                This removes the day&rsquo;s existing shifts and everybody on them, so if anyone is
+                scheduled you are told how many patrollers will be taken off before anything
+                happens. There is deliberately no way to do this across a date range.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="reorder-shifts">Reorder the shifts on a day</h3>
+            <div class="where">
+                <b>Where:</b> Calendar &rarr; click a date &rarr; the &#9650; and &#9660; buttons at
+                the end of each shift row
+            </div>
+            <p>
+                Move a shift up or down so the day reads in the order you want. The top row only
+                offers a down arrow and the bottom row only an up arrow. Moving a shift takes its
+                assigned patrollers with it.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="patroller-history">Directors can see any patroller&rsquo;s shift history</h3>
+            <div class="where">
+                <b>Where:</b> Directors &rarr; choose a name in the roster list &rarr;
+                <i>Show Patrollers History&hellip;</i>
+            </div>
+            <p>
+                Shows the shifts that patroller has worked, the same view they see of their own.
+                Useful when somebody asks how many days they have in, or when you are checking
+                whether a commitment has been met.
+            </p>
+            <p>
+                A <b>Done</b> button brings you back to the Directors page. Only directors can do
+                this; anyone else who tries simply sees their own history.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="full-roster">Show the full roster, or a trimmed one</h3>
+            <div class="where">
+                <b>Where:</b> <i>Patrollers</i> tab &rarr; <i>Show FULL roster</i> /
+                <i>Show Trimmed Roster</i>
+            </div>
+            <p>
+                The trimmed roster leaves out inactive and &ldquo;other&rdquo; patrollers, which is
+                usually what you want. Switch to the full roster when you need everybody. The
+                <b>?</b> beside the button explains what trimming leaves out, and the Pro and Alumni
+                tick boxes above work either way.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="day-comments">Bold text and links in a day&rsquo;s comment</h3>
+            <div class="where">
+                <b>Where:</b> Calendar &rarr; click a date &rarr; <i>Event Name/Comment</i>
+            </div>
+            <p>
+                The comment that appears under a date on the calendar accepts a little formatting:
+            </p>
+            <ul>
+                <li><code>&lt;b&gt;bold&lt;/b&gt;</code> and <code>&lt;i&gt;italic&lt;/i&gt;</code></li>
+                <li><code>&lt;br&gt;</code> for a line break</li>
+                <li><code>&lt;a href=https://example.com&gt;click here&lt;/a&gt;</code> for a link,
+                    which opens in a new window</li>
+            </ul>
+            <p>
+                Useful for pointing at a sign-up form or a race schedule from the day itself.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="phone-format">A standard format for phone numbers</h3>
+            <div class="where"><b>Where:</b> <i>My Info</i>, and Directors editing a member</div>
+            <p>
+                Phone numbers now have to be entered as <b>999-999-9999</b>. They are still
+                optional &mdash; only the format changed, and only when somebody edits their
+                details. Numbers already in your roster in another format are left alone until
+                someone next updates them.
+            </p>
+            <p>
+                <b>Why:</b> a consistent format is what makes text messaging possible, which is on
+                the list below.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="no-double-booking">Nobody can be put on the same shift twice</h3>
+            <div class="where">
+                <b>Where:</b> the <i>Assign Patrollers</i> grids on a day and on a template
+            </div>
+            <p>
+                Insert a name that is already on that shift and you are told, rather than finding
+                out when somebody does not turn up. A patroller can of course work the morning and
+                the afternoon &mdash; those are different shifts.
+            </p>
+            <p>
+                A shift that needs more than ten patrollers is entered as several rows sharing the
+                same start and end time. Those count as one shift for this purpose, which is how the
+                person working it thinks of it.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+
+        <h2 class="category">Upcoming features</h2>
+        <p class="category-note">Not built yet &mdash; this is the direction, and where you can steer it.</p>
+        <!-- ================================================================= -->
+        <div class="feature coming">
+            <h3 id="coming-soon">Coming soon</h3>
+            <p>Not built yet, but this is the direction:</p>
+            <ul>
+                <li><b>Sync shifts to a personal calendar</b> (Apple, Google, Outlook). A patroller
+                    would see their shifts appear in their own calendar automatically. This is why
+                    shifts now need a real start and end time &mdash; please fill those in on your
+                    templates before your patrollers start signing up, so every day of the season is
+                    built correctly from the start.</li>
+                <li><b>Text-message reminders and urgent notices</b> &mdash; the reason phone numbers
+                    now have a standard format.</li>
+                <li><b>Upload a roster downloaded from nsp.org</b>, for the patrol representative,
+                    to add new patrollers without typing them in.</li>
+            </ul>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+
+        <!-- ================================================================= -->
+        <div class="feature coming">
+            <h3 id="what-is-missing">What is missing &mdash; tell me</h3>
+            <p>
+                This list is short because it is built from what patrols have asked for. If there is
+                something your patrol does by hand every season, or something you expected to find
+                here and did not, I would like to hear it &mdash; it may be useful to other patrols
+                too, and most of what is above started as somebody&rsquo;s email.
+            </p>
+            <p>
+                <a th:href="'mailto:' + ${@site.supportEmail}
+                            + '?subject=Patrol calendar - a feature that would help us'"
+                   th:text="'Email Steve Gledhill at ' + ${@site.supportEmail}">Email Steve</a>
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+
+        <p>
+            Something here unclear, or not working the way it reads?
+            <a th:href="'mailto:' + ${@site.supportEmail}" th:text="${@site.supportEmail}">support</a>
+        </p>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

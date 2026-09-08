@@ -38,11 +38,10 @@ import java.util.TreeSet;
 @Service
 public class SiteDirectorsService {
 
-    /** The demo resort: real people are never in it, so it is never mailed. */
-    public static final String DEMO_RESORT = "Sample";
-
     /**
-     * Directors of every resort but {@link #DEMO_RESORT}, resort by resort in name order.
+     * Directors of every resort whose members are real - see {@link PatrolData#isDemoResort},
+     * which covers Sample and its nightly master SampleBackup. Their "directors" are invented
+     * people with invented addresses.
      *
      * Someone who directs two resorts is listed once, under whichever resort comes first
      * alphabetically: this list exists to notify people, and telling the same person twice about
@@ -56,7 +55,7 @@ public class SiteDirectorsService {
         int resortsWithDirectors = 0;
 
         for (String resort : new TreeSet<>(PatrolData.resortMap.keySet())) {
-            if (DEMO_RESORT.equalsIgnoreCase(resort)) {
+            if (PatrolData.isDemoResort(resort)) {
                 continue;
             }
             List<EmailRecipient> found = directorsAt(resort, seenEmails, sessionData, LOG);

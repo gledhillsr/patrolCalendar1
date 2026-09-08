@@ -37,7 +37,7 @@ public class MemberLoginController {
     model.addAttribute("resort", resort);
     model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
     model.addAttribute("gotoPage", gotoPage);
-    model.addAttribute("showSampleCredentials", resort != null && resort.equalsIgnoreCase("Sample"));
+    model.addAttribute("showSampleCredentials", PatrolData.isDemoResort(resort));
     model.addAttribute("logoutLink", "");
 
     ResortData resortData = PatrolData.getResortInfo(resort);
@@ -75,7 +75,7 @@ public class MemberLoginController {
     model.addAttribute("resort", resort);
     model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
     model.addAttribute("gotoPage", gotoPage);
-    model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+    model.addAttribute("showSampleCredentials", PatrolData.isDemoResort(resort));
 
     // 5a. Add resort metadata for header
     ResortData resortData = PatrolData.getResortInfo(resort);
@@ -319,7 +319,7 @@ public class MemberLoginController {
         model.addAttribute("resortFullName",
                            PatrolData.getResortFullName(resort, LOG));
         model.addAttribute("gotoPage", gotoPage);
-        model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+        model.addAttribute("showSampleCredentials", PatrolData.isDemoResort(resort));
 
         // Add resort metadata for header
         ResortData resortData = PatrolData.getResortInfo(resort);
@@ -364,9 +364,10 @@ public class MemberLoginController {
     javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
     Logger LOG = new Logger(MemberLoginController.class, javaxRequest, "POST", resort, Logger.INFO);
 
-    // Password changes are not allowed on the Sample demo resort
-    if ("Sample".equalsIgnoreCase(resort)) {
-      String demoMessage = "Password changes are not allowed on the Sample demo resort.";
+    // Password changes are not allowed on a demo resort - its members are invented, and Sample
+    // is restored from SampleBackup nightly, so a reset would be undone at 2am anyway
+    if (PatrolData.isDemoResort(resort)) {
+      String demoMessage = "Password changes are not allowed on the demo resort.";
       model.addAttribute("errorMessage", demoMessage);
       model.addAttribute("popupMessage", demoMessage);
       model.addAttribute("resort", resort);
@@ -435,7 +436,7 @@ public class MemberLoginController {
         model.addAttribute("resort", resort);
         model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
         model.addAttribute("gotoPage", gotoPage);
-        model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+        model.addAttribute("showSampleCredentials", PatrolData.isDemoResort(resort));
 
         // Add resort metadata for header
         ResortData resortData = PatrolData.getResortInfo(resort);
@@ -457,7 +458,7 @@ public class MemberLoginController {
         model.addAttribute("resort", resort);
         model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
         model.addAttribute("gotoPage", gotoPage);
-        model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+        model.addAttribute("showSampleCredentials", PatrolData.isDemoResort(resort));
 
         // Add resort metadata for header
         ResortData resortData = PatrolData.getResortInfo(resort);
@@ -497,7 +498,7 @@ public class MemberLoginController {
         model.addAttribute("resort", resort);
         model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
         model.addAttribute("gotoPage", gotoPage);
-        model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+        model.addAttribute("showSampleCredentials", PatrolData.isDemoResort(resort));
 
         // Add resort metadata for header
         ResortData failResortData = PatrolData.getResortInfo(resort);
@@ -519,7 +520,7 @@ public class MemberLoginController {
       model.addAttribute("resort", resort);
       model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
       model.addAttribute("gotoPage", gotoPage);
-      model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+      model.addAttribute("showSampleCredentials", PatrolData.isDemoResort(resort));
 
       // Add resort metadata for header
       ResortData resortData = PatrolData.getResortInfo(resort);
@@ -540,7 +541,7 @@ public class MemberLoginController {
       model.addAttribute("resort", resort);
       model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
       model.addAttribute("gotoPage", gotoPage);
-      model.addAttribute("showSampleCredentials", resort.equalsIgnoreCase("Sample"));
+      model.addAttribute("showSampleCredentials", PatrolData.isDemoResort(resort));
 
       // Add resort metadata for header
       ResortData resortData = PatrolData.getResortInfo(resort);

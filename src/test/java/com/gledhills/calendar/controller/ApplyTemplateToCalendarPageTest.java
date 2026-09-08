@@ -2,6 +2,7 @@ package com.gledhills.calendar.controller;
 
 import com.gledhills.calendar.store.Assignments;
 import com.gledhills.calendar.store.ShiftDefinitions;
+import com.gledhills.calendar.store.DirectorSettings;
 import com.gledhills.calendar.store.ShiftTemplatePatrollers;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
@@ -21,6 +22,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.MonthDay;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
@@ -85,8 +88,11 @@ class ApplyTemplateToCalendarPageTest {
     });
   }
 
+  /** Both conditions met: a weekday name, and somebody assigned to the template. */
   @Test
-  void theButtonIsLiveForADayOfWeekTemplate() throws Exception {
+  void theButtonIsLiveForADayOfWeekTemplateWithPatrollers() throws Exception {
+    givenTemplateRowZeroHolds(MEMBER_ID);
+
     String button = applyButton(templatesPage(TEMPLATE));
 
     assertFalse(button.contains("disabled"), "Saturday should be applicable: " + button);
@@ -100,6 +106,21 @@ class ApplyTemplateToCalendarPageTest {
     assertTrue(button.contains("disabled"),
                NAMED_TEMPLATE + " has no weekday to match, so the button must be dead: " + button);
     assertTrue(button.contains("Sunday to Saturday"), "and say why: " + button);
+  }
+
+  /**
+   * A weekday template with nobody on it is dead too. Applying it would only write the shifts the
+   * calendar already draws on every in-season day of that weekday, so the button says to assign
+   * patrollers first rather than doing something that looks like nothing.
+   */
+  @Test
+  void theButtonIsDeadForADayOfWeekTemplateWithNoPatrollers() throws Exception {
+    String button = applyButton(templatesPage(TEMPLATE));
+
+    assertTrue(button.contains("disabled"),
+               "with nobody assigned the button must be dead: " + button);
+    assertTrue(button.contains("Assign patrollers to this template first"),
+               "and say what to do about it: " + button);
   }
 
   /** The whole point of the panel: the heading and the text say what it is about to do. */
@@ -238,7 +259,7 @@ class ApplyTemplateToCalendarPageTest {
       .andReturn().getResponse().getContentAsString();
   }
 
-  /** The panel as it opens from the template editor: dates empty, nothing worked out yet. */
+  /** The panel as it opens: dates prefilled with the season, nothing worked out yet. */
   private String openApplyPanel() throws Exception {
     return perform(post("/EditShiftTemplates")
                      .param("resort", "Sample")
@@ -360,5 +381,98 @@ class ApplyTemplateToCalendarPageTest {
     session.setAttribute("loggedInUserId", DIRECTOR_ID);
     session.setAttribute("loggedInResort", "Sample");
     return session;
+  }
+
+  /**
+   * Opening the panel offers the resort's season, since that is the range a director applying a
+   * weekday template almost always wants.
+   */
+  @Test
+  void thePanelOpensOnTheSeasonDates() throws Exception {
+    givenTemplateRowZeroHolds(MEMBER_ID);
+
+    String page = openApplyPanel();
+    String from = valueOf(page, "applyFrom");
+    String to = valueOf(page, "applyTo");
+
+    assertTrue(from.matches("\\d{4}-\\d{2}-\\d{2}"), "from should be a date, got: " + from);
+    assertTrue(to.matches("\\d{4}-\\d{2}-\\d{2}"), "to should be a date, got: " + to);
+    assertTrue(from.compareTo(to) < 0, "the season should start before it ends: " + from + ".." + to);
+
+    withPatrolData((log, patrolData) -> {
+      DirectorSettings settings = patrolData.readDirectorSettings();
+      //stored 0-based, the Calendar.MONTH convention
+      assertEquals(String.format("%02d-%02d", settings.getStartMonth() + 1, settings.getStartDay()),
+                   from.substring(5), "from should be the season start day and month");
+      assertEquals(String.format("%02d-%02d", settings.getEndMonth() + 1, settings.getEndDay()),
+                   to.substring(5), "to should be the season end day and month");
+    });
+  }
+
+  /** Dates the director typed are theirs: the season must not overwrite them on the way back. */
+  @Test
+  void typedDatesSurviveTheConflictQuestion() throws Exception {
+    givenTemplateRowZeroHolds(MEMBER_ID);
+    givenTheEighthIsAlreadyScheduled();
+
+    String page = apply();
+
+    assertEquals(FROM, valueOf(page, "applyFrom"), "the from date the director chose must stay");
+    assertEquals(TO, valueOf(page, "applyTo"), "and so must the to date");
+  }
+
+  /** The value attribute of a named input, as the browser would send it back. */
+  private static String valueOf(String page, String name) {
+    java.util.regex.Matcher field = java.util.regex.Pattern
+      .compile("<input[^>]*name=\"" + name + "\"[^>]*>").matcher(page);
+    assertTrue(field.find(), "the panel should carry a " + name + " field");
+    java.util.regex.Matcher value =
+      java.util.regex.Pattern.compile("value=\"([^\"]*)\"").matcher(field.group());
+    return value.find() ? value.group(1) : "";
+  }
+
+  /**
+   * Which years the season maps onto, checked at four points in the year - the page can only ever
+   * be rendered on today's date, so the wrap-around is unreachable through it.
+   *
+   * <p>The rule for a season that crosses New Year (December to May here): if today is on or
+   * before the end date, we are in the tail of the season that began last winter. Otherwise - deep
+   * winter, or the summer before it - the range wanted is the season now running or about to
+   * start. A director filling templates in August is preparing for the coming winter, not
+   * revisiting the one that finished in May.
+   */
+  @Test
+  void theSeasonYearsFollowTheCalendar() {
+    MonthDay start = MonthDay.of(12, 1);
+    MonthDay end = MonthDay.of(5, 30);
+
+    assertEquals("2026-12-01..2027-05-30", seasonFor(start, end, LocalDate.of(2026, 9, 8)),
+                 "September is between seasons: offer the one about to start");
+    assertEquals("2026-12-01..2027-05-30", seasonFor(start, end, LocalDate.of(2026, 12, 15)),
+                 "mid-December is the head of this season");
+    assertEquals("2025-12-01..2026-05-30", seasonFor(start, end, LocalDate.of(2026, 2, 10)),
+                 "February is the tail of the season that began last winter");
+    assertEquals("2025-12-01..2026-05-30", seasonFor(start, end, LocalDate.of(2026, 5, 30)),
+                 "the last day of the season is still inside it");
+
+    //a season inside one year needs no wrapping at all
+    assertEquals("2026-01-05..2026-03-20",
+                 seasonFor(MonthDay.of(1, 5), MonthDay.of(3, 20), LocalDate.of(2026, 9, 8)),
+                 "a season that does not cross New Year is simply this year");
+  }
+
+  /** The same arithmetic EditShiftTemplatesController.seasonRange does. */
+  private static String seasonFor(MonthDay start, MonthDay end, LocalDate today) {
+    int startYear = today.getYear();
+    int endYear = today.getYear();
+    if (end.isBefore(start)) {
+      if (!MonthDay.from(today).isAfter(end)) {
+        startYear--;
+      }
+      else {
+        endYear++;
+      }
+    }
+    return start.atYear(startYear) + ".." + end.atYear(endYear);
   }
 }

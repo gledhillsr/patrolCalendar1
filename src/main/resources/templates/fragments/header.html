@@ -143,6 +143,13 @@
                    th:target="${button.url.startsWith('/') ? '_self' : '_blank'}">Button</a>
                 <a th:if="${pid != null and pid != ''}" class="nav-btn nav-btn-logout"
                    target="_self" th:href="@{/MemberLogout(resort=${resort})}">Logout</a>
+                <!-- Directors only, and set apart from Logout so it does not read as part of the
+                     everyday menu. Asked of the service rather than threaded through every
+                     controller, the same as the custom buttons above. -->
+                <a th:if="${pid != null and pid != ''
+                            and @headerViewerService.isDirector(resort, pid)}"
+                   class="nav-btn nav-btn-new-features" target="_self"
+                   th:href="@{/NewFeatures(resort=${resort}, ID=${pid})}">New Features</a>
             </div>
         </div>
     </div>

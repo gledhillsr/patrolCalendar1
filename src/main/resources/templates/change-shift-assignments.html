@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <title th:text="${dayOfWeekName + ' ' + monthFullName + ' ' + dayOfMonth + ', ' + year}">Change Shift</title>
     <th:block th:replace="~{fragments/head :: icons}"></th:block>
+    <!-- This page draws no site header, but header.css also carries the shared page chrome every
+         other screen gets from it - the 16px the body is inset by, and the sticky footer. Loading
+         it keeps that inset defined once; the #banner rules simply match nothing here. -->
+    <link rel="stylesheet" th:href="@{/css/header.css}"/>
     <script>
         function goHome() {
             history.back();

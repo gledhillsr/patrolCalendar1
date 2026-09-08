@@ -338,8 +338,8 @@ public class ProcessChangeShiftAssignmentsController {
       LOG.debug("no mail: back door user");
       return;
     }
-    if (resort.equalsIgnoreCase("Sample")) {
-      LOG.debug("no mail: Sample resort");
+    if (PatrolData.isDemoResort(resort)) {
+      LOG.debug("no mail: demo resort " + resort);
       return;
     }
 

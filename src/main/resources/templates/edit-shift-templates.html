@@ -255,17 +255,22 @@
         <input type="submit" name="assignPatrollers" value="Assign Patrollers to this template"
                form="templateForm">
         &nbsp;&nbsp;
-        <!-- Live only for Sunday..Saturday: the weekday in the name is what decides which days of
-             the range get the template, so a template named anything else has nothing to match. -->
-        <input type="submit" name="applyToCalendar" value="Apply to calendar..."
+        <!-- Live only for a Sunday..Saturday template that has patrollers on it. The weekday in
+             the name is what decides which days of the range get it; the patrollers are the whole
+             reason to apply it at all, since the calendar already draws an unassigned day-of-week
+             template on every in-season day by itself. -->
+        <input type="submit" name="applyToCalendar"
+               value="Apply &lsquo;day of week&rsquo; named templates with assigned patrollers to calendar"
                form="templateForm"
-               th:disabled="${!selectedShiftIsDayOfWeek}"
-               th:title="${selectedShiftIsDayOfWeek}
-                         ? 'Put this template on every ' + ${selectedShift} + ' in a date range'
-                         : 'Only the day-of-week templates (Sunday to Saturday) can be applied to the calendar'">
+               th:disabled="${!selectedShiftIsDayOfWeek or selectedTemplatePatrollers == 0}"
+               th:title="${!selectedShiftIsDayOfWeek}
+                         ? 'Only the day-of-week templates (Sunday to Saturday) can be applied to the calendar'
+                         : (${selectedTemplatePatrollers} == 0
+                            ? 'Assign patrollers to this template first - without them the calendar already shows these shifts on every ' + ${selectedShift} + ' in your season'
+                            : 'Put this template, and its patrollers, on every ' + ${selectedShift} + ' in a date range')">
         <span th:if="${selectedTemplatePatrollers > 0}" class="has-patrollers"
-              th:text="'&#9654; ' + ${selectedShift} + ' has ' + ${selectedTemplatePatrollers}
-                       + ' patroller(s) assigned'">has patrollers</span>
+              th:text="'&#9654; &lsquo;' + ${selectedShift} + '&rsquo; has '
+                       + ${selectedTemplatePatrollers} + ' patroller(s) assigned'">has patrollers</span>
     </div>
 
     <div align="center" th:unless="${assignPatrollers or applyToCalendar}">
@@ -505,7 +510,7 @@
                                                        onclick="insertName(this.form, document.getElementsByName(this.dataset.fieldname)[0])">
                                             </td>
                                             <td width="35%" bgcolor="#C0C0C0"
-                                                th:text="${slot.time}">Time</td>
+                                                th:text="${slot.displayTime}">Time</td>
                                             <td width="30%" bgcolor="#C0C0C0">
                                                 <input readonly type="text"
                                                        th:name="${slot.fieldName}" size="18"

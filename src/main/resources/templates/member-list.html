@@ -68,6 +68,14 @@
                th:data-url="${emailFormUrl}"
                onclick="window.location=this.getAttribute('data-url')"/>
 
+        <!-- Downloads exactly the rows and columns on screen: same selection string as the email
+             button beside it, so the two cannot pick different people. -->
+        <input type="button"
+               value="Download to Excel"
+               title="Download this list as a spreadsheet"
+               th:data-url="${downloadRosterUrl}"
+               onclick="window.location=this.getAttribute('data-url')"/>
+
         <!-- Opt-in classifications. A GET form so the choice lands in the URL and the page can be
              bookmarked or reloaded; each box reloads the list, which also rebuilds the email
              button's URL so it keeps offering exactly who is on screen.

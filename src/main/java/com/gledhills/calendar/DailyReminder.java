@@ -170,7 +170,7 @@ public class DailyReminder {
     //setup credentials and connection
     //loop for resorts
     for (String resort : PatrolData.resortMap.keySet()) {
-      if (!"Sample".equals(resort)) {
+      if (!PatrolData.isDemoResort(resort)) {   //invented members: nothing to remind, nobody to email
         try {
           sessionData.setLoggedInResort(resort); //used to set From field in emails (if director has SES verified address)
           MailMan mail = new MailMan(sessionData.getEmailUser(), sessionData, LOG);

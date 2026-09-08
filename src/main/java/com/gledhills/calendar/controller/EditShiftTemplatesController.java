@@ -4,6 +4,7 @@ import com.gledhills.calendar.utils.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import com.gledhills.calendar.store.Assignments;
+import com.gledhills.calendar.store.DirectorSettings;
 import com.gledhills.calendar.store.ShiftDefinitions;
 import com.gledhills.calendar.store.ShiftTemplatePatrollers;
 import com.gledhills.calendar.store.Roster;
@@ -22,6 +23,7 @@ import com.gledhills.calendar.service.ShiftTemplateApplyService;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.MonthDay;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -543,6 +545,56 @@ public class EditShiftTemplatesController {
      * Helper class for shift with index (for form field naming).
      */
     /**
+     * The resort's season as two {@code yyyy-MM-dd} dates, for the Apply panel to start from.
+     *
+     * <p>The season is stored as month and day with no year (Directors &rarr; Web Site
+     * Preferences), and a ski season crosses New Year, so the years have to be worked out:
+     *
+     * <ul>
+     *   <li><b>A season that wraps</b> - starts November, ends April - runs from this year into
+     *       next if we are already past its start, and from last year into this if we are not. In
+     *       February you are inside the season that began last November, and that is the range you
+     *       want offered.</li>
+     *   <li><b>A season inside one year</b> is simply this year.</li>
+     * </ul>
+     *
+     * <p>Returns two empty strings rather than throwing if the settings are missing or hold a date
+     * that does not exist: an unhelpful default is better than a panel that will not open.
+     *
+     * <p>Months are stored 0-based, the {@code Calendar.MONTH} convention {@code isInSeason} uses.
+     */
+    private String[] seasonRange(PatrolData patrolData, Logger LOG) {
+        try {
+            DirectorSettings settings = patrolData.readDirectorSettings();
+            if (settings == null) {
+                return new String[] {"", ""};
+            }
+            MonthDay start = MonthDay.of(settings.getStartMonth() + 1, settings.getStartDay());
+            MonthDay end = MonthDay.of(settings.getEndMonth() + 1, settings.getEndDay());
+
+            LocalDate today = LocalDate.now();
+            int startYear = today.getYear();
+            int endYear = today.getYear();
+
+            if (end.isBefore(start)) {                       //a season that crosses New Year
+                if (!MonthDay.from(today).isAfter(end)) {
+                    startYear--;                             //January..April: the tail of the
+                                                             //season that began last winter
+                }
+                else {
+                    endYear++;                               //winter, or the summer before it:
+                                                             //the season now or about to start
+                }
+            }
+            return new String[] {start.atYear(startYear).toString(), end.atYear(endYear).toString()};
+        }
+        catch (Exception e) {
+            LOG.info("could not work out the season range for the apply panel: " + e.getMessage());
+            return new String[] {"", ""};
+        }
+    }
+
+    /**
      * Drive the "Apply to calendar" panel. Apply writes straight away unless days in the range are
      * already scheduled, in which case it stops and asks; the answer comes back on the next Apply,
      * marked by the question's own hidden field, and only then is anything written.
@@ -553,8 +605,14 @@ public class EditShiftTemplatesController {
         LocalDate from = parseDate(request.getParameter("applyFrom"));
         LocalDate to = parseDate(request.getParameter("applyTo"));
 
-        model.addAttribute("applyFrom", request.getParameter("applyFrom"));
-        model.addAttribute("applyTo", request.getParameter("applyTo"));
+        //Opening the panel offers the season as the range, since that is what a director applying
+        //a weekday template almost always means. Only when nothing was posted: once they have
+        //typed dates, those are theirs and must survive the conflict question's round trip.
+        String[] season = seasonRange(patrolData, LOG);
+        model.addAttribute("applyFrom",
+                           from == null ? season[0] : request.getParameter("applyFrom"));
+        model.addAttribute("applyTo",
+                           to == null ? season[1] : request.getParameter("applyTo"));
 
         if (request.getParameter("confirmApply") == null) {
             return; // the panel just opened; there is nothing to work out yet
@@ -636,14 +694,18 @@ public class EditShiftTemplatesController {
             ShiftDefinitions shift = row.getShift();
             List<String> assigned =
                 patrollersByShift.getOrDefault(shift.getEventName(), new ArrayList<>());
+            //two values, deliberately: the key groups the rows the browser checks for duplicates
+            //and must stay keyed on the times alone, while the label is only ever shown
             String time = shiftKey(shift);
+            String displayTime = shift.describeLabelAndTimes();
 
             for (int position = 0; position < shift.getCount(); position++) {
                 String patrollerId = position < assigned.size() ? assigned.get(position) : null;
                 String memberName = ShiftTemplatePatrollers.isEmpty(patrollerId)
                     ? "" : idToName.getOrDefault(patrollerId, "");
 
-                slots.add(new TemplateSlot(slotFieldName(row.getIndex(), position), time, memberName));
+                slots.add(new TemplateSlot(slotFieldName(row.getIndex(), position), time,
+                                           displayTime, memberName));
             }
         }
         return slots;
@@ -768,15 +830,26 @@ public class EditShiftTemplatesController {
         return idToName;
     }
 
-    /** One slot of one template row, for the "Assign Patrollers to this template" grid. */
+    /**
+     * One slot of one template row, for the "Assign Patrollers to this template" grid.
+     *
+     * <p><b>{@code time} and {@code displayTime} are not interchangeable.</b> {@code time} is the
+     * shiftKey - the times alone - and the grid renders it into {@code data-shift}, which is what
+     * the browser groups by when it checks that nobody is on the same shift twice. A shift needing
+     * more than 10 patrollers is several rows sharing a time, and those rows need not share a
+     * label, so putting the label in that key would split one real shift into two and let somebody
+     * be booked on both. {@code displayTime} carries the label and is only ever shown.
+     */
     public static class TemplateSlot {
         private final String fieldName;
         private final String time;
+        private final String displayTime;
         private final String memberName;
 
-        TemplateSlot(String fieldName, String time, String memberName) {
+        TemplateSlot(String fieldName, String time, String displayTime, String memberName) {
             this.fieldName = fieldName;
             this.time = time;
+            this.displayTime = displayTime;
             this.memberName = memberName;
         }
 
@@ -784,8 +857,14 @@ public class EditShiftTemplatesController {
             return fieldName;
         }
 
+        /** The grouping key: times only. Rendered into data-shift, never shown. */
         public String getTime() {
             return time;
+        }
+
+        /** What the row shows - "(dir) 8:00 - 16:30". Never used for grouping. */
+        public String getDisplayTime() {
+            return displayTime;
         }
 
         public String getMemberName() {

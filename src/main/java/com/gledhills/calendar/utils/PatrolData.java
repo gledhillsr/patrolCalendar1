@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
 
 import com.gledhills.calendar.store.*;
 import com.gledhills.calendar.store.*;
@@ -31,6 +32,26 @@ public class PatrolData {
   private static final String backDoorFakeFirstName = "System";
   private static final String backDoorFakeLastName = "Administrator";
   private static final String backDoorEmail = SiteIdentity.SUPPORT_EMAIL;
+
+  /**
+   * The demo resorts: made-up people, invented email addresses, nobody real.
+   *
+   * <p>{@code Sample} is the one visitors are pointed at to try the site. {@code SampleBackup} is
+   * its pristine copy - Sample is restored from it nightly, so anyone can experiment in Sample
+   * without leaving a mess. SampleBackup is in the resort map only so that jobs which walk every
+   * resort, such as the shift-label migration, keep its schema in step with everybody else's;
+   * without that the nightly restore would put an out-of-date schema back over Sample.
+   *
+   * <p><b>Anything that would contact a real person must skip these.</b> That was four separate
+   * {@code "Sample".equals(...)} checks, which is three places to forget when a second demo resort
+   * appears - as one just has.
+   */
+  private static final Set<String> DEMO_RESORTS = Set.of("Sample", "SampleBackup");
+
+  /** Whether this resort's members are invented, so nothing may be emailed to them. */
+  public static boolean isDemoResort(String resort) {
+    return resort != null && DEMO_RESORTS.contains(resort.trim());
+  }
 
   public static final HashMap<String, ResortData> resortMap = new HashMap<>();
   static private final int IMG_HEIGHT = 80;
@@ -143,6 +164,10 @@ public class PatrolData {
                                  IMG_HEIGHT, 80));
     resortMap.put("Sample", new ResortData("Sample", "Sample Resort", null, "http://www.gledhills.com",
                                            "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+    //The pristine copy Sample is restored from at 2am. Listed here so the site-wide schema jobs
+    //reach it - see isDemoResort. Not meant to be browsed; its data is whatever Sample last was.
+    resortMap.put("SampleBackup", new ResortData("SampleBackup", "Sample Resort (nightly master)", null, "http://www.gledhills.com",
+                                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("Snowbowl", new ResortData("Snowbowl", "Snowbowl", null, "http://www.snowbowlskipatrol.org",
                                              "/calendar-1/images/Coldbarnstar.png", 80, 80));
     resortMap.put("SnowCreek", new ResortData("SnowCreek", "Snow Creek", null, "http://www.skisnowcreek.com",

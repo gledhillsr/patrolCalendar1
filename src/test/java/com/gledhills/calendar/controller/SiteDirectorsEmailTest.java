@@ -2,6 +2,7 @@ package com.gledhills.calendar.controller;
 
 import com.gledhills.calendar.dto.EmailRecipient;
 import com.gledhills.calendar.service.SiteDirectorsService;
+import com.gledhills.calendar.utils.PatrolData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -122,7 +123,7 @@ class SiteDirectorsEmailTest {
         assertFalse(page.contains("(Sample)"), "nor labelled");
 
         for (EmailRecipient director : siteDirectorsService.allDirectors(sessionData(), logger())) {
-            assertFalse(SiteDirectorsService.DEMO_RESORT.equalsIgnoreCase(director.getResort()),
+            assertFalse(PatrolData.isDemoResort(director.getResort()),
                         "the service itself should skip Sample, not just the page");
         }
     }

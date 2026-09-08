@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -398,5 +399,26 @@ class NoDuplicateOnAShiftTest {
     session.setAttribute("loggedInUserId", DIRECTOR_ID);
     session.setAttribute("loggedInResort", "Sample");
     return session;
+  }
+
+  /**
+   * Both assign grids show a slot's label, and neither groups by it.
+   *
+   * <p>The visible text is "(dir) 8:00 - 16:30" while {@code data-shift} - what the browser groups
+   * by for this very rule - stays keyed on the times alone. A shift needing more than 10 patrollers
+   * is several rows sharing a time, and those rows need not share a label: a label in that key
+   * would split one real shift into two and let somebody be booked on both halves of it.
+   */
+  @Test
+  void theGridsShowTheLabelWithoutGroupingByIt() throws Exception {
+    for (String page : new String[] {dayAssignGrid(), templateAssignGrid()}) {
+      java.util.regex.Matcher shift =
+        java.util.regex.Pattern.compile("data-shift=\"([^\"]*)\"").matcher(page);
+
+      while (shift.find()) {
+        assertFalse(shift.group(1).contains("("),
+                    "a label must never reach the grouping key: [" + shift.group(1) + "]");
+      }
+    }
   }
 }

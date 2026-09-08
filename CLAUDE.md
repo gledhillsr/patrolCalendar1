@@ -152,7 +152,10 @@ Template patrollers are a starting point, not a schedule. They become real only 
 - **`ShiftTemplateApplyService`** ("Apply to calendar..." on EditShiftTemplates): a date range, the
   weekday in the name picking the days out of it — a `Monday` template lands on every Monday in the
   range and nowhere else. The button is dead for any other template name, since nothing else has a
-  weekday to match. The panel is a date range and one **Apply** button, which writes immediately.
+  weekday to match. **The button is also dead when the template has no patrollers on it** — an
+  unassigned day-of-week template needs no applying, because the calendar already draws its shifts
+  on every matching in-season day by itself, so applying it would look like doing nothing. The panel
+  is a date range and one **Apply** button, which writes immediately.
 
   A matching day that is **already scheduled is never quietly rewritten**. Apply stops, names those
   days by date, and offers a skip/overwrite radio (skip checked): `ConflictMode.SKIP` leaves them
@@ -236,6 +239,12 @@ Things worth knowing:
   split one real shift into two and let somebody be booked twice on it.
 - **The browser's duplicate check groups by `data-shift="${slot.time}"`, which the *server*
   renders** from `shiftKey`. It never reads the Start input, so the split did not disturb it.
+- **Both assign grids show the label but do not group by it.** The visible cell is
+  `describeLabelAndTimes()` — `(dir) 8:00 - 16:30` — while `data-shift` stays keyed on the times
+  alone. They are two separate values on purpose: `TemplateSlot` carries `time` and `displayTime`,
+  and day-shifts.html builds both in its `th:with`. Merging them would split one long shift's rows
+  into separate shifts whenever their labels differed, and let somebody be booked on both.
+  `NoDuplicateOnAShiftTest` asserts no `data-shift` on either page ever contains a bracket.
 - **A non-time typed into Start moves to the Label** (`StartAndLabel`) rather than being rejected,
   which is the same rule the migration applied to twenty years of them. The browser says so first;
   the server is the backstop for a form posted around it.
@@ -297,6 +306,17 @@ mismatches have already been fixed, all of which mailed people the page never sh
   code are excluded), so they cannot drift; the loop also skips commitment `"0"`, which is why the
   URL carries `FullTime`/`PartTime` but never `Inactive=1`. **Change the list, not either copy.**
 
+**The Patrollers tab's "Download to Excel" button has the same problem and the same answer.**
+`MemberListController.selectionQuery` builds the query string once and both buttons append it, so
+the download and the email cannot select different people. Add a filter to one and you have added
+it to both.
+
+**`DownloadRoster` is open to any signed-in member**, not just directors. The Patrollers tab already
+shows every member's cell number and email on screen and now offers the download beside them, so the
+spreadsheet is the same data in a portable form rather than new access — but it is a deliberate
+choice, not an oversight, and narrowing it again means changing the controller *and* hiding the
+button.
+
 `EmailListMatchesPatrollerListTest` walks the real route — reads the page, pulls the button's URL
 out of it, follows it, compares the two name lists. Note the Sample roster has no inactive member,
 so the inactive case is pinned on the URL rather than on the lists.
@@ -349,6 +369,31 @@ Two things that bite tests: the header now depends on a **database table**, so
 while somebody had a button configured would fail when they removed it), and any test that writes
 buttons must **snapshot and restore** rather than blanking — a director's real configuration is not
 the test's to delete.
+
+### The New Features Page
+
+`NewFeaturesController` (`/NewFeatures`) is a director-only page describing what has been added
+lately, in a director's words rather than a developer's. Reached from a **New Features** button in
+the members bar, to the right of Logout and set apart from it.
+
+**The page is static prose** — `new-features.html` — so adding a feature is an edit to that template
+and nothing else. Newest at the top. The contents list is hand-written on purpose: generating it
+would tie each entry's wording to a screen name, and the point is to describe what a director can
+now *do*. **Bug fixes are deliberately excluded**; this answers "what can I do that I could not
+before", which is a different question from "what was broken".
+
+`NewFeaturesPageTest` does not test the prose, but does test the two things that rot quietly: the
+access gate (a member gets 403, a visitor is redirected, the button is drawn for directors only and
+sits after Logout), and that **every contents entry points at a section that exists and every
+section is listed** — an added section nobody can reach from the top is exactly what no other test
+would notice.
+
+**`HeaderViewerService.isDirector` is how the header knows.** Called straight from the template like
+`${@menuButtonService.forHeader(...)}` beside it, for the same reason: every page draws this header,
+so threading a flag through twenty controllers means the twenty-first forgets. It reads the
+**session**, never the `ID` parameter, and never throws — a header that cannot reach the database
+draws no button rather than taking every page down. It costs one short query per page, and the page
+itself checks again before doing any work.
 
 ### Site Wide Configuration
 
@@ -591,6 +636,32 @@ from the Start Time work, so `onblur="checkEndTime(this)"` called a function tha
 failure is silent, the submit check let the bad value through, and the first thing to object was the
 server at save time — which reads as "the validation is in the wrong place" rather than "your
 browser has an old file". `StaticAssetVersioningTest` pins both halves.
+
+### The Sample Demo and its Nightly Restore
+
+`Sample` is the resort anyone is invited to experiment in, so it fills up with other people's trial
+shifts and half-finished edits. `SampleBackup` is the pristine copy it is restored from at **2am**
+by `restoreSampleResort.sh` (in `/etc/crontab` on the server, beside `doReminder.sh`). The direction
+never reverses — nothing writes to `SampleBackup`, so an experiment in Sample cannot reach the
+master. Re-baseline it by dumping Sample over it by hand; the recipe is at the foot of the script.
+
+**`SampleBackup` is in `PatrolData.resortMap`, and that is the whole point of it being there.** The
+restore copies the master's *table structure* as well as its rows, so a migration applied to Sample
+alone would be undone overnight. Being in the map means the site-wide jobs on **Site Wide
+Configuration** walk it like every other resort and keep its schema in step. It is not a resort
+anyone is meant to browse.
+
+**`PatrolData.isDemoResort` is the one test for "these members are invented".** It covers both
+Sample and SampleBackup, and **six** places ask it: `DailyReminder` (skips sending), the two email
+paths in `EmailFormController` and `ProcessChangeShiftAssignmentsController`, `SiteDirectorsService`
+(keeps them out of the all-directors list), and `MemberLoginController` (refuses password changes).
+Every one of those was its own `"Sample".equals(...)` — which is five places to forget the moment a
+second demo resort appears, and two of them would have started emailing made-up addresses nightly.
+`DemoResortTest` scans `src/main` and fails on any new comparison against the name.
+
+The server runs **MariaDB 10.5**, so `mysqldump` has no `--set-gtid-purged`; passing it aborts the
+dump. The script also writes the password to a `chmod 600` defaults file rather than a `-p` argument,
+which would be visible in `ps` to every user on the box.
 
 ## Adding a New Resort
 

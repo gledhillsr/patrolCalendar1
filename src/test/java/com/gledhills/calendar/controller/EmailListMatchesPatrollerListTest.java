@@ -43,6 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class EmailListMatchesPatrollerListTest {
 
   private static final String DIRECTOR_ID = "123456";
+  private static final String MEMBER_ID = "200401";
   private static final String BROWSER =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0 Safari/537.36";
 
@@ -251,5 +252,56 @@ class EmailListMatchesPatrollerListTest {
       names.add(unescape(matcher.group(1)).trim());
     }
     return names;
+  }
+
+  /**
+   * The Patrollers tab's "Download to Excel" button must pick the same people as the page, for
+   * exactly the reason the email button must: they are two buttons over one list, and they drifted
+   * three times when they were built from separate strings.
+   *
+   * <p>Both URLs are now built from one selection string, so this asserts they still are - the
+   * cheapest guard against somebody adding a filter to one and not the other.
+   */
+  @Test
+  void theDownloadButtonSelectsTheSamePeopleAsTheEmailButton() throws Exception {
+    for (boolean fullRoster : new boolean[] {false, true}) {
+      String page = memberListPage(fullRoster);
+
+      String emailUrl = urlFromButton(page, "EmailForm\\?[^\"]+");
+      String downloadUrl = urlFromButton(page, "DownloadRoster\\?[^\"]+");
+
+      assertEquals(emailUrl.substring(emailUrl.indexOf('&')),
+                   downloadUrl.substring(downloadUrl.indexOf('&')),
+                   (fullRoster ? "full" : "trimmed")
+                     + " roster: the two buttons must select the same members");
+    }
+  }
+
+  /** The button is there for an ordinary member, not only for a director. */
+  @Test
+  void everyMemberIsOfferedTheDownload() throws Exception {
+    MockHttpSession session = new MockHttpSession();
+    session.setAttribute("loggedInUserId", MEMBER_ID);
+    session.setAttribute("loggedInResort", "Sample");
+
+    String asMember = mockMvc.perform(get("/MemberList")
+                                        .param("resort", "Sample").param("ID", MEMBER_ID)
+                                        .header("User-Agent", BROWSER).session(session))
+                             .andExpect(status().isOk())
+                             .andReturn().getResponse().getContentAsString();
+
+    assertTrue(asMember.contains("Download to Excel"),
+               "the Patrollers tab should offer the download to any signed-in member");
+  }
+
+  private String memberListPage(boolean fullRoster) throws Exception {
+    return follow("MemberList?resort=Sample&ID=" + DIRECTOR_ID
+                    + (fullRoster ? "&fullRoster=true" : ""));
+  }
+
+  private static String urlFromButton(String page, String pattern) {
+    java.util.regex.Matcher found = java.util.regex.Pattern.compile(pattern).matcher(page);
+    assertTrue(found.find(), "the page should carry a " + pattern + " button");
+    return found.group();
   }
 }

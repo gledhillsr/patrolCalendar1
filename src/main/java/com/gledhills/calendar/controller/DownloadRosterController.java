@@ -72,17 +72,21 @@ public class DownloadRosterController {
         return null; // redirect to MemberLogin already sent
       }
 
+      // Any logged-in member of this resort may download it. The Patrollers tab already shows
+      // every member's cell number and email on screen, and offers a download button of its own,
+      // so the spreadsheet is the same data in a portable form rather than new access. Being
+      // logged in is still required: this is not open to the world.
       String userId = sessionData.getLoggedInUserId();
       Roster editor = patrolData.getMemberByID(userId);
-      if (editor == null || !editor.isDirector()) {
-        LOG.info("non-director id=" + userId + " asked to download the roster");
-        response.sendError(403, "Only directors may download the roster");
+      if (editor == null) {
+        LOG.info("unknown id=" + userId + " asked to download the roster");
+        response.sendError(403, "You must be signed in to download the roster");
         return null;
       }
 
       RosterSelection selection = rosterQueryService.select(request, patrolData);
       byte[] workbook = rosterExcelExporter.toXlsx(selection, PatrolData.getResortFullName(resort, LOG));
-      LOG.info("roster download: " + selection.members().size() + " members, " +
+      LOG.info("roster download by " + userId + ": " + selection.members().size() + " members, " +
                  workbook.length + " bytes");
 
       HttpHeaders headers = new HttpHeaders();

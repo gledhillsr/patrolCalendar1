@@ -62,10 +62,14 @@ class DownloadRosterControllerTest {
       .andExpect(status().is3xxRedirection());
   }
 
+  /**
+   * Any signed-in member may download it: the Patrollers tab shows the same cells and emails on
+   * screen and offers its own download button, so this is the same data in a portable form.
+   */
   @Test
-  void testNonDirectorIsRefused() throws Exception {
+  void aSignedInMemberMayDownload() throws Exception {
     mockMvc.perform(rosterRequest(MEMBER_ID))
-      .andExpect(status().isForbidden());
+           .andExpect(status().isOk());
   }
 
   @Test

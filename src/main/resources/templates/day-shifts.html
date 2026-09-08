@@ -472,6 +472,7 @@
                                                                  cleanId=${id.charAt(0) == '-' ? id.substring(1) : id},
                                                                  name=${numToName.get(cleanId)},
                                                                  time=${assignment.getStartingTimeString() + ' - ' + assignment.getEndingTimeString()},
+                                                                 displayTime=${assignment.describeLabelAndTimes()},
                                                                  fieldName=${'name' + T(com.gledhills.calendar.utils.PatrolData).IndexToString(iStat.index) + '_' + T(com.gledhills.calendar.utils.PatrolData).IndexToString(j)}">
                                                         <td width="20%" bgcolor="#C0C0C0">
                                                             <input type="button" value="Insert --&gt;"
@@ -479,7 +480,10 @@
                                                                    onclick="insertName(this.form, document.getElementsByName(this.dataset.fieldname)[0])"
                                                                    name="B14">
                                                         </td>
-                                                        <td width="35%" bgcolor="#C0C0C0" th:text="${time}">Time</td>
+                                                        <!-- displayTime carries the label; data-shift below must stay
+                                                             keyed on the times alone, or two rows of one long shift with
+                                                             different labels stop counting as the same shift -->
+                                                        <td width="35%" bgcolor="#C0C0C0" th:text="${displayTime}">Time</td>
                                                         <td width="30%" bgcolor="#C0C0C0">
                                                             <input readonly type="text" th:name="${fieldName}"
                                                                    th:data-shift="${time}"
