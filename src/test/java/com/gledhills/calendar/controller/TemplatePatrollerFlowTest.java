@@ -1,6 +1,7 @@
 package com.gledhills.calendar.controller;
 
 import com.gledhills.calendar.store.Assignments;
+import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.store.ShiftDefinitions;
 import com.gledhills.calendar.store.ShiftTemplatePatrollers;
 import com.gledhills.calendar.utils.Logger;
@@ -23,11 +24,14 @@ import org.springframework.web.context.WebApplicationContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -56,6 +60,13 @@ class TemplatePatrollerFlowTest {
   private static final int SCRATCH_MONTH = 2; //0 based: March
   private static final int SCRATCH_DATE = 15;
   private static final int SCRATCH_DAY_OF_WEEK = 6;
+  /**
+   * A Friday in the same scratch month. Sample's Friday template is the one carrying patrollers,
+   * and this has to be a date no golden fixture uses - writing to January 2026 broke
+   * MonthCalendarGoldenTest, which records that month from the live Sample data.
+   */
+  private static final int SCRATCH_FRIDAY = 7;
+  private static final int FRIDAY_DAY_OF_WEEK = 5;
 
   @Autowired
   private WebApplicationContext webApplicationContext;
@@ -72,7 +83,7 @@ class TemplatePatrollerFlowTest {
   void cleanUp() {
     withPatrolData((log, patrolData) -> {
       for (Assignments assignment : patrolData.readSortedAssignments(SCRATCH_YEAR, SCRATCH_MONTH + 1)) {
-        if (assignment.getDay() == SCRATCH_DATE) {
+        if (assignment.getDay() == SCRATCH_DATE || assignment.getDay() == SCRATCH_FRIDAY) {
           patrolData.deleteAssignment(assignment);
         }
       }
@@ -293,7 +304,7 @@ class TemplatePatrollerFlowTest {
   private void putPatrollerOnSavedRowZero() {
     withPatrolData((log, patrolData) -> {
       for (Assignments assignment : patrolData.readSortedAssignments(SCRATCH_YEAR, SCRATCH_MONTH + 1)) {
-        if (assignment.getDay() == SCRATCH_DATE) {
+        if (assignment.getDay() == SCRATCH_DATE || assignment.getDay() == SCRATCH_FRIDAY) {
           assignment.insertAt("Sample", 0, MEMBER_ID);
           assignment.setExisted(true);
           patrolData.writeAssignment(assignment);
@@ -383,7 +394,7 @@ class TemplatePatrollerFlowTest {
     List<String> rows = new ArrayList<>();
     withPatrolData((log, patrolData) -> {
       for (Assignments assignment : patrolData.readSortedAssignments(SCRATCH_YEAR, SCRATCH_MONTH + 1)) {
-        if (assignment.getDay() == SCRATCH_DATE) {
+        if (assignment.getDay() == SCRATCH_DATE || assignment.getDay() == SCRATCH_FRIDAY) {
           rows.add("pos=" + assignment.getDate() + " p0=" + assignment.getPosID(0));
         }
       }
@@ -467,5 +478,104 @@ class TemplatePatrollerFlowTest {
     assertEquals(sameShiftNoLabel.getStartString() + " - " + sameShiftNoLabel.getEndString(),
                  labelled.getStartString() + " - " + labelled.getEndString(),
                  "the grouping key is the times, so these two rows are the same shift");
+  }
+
+  /**
+   * "Apply this &lt;weekday&gt; template including assigned patrollers" on DayShifts.
+   *
+   * <p>The shift-format dropdown beside it lays a day out and leaves it empty; this one also
+   * brings the people pencilled into that weekday's template. It replaces the day, so anyone
+   * already on it goes - which is what the confirmation is for.
+   */
+  @Test
+  void applyingTheWeekdayTemplateBringsItsPatrollers() throws Exception {
+    //Sample's Friday template carries patrollers; 7 March 2025 is a Friday in the scratch month
+    String redirect = mockMvc.perform(post("/DayShifts")
+                                        .param("resort", "Sample").param("ID", DIRECTOR_ID)
+                                        .param("dayOfWeek", String.valueOf(FRIDAY_DAY_OF_WEEK))
+                                        .param("date", String.valueOf(SCRATCH_FRIDAY))
+                                        .param("month", String.valueOf(SCRATCH_MONTH))
+                                        .param("year", String.valueOf(SCRATCH_YEAR))
+                                        .param("applyDayTemplate", "Apply")
+                                        .header("User-Agent", BROWSER).session(directorSession()))
+                             .andReturn().getResponse().getRedirectedUrl();
+
+    List<String> onTheDay = patrollersOn(SCRATCH_YEAR, SCRATCH_MONTH + 1, SCRATCH_FRIDAY);
+    assertFalse(onTheDay.isEmpty(),
+                "the Friday template's patrollers should have been put on the day");
+
+    //back to the month, the same as Save - that is where the result is visible
+    assertNotNull(redirect, "applying should redirect, not redisplay the day");
+    assertTrue(redirect.contains("MonthCalendar"), "it should go to the calendar: " + redirect);
+    assertTrue(redirect.contains("month=" + SCRATCH_MONTH)
+                 && redirect.contains("year=" + SCRATCH_YEAR),
+               "and to the month the day is in: " + redirect);
+  }
+
+  /** Every id it wrote is really on the roster - a stale template entry must not be resurrected. */
+  @Test
+  void applyingTheWeekdayTemplateSkipsPeopleNoLongerOnTheRoster() throws Exception {
+    mockMvc.perform(post("/DayShifts")
+                      .param("resort", "Sample").param("ID", DIRECTOR_ID)
+                      .param("dayOfWeek", String.valueOf(FRIDAY_DAY_OF_WEEK))
+                      .param("date", String.valueOf(SCRATCH_FRIDAY))
+                      .param("month", String.valueOf(SCRATCH_MONTH))
+                      .param("year", String.valueOf(SCRATCH_YEAR))
+                      .param("applyDayTemplate", "Apply")
+                      .header("User-Agent", BROWSER).session(directorSession()));
+
+    withPatrolData((log, patrolData) -> {
+      Set<String> roster = new HashSet<>();
+      java.sql.ResultSet rows = patrolData.resetRoster();
+      Roster member;
+      while ((member = patrolData.nextMember("", rows)) != null) {
+        roster.add(member.getID());
+      }
+      for (String id : patrollersOn(SCRATCH_YEAR, SCRATCH_MONTH + 1, SCRATCH_FRIDAY)) {
+        assertTrue(roster.contains(id), id + " is not on the roster and should not have been added");
+      }
+    });
+  }
+
+  /** The ids on a day, ignoring empty slots and the missed-shift marker. */
+  private List<String> patrollersOn(int year, int month, int day) {
+    List<String> ids = new ArrayList<>();
+    withPatrolData((log, patrolData) -> {
+      for (Assignments assignment : patrolData.readSortedAssignments(year, month, day)) {
+        for (int slot = 0; slot < assignment.getCount(); slot++) {
+          String id = assignment.getPosID(slot);
+          if (id != null && !id.isEmpty() && !"0".equals(id)) {
+            ids.add(id.startsWith("-") ? id.substring(1) : id);
+          }
+        }
+      }
+    });
+    return ids;
+  }
+
+  /**
+   * The apply control sits with the other day-wide actions, below Save / Cancel / Delete All,
+   * rather than up beside the shift-format dropdown - like them it replaces the whole day and
+   * then leaves for the calendar.
+   */
+  @Test
+  void theApplyControlSitsBelowTheDayButtons() throws Exception {
+    //7 March 2025 is a Friday, and Sample's Friday template carries patrollers
+    String page = mockMvc.perform(get("/DayShifts")
+                                    .param("resort", "Sample").param("ID", DIRECTOR_ID)
+                                    .param("dayOfWeek", String.valueOf(FRIDAY_DAY_OF_WEEK))
+                                    .param("date", String.valueOf(SCRATCH_FRIDAY))
+                                    .param("month", String.valueOf(SCRATCH_MONTH))
+                                    .param("year", String.valueOf(SCRATCH_YEAR))
+                                    .header("User-Agent", BROWSER).session(directorSession()))
+                         .andExpect(status().isOk())
+                         .andReturn().getResponse().getContentAsString();
+
+    int apply = page.indexOf("applyDayTemplate");
+    assertTrue(apply > 0, "the apply button should be on the page");
+    assertTrue(apply > page.indexOf("deleteAllShiftsBtn"),
+               "it should come after Delete All, not beside the format dropdown");
+    assertTrue(page.substring(apply - 200, apply).contains("align=\"center\""),
+               "and be centred with the buttons above it");
   }
 }

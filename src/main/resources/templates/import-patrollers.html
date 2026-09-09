@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  Import new patrollers from an nsp.org roster export.
+
+  Three steps in one page, chosen by ${step}: choose a file, look at what would happen, and the
+  result. The middle step is the point of the whole screen - inserting members is not something to
+  do straight off a file picker, so the director sees every row and the reason each one is being
+  left out before anything is written.
+-->
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title th:text="|Import Patrollers - ${resortFullName}|">Import Patrollers</title>
+    <th:block th:replace="~{fragments/head :: icons}"></th:block>
+    <link rel="stylesheet" th:href="@{/css/header.css}"/>
+    <script th:src="@{/js/dialogs.js}"></script>
+    <style>
+        .import-page {
+            max-width: 1000px;
+            margin: 0 auto 40px auto;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            color: #222;
+        }
+        .import-page h1 {
+            font-size: 1.5em;
+            color: #003366;
+        }
+        .panel {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+        }
+        table.rows {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10pt;
+        }
+        table.rows th, table.rows td {
+            border: 1px solid #ccc;
+            padding: 4px 8px;
+            text-align: left;
+        }
+        table.rows th {
+            background: #003366;
+            color: #fff;
+        }
+        table.rows tr:nth-child(even) td {
+            background: #f4f6f9;
+        }
+        .count {
+            font-weight: bold;
+            color: #003366;
+        }
+        .skipped h2 {
+            color: #8a6d3b;
+        }
+        .error-message {
+            color: #FF0000;
+            font-weight: bold;
+        }
+        .password-note {
+            background: #fff3cd;
+            border: 1px solid #f0c74a;
+            border-radius: 4px;
+            padding: 8px 12px;
+            color: #856404;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 18px;
+        }
+        .actions input {
+            min-width: 9em;
+            padding: 4px 12px;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <div class="import-page">
+        <h1>Import new patrollers from nsp.org</h1>
+
+        <div th:if="${errorMessage}" class="error-message" th:text="${errorMessage}">Error</div>
+
+        <!-- Step 1: choose the file -->
+        <div th:if="${step == 'choose'}" class="panel">
+            <p>
+                Sign in to <b>nsp.org</b> as your patrol representative, export your patrol roster,
+                and choose that <code>.csv</code> file here. Nothing is added until you have seen
+                what it would do.
+            </p>
+            <form th:action="@{/ImportPatrollers}" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="resort" th:value="${resort}">
+                <input type="hidden" name="ID" th:value="${patrollerId}">
+                <input type="file" name="rosterFile" accept=".csv,text/csv" required>
+                <div class="actions">
+                    <input type="submit" value="Read the file">
+                    <input type="button" value="Cancel"
+                           th:data-url="@{/Directors(resort=${resort}, ID=${patrollerId})}"
+                           onclick="window.location=this.dataset.url">
+                </div>
+            </form>
+        </div>
+
+        <!-- Step 2: what would happen. The file itself is held server-side from step 1, so the
+             director chooses it once; Import just says go. -->
+        <div th:if="${step == 'preview'}">
+            <p>
+                Read <span class="count" th:text="${rowCount}">0</span> row(s).
+                <span class="count" th:text="${#lists.size(importing)}">0</span> would be added,
+                <span class="count" th:text="${#lists.size(skipping)}">0</span> skipped.
+                <b>Nothing has been changed yet.</b>
+            </p>
+
+            <div class="panel" th:if="${!#lists.isEmpty(importing)}">
+                <h2>Will be added</h2>
+                <p>
+                    Each is added as a <b>Basic</b> patroller, <b>Full Time</b>, and not a
+                    director. You can change any of that afterwards on their My Info page.
+                    <b>Their password is set to their last name</b> &mdash; tell them to sign in
+                    with their member number and last name, and change it on My Info.
+                </p>
+                <table class="rows">
+                    <tr>
+                        <th>Row</th><th>ID</th><th>First name</th><th>Last name</th>
+                        <th>Email</th><th>Cell</th><th>Class</th><th>Commitment</th><th>Director</th>
+                    </tr>
+                    <tr th:each="row : ${importing}">
+                        <td th:text="${row.rowNumber}">2</td>
+                        <td th:text="${row.id}">291617</td>
+                        <td th:text="${row.firstName}">Chris</td>
+                        <td th:text="${row.lastName}">Hauca</td>
+                        <td th:text="${row.email}">chris@example.com</td>
+                        <td th:text="${row.cellPhone}">847-372-5936</td>
+                        <td>BAS</td>
+                        <td>Full Time</td>
+                        <td>No</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="panel skipped" th:if="${!#lists.isEmpty(skipping)}">
+                <h2>Will not be added</h2>
+                <table class="rows">
+                    <tr>
+                        <th>Row</th><th>ID</th><th>Name</th><th>Member type</th><th>Why not</th>
+                    </tr>
+                    <tr th:each="row : ${skipping}">
+                        <td th:text="${row.rowNumber}">3</td>
+                        <td th:text="${row.id}">291618</td>
+                        <td th:text="${row.fullName}">Chris Hauca</td>
+                        <td th:text="${row.memberType}">Alumni</td>
+                        <td th:text="${row.reason}">already on your roster</td>
+                    </tr>
+                </table>
+            </div>
+
+            <p th:if="${#lists.isEmpty(importing)}">
+                <b>There is nobody new in this file.</b> Everyone in it is either already on your
+                roster or not a patroller.
+            </p>
+
+            <!-- No file input here: the file is held server-side from the step before, so it is
+                 chosen once. Confirm parses those bytes again and re-reads the roster, so nothing
+                 posted from this page decides who is inserted. -->
+            <form th:action="@{/ImportPatrollers/confirm}" method="post">
+                <input type="hidden" name="resort" th:value="${resort}">
+                <input type="hidden" name="ID" th:value="${patrollerId}">
+                <p th:if="${fileName}">
+                    From <b th:text="${fileName}">ResultsGrid_ExportData.csv</b>
+                </p>
+                <!-- Only when somebody is actually being added: a note about their passwords
+                     makes no sense on a file that adds nobody. -->
+                <p th:if="${!#lists.isEmpty(importing)}" class="password-note">
+                    Everyone added starts with their <b>last name</b> as their password.
+                    <b>Please ask each of them to change it as soon as possible</b>, on their
+                    <i>My Info</i> page.
+                </p>
+                <div class="actions">
+                    <input type="submit" value="Import"
+                           th:disabled="${#lists.isEmpty(importing)}"
+                           th:data-message="|This adds ${#lists.size(importing)} new patroller(s) to your roster. Nobody already on it is changed. Continue?|"
+                           data-title="Import these patrollers?"
+                           onclick="return confirmActionDialog(this, this.dataset.message, this.dataset.title)">
+                    <input type="button" value="Cancel"
+                           th:data-url="@{/Directors(resort=${resort}, ID=${patrollerId})}"
+                           onclick="window.location=this.dataset.url">
+                </div>
+            </form>
+        </div>
+
+        <!-- Step 3: what was done -->
+        <div th:if="${step == 'done'}">
+            <div class="panel">
+                <h2>Import finished</h2>
+                <p>
+                    <span class="count" th:text="${addedCount}">0</span> patroller(s) added to
+                    <span th:text="${resortFullName}">your resort</span>.
+                </p>
+                <p th:if="${!#lists.isEmpty(failures)}" class="error-message">
+                    These could not be added, and are listed in the log:
+                    <span th:text="${#strings.listJoin(failures, ', ')}">ids</span>
+                </p>
+                <p th:if="${!#lists.isEmpty(skipping)}">
+                    <span th:text="${#lists.size(skipping)}">0</span> row(s) were skipped, for the
+                    reasons shown before you pressed Import.
+                </p>
+            </div>
+            <div class="actions">
+                <input type="button" value="Done"
+                       th:data-url="@{/Directors(resort=${resort}, ID=${patrollerId})}"
+                       onclick="window.location=this.dataset.url">
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

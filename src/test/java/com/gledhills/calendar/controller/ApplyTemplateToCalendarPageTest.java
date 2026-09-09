@@ -401,10 +401,10 @@ class ApplyTemplateToCalendarPageTest {
 
     withPatrolData((log, patrolData) -> {
       DirectorSettings settings = patrolData.readDirectorSettings();
-      //stored 0-based, the Calendar.MONTH convention
-      assertEquals(String.format("%02d-%02d", settings.getStartMonth() + 1, settings.getStartDay()),
+      //the stored month is 1-based: DirectorSettings reads it out of a "dd-mm" string
+      assertEquals(String.format("%02d-%02d", settings.getStartMonth(), settings.getStartDay()),
                    from.substring(5), "from should be the season start day and month");
-      assertEquals(String.format("%02d-%02d", settings.getEndMonth() + 1, settings.getEndDay()),
+      assertEquals(String.format("%02d-%02d", settings.getEndMonth(), settings.getEndDay()),
                    to.substring(5), "to should be the season end day and month");
     });
   }
@@ -474,5 +474,35 @@ class ApplyTemplateToCalendarPageTest {
       }
     }
     return start.atYear(startYear) + ".." + end.atYear(endYear);
+  }
+
+  /**
+   * The prefilled range must match the season a director typed into Web Site Preferences.
+   *
+   * <p>Checked against the raw {@code dd-mm} strings the settings are stored as, not against
+   * {@code getStartMonth()}. The first version of this test asked the getter and applied the same
+   * {@code +1} the controller did, so it passed happily while every prefilled range came out a
+   * month late. A test that repeats the code's arithmetic cannot catch an error in it.
+   */
+  @Test
+  void thePrefilledRangeMatchesTheStoredSeasonDates() throws Exception {
+    givenTemplateRowZeroHolds(MEMBER_ID);
+
+    String from = valueOf(openApplyPanel(), "applyFrom");
+
+    withPatrolData((log, patrolData) -> {
+      try (java.sql.Statement statement = patrolData.getConnection().createStatement();
+           java.sql.ResultSet rows = statement.executeQuery(
+             "SELECT `" + DirectorSettings.START_DATE_FIELD + "` FROM directorsettings")) {
+        assertTrue(rows.next(), "Sample should have director settings");
+        String stored = rows.getString(1);          //"dd-mm", as the preferences page writes it
+
+        assertEquals(stored.substring(3, 5) + "-" + stored.substring(0, 2), from.substring(5),
+                     "the prefilled from date should be the stored season start (" + stored + ")");
+      }
+      catch (java.sql.SQLException e) {
+        throw new AssertionError("could not read the stored season start", e);
+      }
+    });
   }
 }

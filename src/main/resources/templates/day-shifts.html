@@ -287,6 +287,7 @@
                                                                    + ' patroller(s) assigned to it.'">
                                                         has patrollers</span>
                                                     <br>
+
                                                     &nbsp;&nbsp;
                                                     <div align="center">
                                                         <table border="3" cellpadding="0" cellspacing="0" width="960" style="font-size: 12pt">
@@ -426,6 +427,27 @@
                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                     <input type="submit" value="Delete All (restore template)" name="deleteAllShiftsBtn"
                                            th:onclick="'return confirmDeleteAll(this, ' + ${patrollersOnSchedule} + ')'">
+                                </p>
+
+                                <!-- Put this weekday's own template on this day, patrollers and
+                                     all. Sits with the other day-wide actions rather than by the
+                                     format dropdown, because like them it replaces the whole day
+                                     and then leaves for the calendar. Drawn only when that
+                                     template has people on it: with nobody on it the calendar
+                                     already shows these shifts, so it would look like doing
+                                     nothing. -->
+                                <p align="center" th:if="${dayTemplatePatrollers > 0}">
+                                    <input type="submit" name="applyDayTemplate"
+                                           form="editShiftForm"
+                                           th:value="|Apply this '${dayTemplateName}' template including assigned patrollers|"
+                                           th:data-message="|This replaces every shift on this day with the ${dayTemplateName} template, and puts its ${dayTemplatePatrollers} assigned patroller(s) on it. Anyone currently on this day is removed. Continue?|"
+                                           th:data-title="|Replace this day from the ${dayTemplateName} template?|"
+                                           onclick="return confirmActionDialog(this, this.dataset.message, this.dataset.title)">
+                                    &nbsp;&nbsp;
+                                    <span style="color:#006400; font-weight:bold"
+                                          th:text="'&#9654; &lsquo;' + ${dayTemplateName} + '&rsquo; has '
+                                                   + ${dayTemplatePatrollers} + ' patroller(s) assigned'">
+                                        has patrollers</span>
                                 </p>
                             </form>
                         </td>

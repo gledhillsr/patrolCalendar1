@@ -2,6 +2,7 @@ package com.gledhills.calendar.service;
 
 import com.gledhills.calendar.dto.EmailRecipient;
 import org.junit.jupiter.api.BeforeEach;
+import com.gledhills.calendar.utils.SiteIdentity;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -101,8 +102,8 @@ class EmailServiceTest {
                     "a site-wide send should not name one resort's web site: " + footer);
         assertFalse(footer.contains("Brighton"), "nor the resort at all: " + footer);
         assertTrue(footer.contains("This message sent by:"), "the sender line stays: " + footer);
-        assertTrue(footer.contains("Ski Patrol Web Site Auto Mailer"),
-                   "and so does the sign-off: " + footer);
+        assertTrue(footer.contains(SiteIdentity.PATROL_CALENDAR_DISPLAY + " auto mailer"),
+                   "and so does the sign-off, naming the site: " + footer);
     }
 
     /** An ordinary resort email is unchanged - it still says whose web site it came from. */

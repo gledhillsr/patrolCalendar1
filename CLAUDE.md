@@ -188,6 +188,17 @@ a refresh cannot repeat it). `processReplaceShiftFormat` deletes the day's rows 
 them — and applies the chosen template. A name matching no template leaves the day empty, reverting
 it to the day-of-week template. There is deliberately **no bulk replace** across a date range.
 
+**"Apply this &lt;weekday&gt; template including assigned patrollers"** on DayShifts is the same
+wholesale replace, plus the people pencilled into that weekday's template —
+`processReplaceShiftFormat` takes a `withTemplatePatrollers` flag for it. The dropdown beside it
+passes `false` and so still lays a day out empty, which is the behaviour it always had. The button
+is drawn only when the weekday template actually carries patrollers, the same rule
+EditShiftTemplates applies to its own Apply button.
+
+**Its confirmation text goes through `data-*` attributes**, not `th:onclick`: Thymeleaf refuses to
+interpolate a String into an event handler at all, and says so at template-parse time. The page
+already used `th:data-url` + `this.dataset.url` for the same reason.
+
 ### Shift Labels: Start is a Label plus a Time
 
 A shift row carries a **Label** — what the calendar shows (`TL`, `dir`, `mentee`) — and a
@@ -369,6 +380,29 @@ Two things that bite tests: the header now depends on a **database table**, so
 while somebody had a button configured would fail when they removed it), and any test that writes
 buttons must **snapshot and restore** rather than blanking — a director's real configuration is not
 the test's to delete.
+
+### Importing a Roster from nsp.org
+
+`ImportPatrollersController` (`/ImportPatrollers`, from Directors → Patroller Maintenance) adds
+patrollers from the `ResultsGrid_ExportData.csv` a patrol representative downloads from nsp.org.
+Director-only.
+
+**It only ever inserts.** A row whose ID is already on the roster is listed as skipped and that
+member is left untouched, so the same file can be run twice and anything a director edited by hand
+survives. Rows are skipped, with the reason shown, when the ID is missing or not numeric, the
+`Member Type` is not `Patroller`, the ID is already on the roster, or the ID repeats inside the
+file. A new member is created **BAS / Full Time / not a director**, with `Instructor` set to `"0"` —
+a fresh `Roster` initialises its fields to `" "`, which MySQL rejects for that integer column.
+
+**Two steps, and the second re-reads the file.** The preview writes nothing; pressing Import posts
+the file again and the controller parses it and re-checks the roster from scratch. Nothing the
+browser sends back decides who is inserted — a posted list of ids would be a way to add anybody.
+
+**`NspRosterImport` parses it properly**, not by splitting on commas: the export quotes fields
+containing commas (its Full Address does), doubles quotes inside them (its Edit column is HTML),
+and starts with a byte order mark. Phone numbers arrive as `(847) 372-5936` and are stored as
+`847-372-5936`; anything that is not ten digits is dropped rather than guessed at, since a
+half-recognised number cannot be told from a real one later.
 
 ### The New Features Page
 

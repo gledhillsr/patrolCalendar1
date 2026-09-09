@@ -136,6 +136,20 @@
                                        formaction="ListAssignments" formmethod="get">
                             </div>
                         </div>
+
+                        <hr class="divider">
+                        <p class="card-desc">
+                            Using the patrol roster your <b>patrol representative</b> can download
+                            from <b>nsp.org</b>, add every patroller in it who is not already on
+                            your roster here. Anyone whose ID is already on your roster is listed
+                            and left exactly as they are &mdash; nothing is overwritten. You will
+                            see who would be added, and why anyone else was left out, before
+                            anything is saved.
+                        </p>
+                        <input class="btn btn-primary" type="button"
+                               value="Import New Patrollers from nsp.org ..."
+                               th:data-url="|ImportPatrollers?resort=${resort}&ID=${patrollerId}|"
+                               onclick="window.location=this.dataset.url">
                     </div>
                 </div>
 

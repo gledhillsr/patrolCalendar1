@@ -162,9 +162,21 @@ public class DayShiftsController {
         // Replacing the day's shift format is destructive - it removes the day's shifts and
         // everybody on them - so it arrives as a confirmed POST rather than a URL that a refresh
         // or a stale link could fire again.
+        // "Apply this <weekday> template including assigned patrollers": the same wholesale
+        // replace as the format dropdown, but it also brings the people pencilled into that
+        // template. A POST, not a URL, so a refresh cannot repeat a destructive change.
+        if (request.getParameter("applyDayTemplate") != null) {
+            processReplaceShiftFormat(resort, dayOfWeek, date, month, year, patrolData,
+                    sessionData, javaxRequest, StaticUtils.szDays[dayOfWeek], true, LOG);
+            patrolData.close();
+            //back to the month, the same as Save: the day is finished with, and the calendar is
+            //where the result of putting a team on it is actually visible
+            return redirectToCalendar(response, resort, month, year, patrollerId);
+        }
+
         if (replaceShiftFormat != null && !replaceShiftFormat.isEmpty()) {
             processReplaceShiftFormat(resort, dayOfWeek, date, month, year, patrolData,
-                    sessionData, javaxRequest, replaceShiftFormat, LOG);
+                    sessionData, javaxRequest, replaceShiftFormat, false, LOG);
             patrolData.close();
             return "redirect:/DayShifts?resort=" + resort + "&dayOfWeek=" + dayOfWeek +
                     "&date=" + date + "&month=" + month + "&year=" + year + "&ID=" + patrollerId;
@@ -414,6 +426,15 @@ public class DayShiftsController {
         model.addAttribute("templatePatrollerCounts", templatePatrollerCounts);
         model.addAttribute("selectedTemplatePatrollers",
                            templatePatrollerCounts.getOrDefault(selectedShift, 0));
+
+        //This date's own weekday template - "Friday" for a Friday - and how many people are
+        //pencilled into it. The button that applies it is drawn only when there are some, the
+        //same rule EditShiftTemplates uses: with nobody on it the calendar already shows those
+        //shifts, so applying would look like doing nothing.
+        String dayTemplateName = StaticUtils.szDays[dayOfWeek];
+        model.addAttribute("dayTemplateName", dayTemplateName);
+        model.addAttribute("dayTemplatePatrollers",
+                           templatePatrollerCounts.getOrDefault(dayTemplateName, 0));
 
         addResortMetadata(resort, model);
         patrolData.close();
@@ -675,7 +696,8 @@ public class DayShiftsController {
      */
     private void processReplaceShiftFormat(String resort, int dayOfWeek, int date, int month,
             int year, PatrolData patrolData, SessionData sessionData,
-            javax.servlet.http.HttpServletRequest javaxRequest, String newFormat, Logger LOG) {
+            javax.servlet.http.HttpServletRequest javaxRequest, String newFormat,
+            boolean withTemplatePatrollers, Logger LOG) {
 
         ArrayList<Assignments> existing = new ArrayList<>();
         readAssignmentsAndShifts(resort, dayOfWeek, date, month, year,
@@ -694,14 +716,27 @@ public class DayShiftsController {
         populateAssignmentsFromTemplate(replacement, templates, newFormat,
                 date, month, year, resort, patrolData, LOG);
 
-        for (Assignments assignment : replacement) {
+        //The shift-format dropdown lays out the day and leaves it empty; "Apply this <weekday>
+        //template including assigned patrollers" also brings the people pencilled into it.
+        List<List<String>> templatePatrollers = withTemplatePatrollers
+                ? readTemplatePatrollersByRow(patrolData, newFormat, LOG) : null;
+        Set<String> rosterIds = withTemplatePatrollers
+                ? buildRosterLookup(patrolData).keySet() : Set.of();
+
+        for (int row = 0; row < replacement.size(); row++) {
+            Assignments assignment = replacement.get(row);
             assignment.setExisted(false);
+            if (templatePatrollers != null && row < templatePatrollers.size()) {
+                applyTemplatePatrollers(assignment, resort, rosterIds,
+                        templatePatrollers.get(row), LOG);
+            }
             patrolData.writeAssignment(assignment);
         }
 
         LOG.info("replaced the shift format on " + year + "-" + (month + 1) + "-" + date
                    + " with '" + newFormat + "', removing " + patrollersRemoved
-                   + " patroller(s) and writing " + replacement.size() + " shift row(s)");
+                   + " patroller(s) and writing " + replacement.size() + " shift row(s)"
+                   + (withTemplatePatrollers ? ", including the template's patrollers" : ""));
     }
 
     /**

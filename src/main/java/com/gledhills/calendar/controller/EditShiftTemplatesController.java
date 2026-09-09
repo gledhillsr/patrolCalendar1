@@ -561,7 +561,10 @@ public class EditShiftTemplatesController {
      * <p>Returns two empty strings rather than throwing if the settings are missing or hold a date
      * that does not exist: an unhelpful default is better than a panel that will not open.
      *
-     * <p>Months are stored 0-based, the {@code Calendar.MONTH} convention {@code isInSeason} uses.
+     * <p><b>The stored month is 1-based</b> - January is 1. {@code DirectorSettings.getMonth}
+     * parses it straight out of a {@code dd-mm} string, {@code isInSeason} is handed
+     * {@code Calendar.MONTH + 1} to compare against it, and the blackout check subtracts one
+     * before building a {@code Date}. Adding one here put every prefilled range a month late.
      */
     private String[] seasonRange(PatrolData patrolData, Logger LOG) {
         try {
@@ -569,8 +572,8 @@ public class EditShiftTemplatesController {
             if (settings == null) {
                 return new String[] {"", ""};
             }
-            MonthDay start = MonthDay.of(settings.getStartMonth() + 1, settings.getStartDay());
-            MonthDay end = MonthDay.of(settings.getEndMonth() + 1, settings.getEndDay());
+            MonthDay start = MonthDay.of(settings.getStartMonth(), settings.getStartDay());
+            MonthDay end = MonthDay.of(settings.getEndMonth(), settings.getEndDay());
 
             LocalDate today = LocalDate.now();
             int startYear = today.getYear();

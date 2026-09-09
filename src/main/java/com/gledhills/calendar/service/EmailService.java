@@ -574,7 +574,9 @@ public class EmailService {
         // whose sender has a usable address carries a Reply-To pointing at them, so replying works
         // and always did. It was telling 31 of the 43 resorts not to do the thing that works.
 
-        footer.append("This was sent from the Ski Patrol Web Site Auto Mailer.\n");
+        //the site's name, not a hand-written copy of it - see SiteIdentity
+        footer.append("This was sent from the ").append(SiteIdentity.PATROL_CALENDAR_DISPLAY)
+              .append(" auto mailer.\n");
         footer.append("--------------------------------------------------------\n");
 
         return footer.toString();

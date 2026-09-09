@@ -137,20 +137,21 @@
                     <li><a href="#password-reset">Members can reset their own password</a></li>
                     <li><a href="#attachments">You can now add an attachment to emails</a></li>
                     <li><a href="#download-roster">Download the patroller list to Excel</a></li>
+                    <li><a href="#full-roster">Show the full roster, or a trimmed one</a></li>
                     <li><a href="#print-calendar">Print the month calendar</a></li>
                     <li><a href="#sample-resort">A sample resort to experiment in</a></li>
             </ol>
 
             <h3 class="contents-group">Available to directors</h3>
             <ol>
-                    <li><a href="#shift-labels">Shift labels, and real start and end times</a></li>
+                    <li><a href="#import-roster">Import a roster downloaded from nsp.org</a></li>
+                    <li><a href="#shift-labels">Enhance Shift Templates to use labels, real start time, and end times</a></li>
                     <li><a href="#menu-buttons">Your own buttons in the page header</a></li>
                     <li><a href="#template-patrollers">Assign &lsquo;teams&rsquo; of patrollers to any shift template</a></li>
                     <li><a href="#apply-template">Apply &lt;day of week&gt; named template (with assigned patrollers) across a range of dates</a></li>
                     <li><a href="#replace-format">Change a single day&rsquo;s shift format</a></li>
                     <li><a href="#reorder-shifts">Reorder the shifts on a day</a></li>
                     <li><a href="#patroller-history">Directors can see any patroller&rsquo;s shift history</a></li>
-                    <li><a href="#full-roster">Show the full roster, or a trimmed one</a></li>
                     <li><a href="#day-comments">Bold text and links in a day&rsquo;s comment</a></li>
                     <li><a href="#phone-format">A standard format for phone numbers</a></li>
                     <li><a href="#no-double-booking">Nobody can be put on the same shift twice</a></li>
@@ -238,8 +239,23 @@
         </div>
         <!-- ================================================================= -->
         <div class="feature">
+            <h3 id="full-roster">Show the full roster, or a trimmed one</h3>
+            <div class="where">
+                <b>Where:</b> <i>Patrollers</i> tab &rarr; <i>Show FULL roster</i> /
+                <i>Show Trimmed Roster</i>
+            </div>
+            <p>
+                The trimmed roster leaves out inactive and &ldquo;other&rdquo; patrollers, which is
+                usually what you want. Switch to the full roster when you need everybody. The
+                <b>?</b> beside the button explains what trimming leaves out, and the Pro and Alumni
+                tick boxes above work either way.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
             <h3 id="print-calendar">Print the month calendar</h3>
-            <div class="where"><b>Where:</b> Calendar &rarr; the print button</div>
+            <div class="where"><b>Where:</b> Calendar &rarr; the print button at the bottom left</div>
             <p>
                 Prints the month as it appears, for a patrol room notice board or a paper copy at a
                 meeting.
@@ -267,7 +283,46 @@
         <p class="category-note">These need a director login. Members never see them.</p>
         <!-- ================================================================= -->
         <div class="feature">
-            <h3 id="shift-labels">Shift labels, and real start and end times</h3>
+            <h3 id="import-roster">Import a roster downloaded from nsp.org</h3>
+            <div class="where">
+                <b>Where:</b> Directors &rarr; <i>Patroller Maintenance</i> &rarr;
+                <i>Import New Patrollers from nsp.org &hellip;</i>
+            </div>
+            <p>
+                Sign in to <b>nsp.org</b> as your patrol representative, export your patrol roster
+                to a <code>.csv</code> file, and hand that file to this page. Every patroller in it
+                who is not already on your roster is added &mdash; no typing names in one at a
+                time at the start of a season.
+            </p>
+            <p>
+                <b>You see what it will do before it does it.</b> The file is read and every row
+                listed: who would be added, with the details being brought across, and everyone
+                else with the reason they are being left out &mdash; already on your roster, not a
+                patroller, an ID that is not a number. Nothing is written until you press
+                <b>Import</b> on that page.
+            </p>
+            <p>
+                <b>Nobody already on your roster is touched.</b> Their ID is what is matched, and
+                an existing record is never overwritten, so anything you have edited by hand
+                survives. Running the same file twice adds nobody twice.
+            </p>
+            <p>
+                Each new patroller arrives as <b>Basic</b> classification, <b>Full Time</b>
+                commitment and not a director, with their name, email and cell number from the
+                file. Change any of that afterwards on their My Info page.
+            </p>
+            <p>
+                <b>Each new patroller&rsquo;s password is set to their last name</b>, so tell them
+                to sign in with their member number and their last name, and change it on the
+                <i>My Info</i> page. It is not case sensitive. Anyone who forgets can use
+                <i>If you forgot your password</i> on the login page, since their email address
+                came across with them.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="shift-labels">Enhance Shift Templates to use labels, real start time, and end times</h3>
             <div class="where">
                 <b>Where:</b> Calendar &rarr; click a date &rarr; <i>Change Today&rsquo;s Shift</i>,
                 and Directors &rarr; <i>Edit Shift Templates (for Calendar) &hellip;</i>
@@ -444,21 +499,6 @@
         </div>
         <!-- ================================================================= -->
         <div class="feature">
-            <h3 id="full-roster">Show the full roster, or a trimmed one</h3>
-            <div class="where">
-                <b>Where:</b> <i>Patrollers</i> tab &rarr; <i>Show FULL roster</i> /
-                <i>Show Trimmed Roster</i>
-            </div>
-            <p>
-                The trimmed roster leaves out inactive and &ldquo;other&rdquo; patrollers, which is
-                usually what you want. Switch to the full roster when you need everybody. The
-                <b>?</b> beside the button explains what trimming leaves out, and the Pro and Alumni
-                tick boxes above work either way.
-            </p>
-            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
-        </div>
-        <!-- ================================================================= -->
-        <div class="feature">
             <h3 id="day-comments">Bold text and links in a day&rsquo;s comment</h3>
             <div class="where">
                 <b>Where:</b> Calendar &rarr; click a date &rarr; <i>Event Name/Comment</i>
@@ -526,8 +566,6 @@
                     built correctly from the start.</li>
                 <li><b>Text-message reminders and urgent notices</b> &mdash; the reason phone numbers
                     now have a standard format.</li>
-                <li><b>Upload a roster downloaded from nsp.org</b>, for the patrol representative,
-                    to add new patrollers without typing them in.</li>
             </ul>
             <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
         </div>
