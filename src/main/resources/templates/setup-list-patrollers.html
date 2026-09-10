@@ -77,7 +77,7 @@
         <!-- Step 2: Select fields to display -->
         <p align="left">
             <font size="4">Step 2) Select what fields to display:</font>
-            <font th:if="${isBrighton and isDirector}" color="RED">&nbsp;&nbsp;&nbsp;(Director ONLY access)</font>
+            <font th:if="${isDirector}" color="RED">&nbsp;&nbsp;&nbsp;(Director ONLY access)</font>
         </p>
         <div align="center">
             <center>
@@ -93,10 +93,8 @@
                             <div th:if="${isDirector}">
                                 <font color="RED">
                                     <br><input type="checkbox" name="COMMENTS">Private&nbsp;Comments<br>
-                                    <span th:if="${isBrighton}">
-                                        <input type="checkbox" name="TEAM_LEAD">Team Lead Trained<br>
-                                        <input type="checkbox" name="MENTORING">Mentoring Status
-                                    </span>
+                                    <input type="checkbox" name="TEAM_LEAD">Team Lead Trained<br>
+                                    <input type="checkbox" name="MENTORING">Mentoring Status
                                 </font>
                             </div>
                         </td>

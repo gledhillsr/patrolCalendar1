@@ -16,10 +16,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * SetupListPatrollers had no render coverage at all, which matters because its page combines model
- * flags with "and" - {@code ${isBrighton and isDirector}} - and SpEL throws on a null operand
- * rather than treating it as false. Both flags are primitive booleans set on the single render
- * path, so they cannot be null; this holds that true rather than leaving it to inspection.
+ * SetupListPatrollers had no render coverage at all, which matters because its page turns model
+ * flags into markup and SpEL throws on a null operand rather than treating it as false. The flags
+ * are primitive booleans set on the single render path, so they cannot be null; this holds that
+ * true rather than leaving it to inspection.
+ *
+ * <p>The director-only fields were once Brighton's alone. They are every resort's now - the
+ * columns behind them (teamLead, mentoring, comments) are in the roster of all 54 databases and in
+ * createTablesForNewResort.sql, so there was never anything resort-specific but the checkbox.
  *
  * Read-only: the page is a form, nothing is submitted here.
  */
@@ -69,5 +73,21 @@ class SetupListPatrollersRenderTest {
                              .header("User-Agent", BROWSER)
                              .session(session))
       .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+  }
+
+  /**
+   * The director-only fields are offered to every director, not only Brighton's.
+   *
+   * <p>Named individually because the failure would be silent: a director at another resort simply
+   * would not see the boxes, and nothing else would complain.
+   */
+  @Test
+  void everyDirectorIsOfferedTheDirectorOnlyFields() throws Exception {
+    String page = page(DIRECTOR_ID);
+
+    assertTrue(page.contains("(Director ONLY access)"), "the heading note should be there");
+    assertTrue(page.contains("name=\"COMMENTS\""), "Private Comments");
+    assertTrue(page.contains("name=\"TEAM_LEAD\""), "Team Lead Trained");
+    assertTrue(page.contains("name=\"MENTORING\""), "Mentoring Status");
   }
 }

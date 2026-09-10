@@ -66,7 +66,6 @@ public class SetupListPatrollersController {
     model.addAttribute("resortFullName", PatrolData.getResortFullName(resort, LOG));
     model.addAttribute("userId", userId);
     model.addAttribute("isDirector", isDirector);
-    model.addAttribute("isBrighton", "Brighton".equalsIgnoreCase(resort));
     model.addAttribute("currentYear", year);
     model.addAttribute("startYear", year - 2);
     model.addAttribute("endYear", year + 2);
