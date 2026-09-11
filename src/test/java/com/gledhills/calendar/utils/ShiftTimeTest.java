@@ -95,4 +95,79 @@ class ShiftTimeTest {
     }
     assertTrue(ShiftTime.isTime("8am"));
   }
+
+  /**
+   * The {@code m} of the meridiem is optional, because thousands of real rows leave it off.
+   *
+   * <p>{@code 4:30P} was one resort's house style for years. While the rule insisted on the
+   * {@code m} those values were read as labels, which is how 17 shift templates - and 2,759
+   * scheduled shifts - ended up with the start time sitting in the Label column and no start time
+   * at all. The values here are taken from those columns.
+   */
+  @Test
+  void aMeridiemWithoutItsM() {
+    assertEquals("16:30", ShiftTime.normalize("4:30P"));
+    assertEquals("16:00", ShiftTime.normalize("4:00P"));
+    assertEquals("8:00", ShiftTime.normalize("8:00 a"));
+    assertEquals("12:00", ShiftTime.normalize("12:00P"));
+    assertEquals("9:00", ShiftTime.normalize("9:00A"));
+    assertEquals("21:30", ShiftTime.normalize("9:30 p"));
+    assertEquals("22:00", ShiftTime.normalize("10P"), "no minutes either");
+    assertEquals("18:30", ShiftTime.normalize("6:30P"));
+
+    //and it agrees with the spelled-out form, which is the point
+    assertEquals(ShiftTime.normalize("4:30pm"), ShiftTime.normalize("4:30P"));
+    assertEquals(ShiftTime.normalize("8:00am"), ShiftTime.normalize("8:00 a"));
+  }
+
+  /**
+   * Widening the meridiem must not start reading labels as times.
+   *
+   * <p>A bare {@code P} only means anything after a number here. {@code PMExtra} is the standing
+   * example - it is a real label in Brighton's data, and any rule that goes looking for a meridiem
+   * inside the string destroys it.
+   */
+  @Test
+  void aBareLetterDoesNotTurnLabelsIntoTimes() {
+    for (String label : new String[] {"PMExtra", "PM", "P", "AM Aid Room", "a", "pm shift",
+                                      "dir", "swing", "mentee", "Close", "end time", "5:30-9"}) {
+      assertNull(ShiftTime.normalize(label), label + " is a label, not a time");
+      assertFalse(ShiftTime.isTime(label), label + " is a label, not a time");
+    }
+  }
+
+  /**
+   * The browser's copy of these rules must accept exactly what the server's does.
+   *
+   * <p>{@code static/js/shiftTime.js} is a hand-written mirror of this class - there is no shared
+   * source, because one runs in a JVM and the other in a browser - so the two can drift, and when
+   * they do the symptom is maddening: the box refuses a value the server would have taken happily,
+   * and the message blames the value rather than the mismatch.
+   *
+   * <p>This nearly shipped. Widening the meridiem here without widening it there would have left
+   * the browser rejecting {@code 4:30P} on the very rows this change exists to rescue.
+   *
+   * <p>Textual rather than behavioural: running the JavaScript would need an engine in the build,
+   * and the sub-pattern is the whole of what differs between the two files.
+   */
+  @Test
+  void theBrowserCopyCarriesTheSameMeridiemRule() throws Exception {
+    String server = java.nio.file.Files.readString(
+      java.nio.file.Path.of("src/main/java/com/gledhills/calendar/utils/ShiftTime.java"));
+    String browser = java.nio.file.Files.readString(
+      java.nio.file.Path.of("src/main/resources/static/js/shiftTime.js"));
+
+    //Compared with the backslashes taken out: one file escapes for a Java string literal and the
+    //other does not, so the raw text differs even when the rule is identical.
+    String serverRule = server.replace("\\", "");
+    String browserRule = browser.replace("\\", "");
+
+    assertTrue(serverRule.contains("([ap]).?m?.?"), "ShiftTime.java should allow a bare a/p");
+    assertTrue(browserRule.contains("([ap]).?m?.?"), "shiftTime.js should allow a bare a/p too");
+
+    assertFalse(serverRule.contains("([ap]).?m.?"),
+                "ShiftTime.java still insists on the m somewhere");
+    assertFalse(browserRule.contains("([ap]).?m.?"),
+                "shiftTime.js still insists on the m - it will reject what the server accepts");
+  }
 }

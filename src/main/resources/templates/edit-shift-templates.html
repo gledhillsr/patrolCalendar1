@@ -85,14 +85,16 @@
         }
 
         // A template name has to be something we can actually store: not blank, not the dropdown's
-        // "--New Shift Style--" label, and no underscore (the row position is a "_<n>" suffix on
-        // the name, so one inside the name makes the two indistinguishable).
+        // "--New Shift Style--" label, and not STARTING with an underscore - an unnamed row is
+        // stored as "_0" and the site-wide tidy-up deletes anything matching that shape, so a
+        // template called "_old" would be swept away with them. An underscore inside the name is
+        // fine: the row position is a trailing "_<n>" and everything splits on the last one.
         function isUsableTemplateName(str) {
             if (str == null) {
                 return false;
             }
             var trimmed = str.replace(/^\s+|\s+$/g, "");
-            return trimmed != "" && trimmed != newShiftStyle && trimmed.indexOf("_") < 0;
+            return trimmed != "" && trimmed != newShiftStyle && trimmed.indexOf("_") != 0;
         }
 
         // "New" writes a row to the database under whatever this field holds, so it stays disabled
@@ -135,10 +137,11 @@
                     function () { field.focus(); }, "This template needs a name");
                 return false;
             }
-            // The row position is stored as a "_<n>" suffix on the shift name, so an underscore in
-            // the name itself makes the two indistinguishable.
-            if (name.indexOf("_") >= 0) {
-                showMessageDialog("Shift template names cannot contain an underscore ('_'). '"
+            // A leading underscore is what an unnamed row looks like ("_0"), and the site-wide
+            // clean-up deletes those - so a template named that way would vanish. Inside the name
+            // it is harmless.
+            if (name.indexOf("_") == 0) {
+                showMessageDialog("Shift template names cannot start with an underscore ('_'). '"
                     + name + "' is invalid.",
                     function () { field.focus(); }, "Invalid template name");
                 return false;
@@ -452,6 +455,66 @@
 
         <!-- The notice about this change, sized to the frame above it -->
         <div th:replace="~{fragments/notices :: labelSplitNotice(1020)}"></div>
+
+        <!--
+          What still has an unreadable time, across every template in this resort.
+
+          Deliberately not a list of everything that is not canonical: the site-wide cleanup job
+          rewrites those, so what reaches here is only what a person has to answer - an end nobody
+          can parse, or one that was never filled in. When there is nothing left the panel says so
+          rather than disappearing, because "no problems" and "the check is gone" look the same.
+        -->
+        <div th:unless="${assignPatrollers or applyToCalendar}"
+             style="width:1020px; margin:0 auto 16px auto; box-sizing:border-box;">
+
+            <div th:if="${#lists.isEmpty(timeProblems)}"
+                 style="border:1px solid #b7d7b7; border-radius:4px; padding:6px 12px;
+                        background:#f2faf2; color:#2d662d; font-size:9pt;">
+                &#10003; Every shift template here has a start and end time that can be read as a
+                time.
+            </div>
+
+            <details th:unless="${#lists.isEmpty(timeProblems)}"
+                     style="border:2px solid #cc7000; border-radius:4px; background:#fffaf3;
+                            font-size:9pt; color:#333;">
+                <summary style="padding:6px 12px; cursor:pointer; font-weight:bold; color:#994f00;">
+                    <span th:text="${#lists.size(timeProblems)}">0</span>
+                    shift row(s) have a start or end time that cannot be read &mdash; click to see
+                    them
+                </summary>
+                <div style="padding:0 12px 10px 12px;">
+                    <p style="margin:4px 0 8px 0;">
+                        These cannot be synced to anybody&#39;s personal calendar until they carry a
+                        real start and end time. Pick the template from the drop-down above to fix
+                        one.
+                    </p>
+                    <table style="border-collapse:collapse; width:100%; font-size:9pt;">
+                        <tr style="background:#f0e0cc; text-align:left;">
+                            <th style="border:1px solid #ddc7a8; padding:3px 8px;">Template</th>
+                            <th style="border:1px solid #ddc7a8; padding:3px 8px;">Row</th>
+                            <th style="border:1px solid #ddc7a8; padding:3px 8px;">Label</th>
+                            <th style="border:1px solid #ddc7a8; padding:3px 8px;">Start</th>
+                            <th style="border:1px solid #ddc7a8; padding:3px 8px;">End</th>
+                            <th style="border:1px solid #ddc7a8; padding:3px 8px;">What needs fixing</th>
+                        </tr>
+                        <tr th:each="row : ${timeProblems}">
+                            <td style="border:1px solid #ddc7a8; padding:3px 8px;"
+                                th:text="${row.templateName}">Friday</td>
+                            <td style="border:1px solid #ddc7a8; padding:3px 8px;"
+                                th:text="${row.position}">2</td>
+                            <td style="border:1px solid #ddc7a8; padding:3px 8px;"
+                                th:text="${row.label}">dir</td>
+                            <td style="border:1px solid #ddc7a8; padding:3px 8px;"
+                                th:text="${row.startTime}">8:00</td>
+                            <td style="border:1px solid #ddc7a8; padding:3px 8px;"
+                                th:text="${row.endTime}">Close</td>
+                            <td style="border:1px solid #ddc7a8; padding:3px 8px;"
+                                th:text="${row.problem}">the end cannot be read as a time</td>
+                        </tr>
+                    </table>
+                </div>
+            </details>
+        </div>
     </div>
 
     <p th:unless="${assignPatrollers or applyToCalendar}">-- NOTE: The Shift names '<B>Sunday</B>', '<B>Monday</B>', etc. are <B>Special</B>. If defined here, they will

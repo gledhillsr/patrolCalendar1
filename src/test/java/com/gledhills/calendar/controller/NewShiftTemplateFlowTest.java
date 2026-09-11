@@ -188,12 +188,12 @@ class NewShiftTemplateFlowTest {
    */
   @Test
   void aRejectedNameStaysOnTheOriginalTemplate() throws Exception {
-    String page = pressNew("Saturday", "Bad_Name", 0);
+    String page = pressNew("Saturday", "_BadName", 0);
 
-    assertTrue(page.contains("cannot contain an underscore"), "the name should be rejected");
+    assertTrue(page.contains("cannot start with an underscore"), "the name should be rejected");
     assertEquals("Saturday", eventNameField(page),
                  "and the page should stay on the template it came from");
-    assertEquals(0, savedRowsFor("Bad"), "nothing should have been written under the bad name");
+    assertEquals(0, savedRowsFor("_BadName"), "nothing should have been written under the bad name");
   }
 
   private String openTemplate(String selectedShift) throws Exception {

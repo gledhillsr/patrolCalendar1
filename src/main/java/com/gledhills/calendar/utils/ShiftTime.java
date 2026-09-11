@@ -20,6 +20,11 @@ import java.util.regex.Pattern;
  * {@code 8:00} and {@code 0800} would otherwise count as two different shifts and let somebody be
  * booked on both.
  *
+ * <p><b>The {@code m} of the meridiem is optional</b>, so {@code 4:30P} reads as 4:30pm. That is
+ * not a guess at what somebody meant: {@code 4:30P} was one resort's house style for years, and
+ * reading it as a label instead put an unreadable end time on 3,886 rows. A bare {@code P} can only
+ * follow a number here, so no label acquires a meaning by it.
+ *
  * <p><b>The match is anchored and whole-string</b>, which is the whole difficulty. {@code PMExtra}
  * is a real label in Brighton's data: anything that goes looking for "pm" inside the string turns
  * it into 12:00 and silently loses a label.
@@ -29,14 +34,14 @@ public final class ShiftTime {
   private ShiftTime() {
   }
 
-  /** {@code 8:00}, {@code 08:00}, {@code 8:00am}, {@code 4:00 pm} */
+  /** {@code 8:00}, {@code 08:00}, {@code 8:00am}, {@code 4:00 pm}, {@code 4:30P} */
   private static final Pattern HOUR_MINUTE =
-    Pattern.compile("^\\s*(\\d{1,2})\\s*:\\s*(\\d{2})\\s*(?:([ap])\\.?m\\.?)?\\s*$",
+    Pattern.compile("^\\s*(\\d{1,2})\\s*:\\s*(\\d{2})\\s*(?:([ap])\\.?m?\\.?)?\\s*$",
                     Pattern.CASE_INSENSITIVE);
 
-  /** {@code 8am}, {@code 4 pm} - the meridiem is required, or a bare number is read as 24 hour */
+  /** {@code 8am}, {@code 4 pm}, {@code 4p} - a meridiem is required, or a bare number is 24 hour */
   private static final Pattern HOUR_MERIDIEM =
-    Pattern.compile("^\\s*(\\d{1,2})\\s*([ap])\\.?m\\.?\\s*$", Pattern.CASE_INSENSITIVE);
+    Pattern.compile("^\\s*(\\d{1,2})\\s*([ap])\\.?m?\\.?\\s*$", Pattern.CASE_INSENSITIVE);
 
   /** a bare {@code 6} or {@code 16}, read as 24 hour */
   private static final Pattern BARE_HOUR = Pattern.compile("^\\s*(\\d{1,2})\\s*$");

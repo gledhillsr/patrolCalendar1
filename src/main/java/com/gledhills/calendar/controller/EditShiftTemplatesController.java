@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import com.gledhills.calendar.store.Assignments;
 import com.gledhills.calendar.store.DirectorSettings;
 import com.gledhills.calendar.store.ShiftDefinitions;
+import com.gledhills.calendar.service.ShiftTimeAudit;
 import com.gledhills.calendar.store.ShiftTemplatePatrollers;
 import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.utils.*;
@@ -191,6 +192,10 @@ public class EditShiftTemplatesController {
                                templatePatrollerCounts.getOrDefault(selectedShift, 0));
             model.addAttribute("assignPatrollers", assignPatrollers);
             model.addAttribute("applyToCalendar", applyToCalendar);
+            // Every template's unusable times, not just the one on screen: a director fixing these
+            // wants to know what is left across the resort, and the panel names the template each
+            // row belongs to so they can go to it.
+            model.addAttribute("timeProblems", ShiftTimeAudit.problems(allShifts));
             // Only Sunday..Saturday can be applied - the weekday in the name is what picks the days
             // out of the range - so the button is dead for every other template.
             model.addAttribute("selectedShiftIsDayOfWeek",
@@ -232,13 +237,15 @@ public class EditShiftTemplatesController {
 
         String eventName = request.getParameter("eventName");
 
-        // A row's position is stored as a "_<n>" suffix on its shift name ("Saturday_0"), so an
-        // underscore inside the name itself would make the name and the position ambiguous.
+        // A name may not START with an underscore: an unnamed row is stored as "_0", and
+        // ShiftDefinitions.UNNAMED_TEMPLATE finds those with LIKE '\_%' so the Site Wide
+        // Configuration job can delete them - a template called "_old" would be swept up with them.
+        // An underscore *inside* the name is fine; everything splits on the last one.
         // The browser checks this too, but that can be bypassed.
-        if (eventName != null && eventName.contains("_")) {
-            LOG.info("rejected shift template name with an underscore: (" + eventName + ")");
+        if (eventName != null && eventName.trim().startsWith("_")) {
+            LOG.info("rejected shift template name starting with an underscore: (" + eventName + ")");
             return new ProcessResult(selectedShift, false, false,
-                                     "Shift template names cannot contain an underscore ('_'). '"
+                                     "Shift template names cannot start with an underscore ('_'). '"
                                        + eventName + "' was not saved.");
         }
 
@@ -718,7 +725,12 @@ public class EditShiftTemplatesController {
      * Whether a template name is one we can store. Mirrors isUsableTemplateName in
      * edit-shift-templates.html, which greys out the New button on the same rule - keep the two
      * in step. Blank is out, the dropdown's "--New Shift Style--" label is a menu entry rather
-     * than a name, and an underscore would collide with the "_<n>" row-position suffix.
+     * than a name, and a name may not start with an underscore - see the check in
+     * processFormSubmission for why that one is not merely cosmetic.
+     *
+     * <p>An underscore <em>inside</em> the name is allowed. The row position is a "_&lt;n&gt;"
+     * suffix and every reader splits on the LAST underscore, so "Saturday_old_3" is row 3 of
+     * "Saturday_old" - which is a real template on Brighton's site and has always worked.
      */
     private static boolean isUsableTemplateName(String name) {
         if (name == null) {
@@ -726,7 +738,7 @@ public class EditShiftTemplatesController {
         }
         String trimmed = name.trim();
         return !trimmed.isEmpty() && !trimmed.equals(PatrolData.NEW_SHIFT_STYLE)
-                 && !trimmed.contains("_");
+                 && !trimmed.startsWith("_");
     }
 
     /** Form field carrying the name pencilled into one slot. */

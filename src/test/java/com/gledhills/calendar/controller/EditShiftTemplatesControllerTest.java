@@ -4,6 +4,7 @@ import com.gledhills.calendar.store.ShiftDefinitions;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
 import com.gledhills.calendar.utils.SessionData;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +49,9 @@ class EditShiftTemplatesControllerTest {
   /** Three rows, and not a day-of-week template, so the month calendar is unaffected. */
   private static final String MULTI_ROW_TEMPLATE = "Midnight";
 
+  /** Written by one test and removed after it; the inner underscore is the point of it. */
+  private static final String UNDERSCORE_TEMPLATE = "ZZLate_Night";
+
   @Autowired
   private WebApplicationContext webApplicationContext;
 
@@ -56,6 +60,18 @@ class EditShiftTemplatesControllerTest {
   @BeforeEach
   void setUp() {
     mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+  }
+
+  /** The scratch template is written to the real Sample data, so it does not outlive the test. */
+  @AfterEach
+  void removeScratchTemplate() {
+    withPatrolData(patrolData -> {
+      for (ShiftDefinitions shift : patrolData.readShiftDefinitions()) {
+        if (shift.parsedEventName().equals(UNDERSCORE_TEMPLATE)) {
+          patrolData.deleteShift(shift);
+        }
+      }
+    });
   }
 
   @Test
@@ -235,54 +251,99 @@ class EditShiftTemplatesControllerTest {
   }
 
   /**
-   * A row's position is stored as a "_<n>" suffix on its shift name, so an underscore inside the
-   * name itself makes name and position ambiguous. No existing template may contain one.
+   * No existing template name may <b>start</b> with an underscore.
+   *
+   * <p>That is the shape an unnamed row has ("_0"), and {@code ShiftDefinitions.UNNAMED_TEMPLATE}
+   * finds those with {@code LIKE '\_%'} so the Site Wide Configuration job can delete them. A
+   * template genuinely called "_old" would be swept away with the artifacts.
+   *
+   * <p>An underscore <em>inside</em> a name is deliberately not checked: it is allowed, everything
+   * splits on the last underscore, and Brighton has run a template called "Saturday_old" for years.
    */
   @Test
-  void noExistingTemplateNameContainsAnUnderscore() {
+  void noExistingTemplateNameStartsWithAnUnderscore() {
     List<String> offenders = new ArrayList<>();
     withPatrolData(patrolData -> {
       for (ShiftDefinitions shift : patrolData.readShiftDefinitions()) {
-        if (shift.parsedEventName().contains("_")) {
+        if (shift.parsedEventName().startsWith("_")) {
           offenders.add(shift.getEventName());
         }
       }
     });
 
     assertTrue(offenders.isEmpty(),
-               "these template names contain an underscore and will parse ambiguously: " + offenders);
+               "these template names start with an underscore and the clean-up job would delete "
+                 + "them: " + offenders);
   }
 
-  /** The browser check can be bypassed, so the server must refuse the name too. */
+  /** The browser check can be bypassed, so the server must refuse a leading underscore too. */
   @Test
-  void theServerRejectsATemplateNameContainingAnUnderscore() throws Exception {
+  void theServerRejectsATemplateNameStartingWithAnUnderscore() throws Exception {
     String before = String.join("|", templateRows(MULTI_ROW_TEMPLATE));
 
     String page = mockMvc.perform(post("/EditShiftTemplates")
                                     .param("resort", "Sample")
                                     .param("ID", DIRECTOR_ID)
                                     .param("selectedShift", MULTI_ROW_TEMPLATE)
-                                    .param("eventName", "Bad_Name")
+                                    .param("eventName", "_BadName")
                                     .param("shiftCount", "0")
                                     .header("User-Agent", BROWSER)
                                     .session(directorSession()))
       .andExpect(status().isOk())
       .andReturn().getResponse().getContentAsString();
 
-    assertTrue(page.contains("cannot contain an underscore"),
+    //"was not saved" is the server's wording. The browser's copy of this message is inline in the
+    //page's JavaScript on EVERY render, so asserting on the shared part of the sentence passes
+    //whether or not the name was actually refused - which is the whole thing under test.
+    assertTrue(page.contains("cannot start with an underscore (&#39;_&#39;). &#39;_BadName&#39; was not saved")
+               || page.contains("was not saved"),
                "the page should say why the name was refused");
     assertEquals(before, String.join("|", templateRows(MULTI_ROW_TEMPLATE)),
                  "and nothing should have been written");
   }
 
+  /**
+   * An underscore inside the name is accepted, and the row still parses back to the right template.
+   *
+   * <p>This is the behaviour the old blanket ban was costing. The suffix is read with
+   * {@code lastIndexOf}, so "Late_Night_2" is row 2 of "Late_Night" - and getting that wrong would
+   * file the row under a template nobody asked for, which is why it is asserted rather than assumed.
+   */
+  @Test
+  void anUnderscoreInsideTheNameIsAllowed() throws Exception {
+    String page = mockMvc.perform(post("/EditShiftTemplates")
+                                    .param("resort", "Sample")
+                                    .param("ID", DIRECTOR_ID)
+                                    .param("selectedShift", PatrolData.NEW_SHIFT_STYLE)
+                                    .param("eventName", UNDERSCORE_TEMPLATE)
+                                    .param("addShift", "New")
+                                    .param("shiftCount", "0")
+                                    .header("User-Agent", BROWSER)
+                                    .session(directorSession()))
+      .andExpect(status().isOk())
+      .andReturn().getResponse().getContentAsString();
+
+    //again, not the shared sentence: "was not saved" is only ever the server refusing it
+    assertFalse(page.contains("was not saved"),
+                "an inner underscore should not be refused: " + UNDERSCORE_TEMPLATE);
+
+    //templateRows filters on parsedEventName(), so a row coming back at all is the round trip:
+    //the name was stored as "ZZLate_Night_0" and read back as row 0 of "ZZLate_Night", not as
+    //row 0 of "ZZLate" or some other template the split invented.
+    List<String> rows = templateRows(UNDERSCORE_TEMPLATE);
+    assertEquals(1, rows.size(), "exactly one row should have been written: " + rows);
+    assertTrue(rows.get(0).startsWith(UNDERSCORE_TEMPLATE + "_0 "),
+               "stored with its position appended, and filed under the full name: " + rows.get(0));
+  }
+
   /** The name check runs in the browser as well, so a typo is caught before a round trip. */
   @Test
-  void theBrowserAlsoChecksForAnUnderscore() throws Exception {
+  void theBrowserAlsoChecksForALeadingUnderscore() throws Exception {
     String page = page(MULTI_ROW_TEMPLATE);
 
     // the rule moved into isUsableTemplateName, which the New button gate shares
-    assertTrue(page.contains("indexOf(\"_\")"),
-               "the browser should reject underscores client-side too");
+    assertTrue(page.contains("indexOf(\"_\") == 0") || page.contains("indexOf(\"_\") != 0"),
+               "the browser should reject a LEADING underscore client-side too");
     assertTrue(page.contains("function CheckEventName"),
                "and it should still gate the form's submit");
   }

@@ -132,9 +132,30 @@ Tests: `MonthCalendarServiceTest` covers the day-cell branches with a mocked `Pa
 ### Shift Templates & Template Patrollers
 
 `shiftdefinitions` holds the shift templates. A row's position lives in a `_<n>` suffix on its name
-(`Saturday_0`, `Saturday_1`), so **a template name may not contain an underscore** —
-`EditShiftTemplatesController` rejects it in the browser and again on the server, and
-`EditShiftTemplatesControllerTest` scans the database for existing offenders.
+(`Saturday_0`, `Saturday_1`).
+
+**A template name may not *start* with an underscore**, and that is the only restriction.
+`EditShiftTemplatesController` refuses one in the browser and again on the server, and
+`EditShiftTemplatesControllerTest` scans the database for existing offenders. The reason is not the
+suffix: an unnamed row is stored as `_0`, and `ShiftDefinitions.UNNAMED_TEMPLATE` finds those with
+`LIKE '\_%'` so the Site Wide Configuration job can delete them — a template genuinely called
+`_old` would be swept away with the artifacts.
+
+**An underscore *inside* the name is fine.** The rule used to ban them outright, which was never
+necessary: `parsedEventName` and `getEventIndex` split on the **last** underscore, so
+`Saturday_old_3` is row 3 of `Saturday_old` — and Brighton has run a template by that exact name for
+years, through every one of these code paths, without trouble. `DayShiftsController.splitEventName`
+carries the same `lastIndexOf` rule and a comment saying so. `anUnderscoreInsideTheNameIsAllowed`
+pins the round trip, because a split that got this wrong would file the row under a template nobody
+created rather than failing outright.
+
+Two traps in testing this, both hit and both now commented in place:
+
+- **The refusal message is inline JavaScript on every render**, so `page.contains("cannot start with
+  an underscore")` passes whether or not the name was refused. The server's wording ends
+  **"was not saved"** and the browser's **"is invalid"**; assert on the half that only one of them
+  says. The old test had the same flaw and had been passing on the JavaScript text.
+- The New button posts **`addShift`**, not `addShiftBtn` — the latter silently writes nothing.
 
 `ShiftTemplatePatrollers` (table `shifttemplatepatrollers`, keyed `EventName` + `Position`) stores
 who a director pencilled into each template slot. The table **self-creates via
@@ -230,13 +251,26 @@ already migrated and would let a `migrateResort` that did nothing at all pass ev
 **`ShiftTime` is the single answer to "is this a time?"**, used by the migration, by both
 controllers through `StartAndLabel`, and mirrored in `static/js/shiftTime.js` for the browser.
 It accepts what people actually type — `8:00`, `08:00`, `0800`, `800`, `8`, `8am`, `8:00am`,
-`4:00 pm`, `1900` — and **normalizes everything to `H:MM`**. That is not tidiness: `shiftKey`
+`4:00 pm`, `1900`, `4:30P` — and **normalizes everything to `H:MM`**. That is not tidiness: `shiftKey`
 identifies one shift by its start and end strings, so `0800` and `8am` on two rows of the same
 shift would otherwise be two different shifts and nobody would notice a double booking.
 
 **The match is anchored and whole-string.** `PMExtra` is a real label in Brighton's data; anything
 that searches for "pm" inside the string turns it into noon and loses a label. `ShiftTimeTest` is
 built from values taken out of the real columns for exactly this reason.
+
+**The `m` of the meridiem is optional**, so `4:30P` reads as 4:30pm. It was mandatory at first, and
+that was wrong in a way that cost real data: `4:30P` and `8:00 a` are one resort's house style, and
+while the rule rejected them the Label migration read them as labels — moving them out of StartTime
+and **blanking the start**. 17 shift templates and 2,759 scheduled rows ended up with no start time
+at all. `ShiftTimeCleanup` puts them back. A bare `P` only means anything directly after a number,
+so no label acquires a meaning from this.
+
+**Widening it in Java without widening `static/js/shiftTime.js` leaves the browser refusing what
+the server accepts**, and the message blames the value rather than the mismatch. There is no shared
+source — one runs in a JVM, the other in a browser — so
+`ShiftTimeTest.theBrowserCopyCarriesTheSameMeridiemRule` reads both files and compares the rule with
+the backslashes stripped. **Change one copy and you must change the other.**
 
 Things worth knowing:
 
@@ -282,12 +316,56 @@ Things worth knowing:
   the server rendered into the box. Clearing it is allowed — End is not required.
 - **The store classes' INSERTs are named-column now.** Both were positional `VALUES(...)`, which a
   new column silently breaks with an error that names the count rather than the cause.
-- Pre-migration copies of all four tables are in the `patrolCalendarPreLabelBackup` database.
+- **There is no `patrolCalendarPreLabelBackup` database.** An earlier note here said there was; it
+  does not exist on the server. What does exist is the **three-hourly full `mysqldump` to S3**
+  (`/root/backupMySqlToS3`, `s3://sgled57/backups/calendar/<private-ip>/<year>/<month>/`), which is
+  what the pre-migration state was actually recovered from — restore one into a scratch database
+  and join against it. Note the **private IP is part of the path and changes when the instance is
+  replaced**, so a listing sorted by name puts the older machine's backups last and looks alarmingly
+  stale; sort by date.
 
 The red notice announcing this is still on both pages, from `fragments/notices.html` with its
 example image at `static/images/labelSplitExample.png`. **Delete the fragment and both
 `th:replace` lines once directors have seen it** — a notice that outlives its change is worse than
 no notice.
+
+### Tidying Shift Template Times
+
+`ShiftTimeCleanup` finishes what `ShiftLabelMigration` started, on **`shiftdefinitions` only**. Run
+it from Directors → Site Wide Configuration ("Tidy shift template times in every resort"), or
+`ShiftTimeCleanup.main` for one resort from the command line. Three things it fixes, all of them
+the computer's to decide:
+
+- **a time stranded in the Label** with StartTime blank — the meridiem bug above; it goes back
+- **a StartTime that is a time but not canonical**
+- **an EndTime that is a time but not canonical** — `1600`, `4:30pm`, `2100`. End was never
+  migrated, so this is most of the work
+
+**Templates only, deliberately.** `assignments` carries the same faults through twenty years of
+history — 2,759 mis-sorted labels, thousands of untidy ends — and rewriting a shift somebody worked
+in 2019 changes a record for nobody's benefit. Templates are what build the seasons ahead, so
+fixing them is what stops it recurring. Idempotent on the data, like its sibling: a second press
+reports "nothing to do".
+
+**What it will not touch is the point.** An EndTime that is not a time (`Close`, `end time`,
+`5:30-9`) and a blank EndTime are left exactly as they are — there is no End label to move them
+into and no way to guess the hour. Those go to `service/ShiftTimeAudit`, which
+`EditShiftTemplatesController` calls to fill the panel below the grey frame on Edit Shift Templates.
+
+**The panel's value is in what it leaves out.** Of 884 template rows site-wide 231 were wrong, and
+the cleanup fixes 201 of them unattended; a report listing all 231 — never mind all 884 — would
+bury the ~30 that genuinely need a director's answer. `ShiftTimeAuditTest.aRowThatCanBeReadIsNotListed`
+is the assertion that keeps it that way, and `ShiftTimeAuditPanelTest` renders the page, because a
+Thymeleaf expression that throws takes down the very page directors fix shifts on.
+
+Two things that bit while building it, both now pinned:
+
+- **A `page.contains(templateName)` assertion is vacuous here** — the name is in the selector
+  drop-down as well, so it passes whether or not the panel mentions it. `ShiftTimeAuditPanelTest`
+  slices out the `<details>` element first. The test that matters is the one asserting a row is
+  *absent*, and that is exactly the one this made meaningless.
+- **A label-only shift** (`mentee`, no times) is listed, and is the one entry that may be correct as
+  it stands — so it is worded as "cannot sync" rather than as an error.
 
 ### Roster Listing & Download
 
@@ -671,6 +749,33 @@ failure is silent, the submit check let the bad value through, and the first thi
 server at save time — which reads as "the validation is in the wrong place" rather than "your
 browser has an old file". `StaticAssetVersioningTest` pins both halves.
 
+### Resort Time Zones
+
+Every resort has one, because a shift time means nothing outside this site without it — a synced
+calendar above all. Two layers:
+
+- **`ResortTimeZones`** holds the built-in default per resort, worked out from each resort's name
+  and the website in `resortMap`, and confirmed with the site owner. Only the four continental zone
+  names are used: `America/Boise` keeps the same clock as `America/Denver`, so choosing the broader
+  name cannot be wrong by an hour, and the only mistake that matters is the wrong zone entirely.
+- **`directorsettings.timeZone`** is the resort's own answer, set on **Web Site Preferences**, and
+  it wins. Blank means unanswered.
+
+**`ResortTimeZones.inForce(resort, settings)` is the one method to call** — the director's answer
+when there is one, the table otherwise, and it never throws on a stored value that is not a zone.
+`DirectorSettings.read` tolerates the column being absent, so a resort the job has not reached
+still loads its settings; every page in the app reads them.
+
+**Adding the column needs `sql_mode` relaxed for that one statement.** `directorsettings` carries
+`lastVoucherHistoryUpdate date NOT NULL DEFAULT '0000-00-00'` from twenty years ago, and an `ALTER`
+makes the server revalidate the whole table, which `NO_ZERO_DATE` then rejects — with an error
+naming that old column and saying nothing about the one being added. The site-wide job relaxes the
+mode, alters, and restores it; the bad default is deliberately left alone.
+
+**Applied to all 44 resorts in `resortMap` on localhost and production** (19 Mountain, 16 Central,
+7 Eastern, 2 Pacific). Ten more databases exist for resorts commented out of the map — the job does
+not touch them, and neither did the manual run, so the two stay in step.
+
 ### The Sample Demo and its Nightly Restore
 
 `Sample` is the resort anyone is invited to experiment in, so it fills up with other people's trial
@@ -684,6 +789,9 @@ restore copies the master's *table structure* as well as its rows, so a migratio
 alone would be undone overnight. Being in the map means the site-wide jobs on **Site Wide
 Configuration** walk it like every other resort and keep its schema in step. It is not a resort
 anyone is meant to browse.
+
+**A demo resort will not sync shifts to a personal calendar either**, when that is built — the
+same reason it is never emailed, and the same predicate decides it.
 
 **`PatrolData.isDemoResort` is the one test for "these members are invented".** It covers both
 Sample and SampleBackup, and **six** places ask it: `DailyReminder` (skips sending), the two email

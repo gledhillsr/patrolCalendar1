@@ -4,7 +4,8 @@
  * Needs dialogs.js, which must be loaded first - the messages here go through its message box.
  *
  * Deliberately the same rules as ShiftTime.java, including the awkward ones: a bare number is a
- * 24 hour clock, a meridiem is a 12 hour clock where 12am is midnight, and the match is anchored
+ * 24 hour clock, a meridiem is a 12 hour clock where 12am is midnight, the m of the meridiem is
+ * optional so 4:30P is 4:30pm, and the match is anchored
  * so a label like "PMExtra" is not mistaken for an afternoon.
  *
  * This is a courtesy, not a guard. The form can be posted around it, so StartAndLabel on the
@@ -41,10 +42,10 @@ function normalizeShiftTime(raw) {
         return null;
     }
     var found;
-    if ((found = /^(\d{1,2})\s*:\s*(\d{2})\s*(?:([ap])\.?m\.?)?$/i.exec(text))) {
+    if ((found = /^(\d{1,2})\s*:\s*(\d{2})\s*(?:([ap])\.?m?\.?)?$/i.exec(text))) {
         return buildShiftTime(parseInt(found[1], 10), parseInt(found[2], 10), found[3]);
     }
-    if ((found = /^(\d{1,2})\s*([ap])\.?m\.?$/i.exec(text))) {
+    if ((found = /^(\d{1,2})\s*([ap])\.?m?\.?$/i.exec(text))) {
         return buildShiftTime(parseInt(found[1], 10), 0, found[2]);
     }
     if ((found = /^(\d{1,2})$/.exec(text))) {

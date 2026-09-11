@@ -19,6 +19,8 @@ public class WebSitePreferencesForm {
     private Integer reminderDays = 0;
 
     private Boolean emailAll = false;
+    /** The resort's own time zone, an IANA id. Blank means "use the built-in default". */
+    private String timeZone = "";
 
     // Calendar Permissions
     private Boolean onlyDirectors = false;
@@ -105,6 +107,14 @@ public class WebSitePreferencesForm {
 
     public void setEmailAll(Boolean emailAll) {
         this.emailAll = emailAll;
+    }
+
+    public String getTimeZone() {
+        return timeZone;
+    }
+
+    public void setTimeZone(String timeZone) {
+        this.timeZone = timeZone == null ? "" : timeZone.trim();
     }
 
     public Boolean getOnlyDirectors() {

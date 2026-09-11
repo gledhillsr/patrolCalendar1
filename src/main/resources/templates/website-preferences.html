@@ -145,6 +145,36 @@
                     </td>
                 </tr>
 
+                <!-- Time zone. Sits above the season dates because everything below it is a time
+                     of day, and this is what says which clock they are on. -->
+                <tr>
+                    <td colspan="2">
+                        <h3>Time Zone</h3>
+                        <p style="font-size: 0.9em; color: #444; margin: 0 0 10px 0; max-width: 46em">
+                            The clock your mountain runs on. Shift times shown on this site are
+                            read by somebody standing at the resort, so this changes nothing you
+                            see here &mdash; it is what lets a shift be described correctly to
+                            anything outside, a patroller&rsquo;s own phone calendar above all.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td width="400" align="right">
+                        <font size="3">Resort time zone:</font>
+                    </td>
+                    <td width="300">
+                        <select th:field="*{timeZone}">
+                            <option th:each="zone : ${T(com.gledhills.calendar.utils.ResortTimeZones).CHOICES}"
+                                    th:value="${zone}"
+                                    th:text="${T(com.gledhills.calendar.utils.ResortTimeZones).label(zone)}">
+                                Mountain
+                            </option>
+                        </select>
+                        <span th:if="${#fields.hasErrors('timeZone')}" class="error-message"
+                              th:errors="*{timeZone}">Time Zone Error</span>
+                    </td>
+                </tr>
+
                 <!-- Season Dates Section -->
                 <tr>
                     <td colspan="2">

@@ -32,6 +32,13 @@ public class DirectorSettings {
   public final static String START_BLACKOUT_FIELD = "startBlackOut";
   public final static String END_BLACKOUT_FIELD = "endBlackOut";
   public final static String REMOVE_ACCESS_FIELD = "removeAccess";
+  /**
+   * The resort's own time zone, an IANA id such as {@code America/Denver}.
+   *
+   * <p>Blank means "not answered", and {@link com.gledhills.calendar.utils.ResortTimeZones} decides
+   * instead. A director's answer here is the authority; that table is only the starting point.
+   */
+  public final static String TIME_ZONE_FIELD = "timeZone";
 
   //instance data
   private String szPatrolName;            //0
@@ -48,6 +55,7 @@ public class DirectorSettings {
   private String szStartBlackout;         //11
   private String szEndBlackout;           //12
   private int nRemoveAccess;              //13
+  private String szTimeZone;              //14
   private final String resort;                  //variable
   private final Logger LOG;
 
@@ -90,6 +98,8 @@ public class DirectorSettings {
       szEndBlackout = resultSet.getString(END_BLACKOUT_FIELD);
       //ignore skihistory update, voucher history update, and signinLogin
       nRemoveAccess = resultSet.getInt(REMOVE_ACCESS_FIELD);
+      //a resort whose column the site-wide job has not reached yet reads as unanswered
+      szTimeZone = readOptional(resultSet, TIME_ZONE_FIELD);
     }
     catch (Exception e) {
       LOG.error("exception in Shifts:read e=" + e);
@@ -212,6 +222,31 @@ public class DirectorSettings {
 
   public int getNameFormat() {
     return nNameFormat;
+  }
+
+  /** The stored zone, or "" when this resort has not answered. */
+  public String getTimeZone() {
+    return szTimeZone == null ? "" : szTimeZone.trim();
+  }
+
+  public void setTimeZone(String zone) {
+    szTimeZone = zone == null ? "" : zone.trim();
+  }
+
+  /**
+   * A column that may not exist yet.
+   *
+   * <p>The site-wide job adds timeZone to every resort, but a resort it has not reached must still
+   * load its settings - every page in the app reads them. A missing column reads as unanswered.
+   */
+  private String readOptional(java.sql.ResultSet resultSet, String column) {
+    try {
+      String value = resultSet.getString(column);
+      return value == null ? "" : value;
+    }
+    catch (Exception e) {
+      return "";
+    }
   }
 
   public int getStartMonth() {
@@ -389,6 +424,7 @@ public class DirectorSettings {
       "', " + START_BLACKOUT_FIELD + "='" + szStartBlackout +
       "', " + END_BLACKOUT_FIELD + "='" + szEndBlackout +
       "', " + REMOVE_ACCESS_FIELD + "='" + nRemoveAccess +
+      "', " + TIME_ZONE_FIELD + "='" + (szTimeZone == null ? "" : szTimeZone) +
       "' WHERE " + PATROL_NAME_FIELD + "= '" + szPatrolName + "'";
     return qryString; //logged by SqlWriter when it is executed
   }

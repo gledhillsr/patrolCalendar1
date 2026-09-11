@@ -96,6 +96,11 @@ public class WebSitePreferencesController {
             form.setEmailReminder(settings.getSendReminder());
             form.setReminderDays(settings.getReminderDays());
             form.setEmailAll(settings.getEmailAll());
+            //what is stored, or the built-in default when this resort has never answered - so the
+            //dropdown opens on the zone actually in force rather than on nothing
+            form.setTimeZone(settings.getTimeZone().isEmpty()
+                                 ? ResortTimeZones.forResort(resort).getId()
+                                 : settings.getTimeZone());
             form.setOnlyDirectors(settings.getDirectorsOnlyChange());
             form.setRemoveAccess(settings.getRemoveAccess());
             form.setStartDay(settings.getStartDay());
@@ -181,6 +186,7 @@ public class WebSitePreferencesController {
             settings.setSendReminder(form.getEmailReminder() != null && form.getEmailReminder());
             settings.setReminderDays(form.getReminderDays());
             settings.setEmailAll(form.getEmailAll() != null && form.getEmailAll());
+            settings.setTimeZone(form.getTimeZone());
             settings.setDirectorsOnlyChange(form.getOnlyDirectors() != null && form.getOnlyDirectors());
             settings.setRemoveAccess(form.getRemoveAccess());
             settings.setStartDay(form.getStartDay());

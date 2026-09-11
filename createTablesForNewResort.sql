@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS `directorsettings` (
   `signinLockout` int NOT NULL DEFAULT '0',
   `removeAccess` int NOT NULL DEFAULT '0',
   `salt` char(64) DEFAULT NULL,
+  `timeZone` varchar(40) NOT NULL DEFAULT '',
   PRIMARY KEY (`PatrolName`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 CREATE TABLE IF NOT EXISTS `menubuttons` (
