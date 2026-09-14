@@ -68,8 +68,8 @@ class MemberListRosterToggleTest {
     assertTrue(page.contains("class=\"help-dot\""), "with a ? beside it");
     assertTrue(page.contains("Trimmed roster does not show Inactive"),
                "whose popup says what trimming leaves out: " + page);
-    assertTrue(page.contains("Pro and Alumni are controlled by the boxes above"),
-               "and mentions the boxes");
+    assertTrue(page.contains("Paid and Alumni are controlled by the boxes above"),
+               "and mentions the boxes by the names they now carry");
   }
 
   /** The whole point: the full list holds people the trimmed one hides. */

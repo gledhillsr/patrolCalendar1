@@ -3,6 +3,7 @@ package com.gledhills.calendar.controller;
 import com.gledhills.calendar.ShiftLabelMigration;
 import com.gledhills.calendar.ShiftTimeCleanup;
 import com.gledhills.calendar.store.MenuButton;
+import com.gledhills.calendar.store.CalendarFeedToken;
 import com.gledhills.calendar.store.PasswordResetToken;
 import com.gledhills.calendar.store.ShiftDefinitions;
 import com.gledhills.calendar.store.ShiftTemplatePatrollers;
@@ -141,7 +142,7 @@ public class SiteWideConfigurationController {
             }
             else if ("timeZones".equals(action)) {
                 results = timeZones(sessionData, LOG);
-                heading = "Time zone column added and filled in";
+                heading = "Calendar sync settings added";
             }
             else if ("shiftLabels".equals(action)) {
                 results = shiftLabels(sessionData, LOG);
@@ -251,7 +252,7 @@ public class SiteWideConfigurationController {
      * Rewrites every resort's shift <b>templates</b> so their start and end times are readable and
      * written the one way - {@link ShiftTimeCleanup}.
      *
-     * <p>Three things the Label migration left behind: a time stranded in the Label because the old
+     * <p>Three things the Label migration left behind: a missing start time recoverable from a Label, because the old
      * rule would not accept {@code 4:00P}, a start not in canonical form, and an end that was never
      * migrated at all. All three are the computer's to fix; what it cannot read it leaves alone and
      * the panel on Edit Shift Templates asks a director about.
@@ -321,7 +322,7 @@ public class SiteWideConfigurationController {
                     results.add(new ResortResult(resort, false, "no database"));
                     continue;
                 }
-                results.add(addTimeZone(resort, patrolData.getConnection()));
+                results.add(addCalendarSyncColumns(resort, patrolData.getConnection()));
             }
             catch (Exception e) {
                 //the message, not just the class: "SQLSyntaxErrorException" tells the site owner
@@ -342,6 +343,31 @@ public class SiteWideConfigurationController {
             }
         }
         return results;
+    }
+
+    /**
+     * Both columns the calendar-sync settings need: the resort's zone, and the on/off switch.
+     *
+     * <p>Done together because they are one feature on one table, and because a resort with only
+     * half of them is a state nothing else in the app expects.
+     *
+     * <p><b>syncEnabled is created but never switched on here.</b> Defaulting it to "0" is what
+     * makes the feed opt-in: turning sync on for 44 resorts from a button the site owner pressed
+     * for a different reason is precisely the sort of thing nobody would find until a patroller
+     * asked why their calendar had filled up.
+     */
+    private ResortResult addCalendarSyncColumns(String resort, Connection connection)
+        throws SQLException {
+        ResortResult zone = addTimeZone(resort, connection);
+
+        if (!hasColumn(connection, "directorsettings", DirectorSettings.SYNC_ENABLED_FIELD)) {
+            addColumnDespiteLegacyDefaults(connection,
+                "ALTER TABLE `directorsettings` ADD COLUMN `"
+                  + DirectorSettings.SYNC_ENABLED_FIELD + "` varchar(1) NOT NULL DEFAULT '0'");
+            return new ResortResult(resort, zone.isCreated(),
+                                    zone.getDetail() + ", syncEnabled column added (off)");
+        }
+        return zone;
     }
 
     private ResortResult addTimeZone(String resort, Connection connection) throws SQLException {
@@ -433,15 +459,20 @@ public class SiteWideConfigurationController {
                     ShiftTemplatePatrollers.createTable(LOG, patrolData.getConnection());
                 boolean resetTokens =
                     PasswordResetToken.createTable(LOG, patrolData.getConnection(), resort);
+                boolean feedTokens =
+                    CalendarFeedToken.createTable(LOG, patrolData.getConnection());
 
-                boolean created = menuButtons && templatePatrollers && resetTokens;
+                boolean created =
+                    menuButtons && templatePatrollers && resetTokens && feedTokens;
                 results.add(new ResortResult(resort, created,
                                              created ? "ok"
                                                      : "menubuttons " + outcome(menuButtons)
                                                          + ", shifttemplatepatrollers "
                                                          + outcome(templatePatrollers)
                                                          + ", password_reset_tokens "
-                                                         + outcome(resetTokens)));
+                                                         + outcome(resetTokens)
+                                                         + ", calendarfeedtokens "
+                                                         + outcome(feedTokens)));
             }
             catch (Exception e) {
                 results.add(new ResortResult(resort, false, e.getClass().getSimpleName()));

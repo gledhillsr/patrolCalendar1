@@ -40,6 +40,22 @@ public class DirectorSettings {
    */
   public final static String TIME_ZONE_FIELD = "timeZone";
 
+  /**
+   * Whether this resort lets its patrollers subscribe to their shifts from their own calendar.
+   *
+   * <p>Stored as "1" or "0" rather than a tinyint, so a resort whose column the site-wide job has
+   * not reached reads as "" and falls to off - off being the safe answer while the feature is
+   * still being built. Off is also the default for a resort that has one and has not decided.
+   *
+   * <p><b>Deliberately not called {@code syncEnabled}.</b> That column already exists on Brighton
+   * and KellyCanyon and means something else entirely - it switched the locker-room-to-web sync on
+   * and off, in {@code html/screenshots8/sync.php}, which now decides that from a file instead and
+   * has the database code commented out. The column and its values outlived the feature, and
+   * KellyCanyon's still reads 1: adopting the name would have switched personal calendar sync on
+   * there the day this shipped, chosen by nobody.
+   */
+  public final static String SYNC_ENABLED_FIELD = "calendarSyncEnabled";
+
   //instance data
   private String szPatrolName;            //0
   private String szEmailReminder;         //1
@@ -56,6 +72,7 @@ public class DirectorSettings {
   private String szEndBlackout;           //12
   private int nRemoveAccess;              //13
   private String szTimeZone;              //14
+  private String szSyncEnabled;           //15
   private final String resort;                  //variable
   private final Logger LOG;
 
@@ -100,6 +117,7 @@ public class DirectorSettings {
       nRemoveAccess = resultSet.getInt(REMOVE_ACCESS_FIELD);
       //a resort whose column the site-wide job has not reached yet reads as unanswered
       szTimeZone = readOptional(resultSet, TIME_ZONE_FIELD);
+      szSyncEnabled = readOptional(resultSet, SYNC_ENABLED_FIELD);
     }
     catch (Exception e) {
       LOG.error("exception in Shifts:read e=" + e);
@@ -231,6 +249,21 @@ public class DirectorSettings {
 
   public void setTimeZone(String zone) {
     szTimeZone = zone == null ? "" : zone.trim();
+  }
+
+  /**
+   * Whether personal calendar sync is switched on here.
+   *
+   * <p>Anything but a stored "1" is off, so a blank - which is what a resort without the column
+   * reads as - is off rather than on. While the feature is under development that is the only
+   * safe direction for the default to fall.
+   */
+  public boolean getSyncEnabled() {
+    return "1".equals(szSyncEnabled == null ? "" : szSyncEnabled.trim());
+  }
+
+  public void setSyncEnabled(boolean enabled) {
+    szSyncEnabled = enabled ? "1" : "0";
   }
 
   /**
@@ -410,6 +443,23 @@ public class DirectorSettings {
   }
 
   public String getUpdateQueryString() {
+    return getUpdateQueryString(true);
+  }
+
+  /**
+   * The UPDATE, with the newest column left out when this resort has not got it yet.
+   *
+   * <p><b>A column named in this statement had better exist</b>, or the whole save fails and a
+   * director's every preference change is silently lost - not just the new setting. That is a
+   * worse failure than the missing feature, and it is the one that bites between deploying a jar
+   * and remembering to run the site-wide job that adds the column.
+   *
+   * <p>{@code timeZone} is not guarded the same way because it is already on all 44 resorts. Any
+   * column added after this one should be.
+   *
+   * @param withSyncEnabled false for a resort whose syncEnabled column the job has not reached
+   */
+  public String getUpdateQueryString(boolean withSyncEnabled) {
     String qryString = "UPDATE directorsettings SET " +
       " " + EMAIL_REMINDER_FIELD + "='" + szEmailReminder +
       "', " + REMINDER_DAYS_FIELD + "='" + nReminderDays +
@@ -425,13 +475,16 @@ public class DirectorSettings {
       "', " + END_BLACKOUT_FIELD + "='" + szEndBlackout +
       "', " + REMOVE_ACCESS_FIELD + "='" + nRemoveAccess +
       "', " + TIME_ZONE_FIELD + "='" + (szTimeZone == null ? "" : szTimeZone) +
+      (withSyncEnabled
+         ? "', " + SYNC_ENABLED_FIELD + "='" + (getSyncEnabled() ? "1" : "0")
+         : "") +
       "' WHERE " + PATROL_NAME_FIELD + "= '" + szPatrolName + "'";
     return qryString; //logged by SqlWriter when it is executed
   }
 
   public boolean write(Connection connection) {
     String qryString;
-    qryString = getUpdateQueryString();
+    qryString = getUpdateQueryString(hasColumn(connection, SYNC_ENABLED_FIELD));
     try {
       SqlWriter.executeUpdate(LOG, connection, "writeDirectorSettings", qryString);
     }
@@ -439,6 +492,24 @@ public class DirectorSettings {
       return true; //already logged by SqlWriter
     }
     return false;
+  }
+
+  /**
+   * Whether directorsettings has this column on this resort.
+   *
+   * <p>Answers true on any doubt: a metadata call that fails should not be the thing that stops a
+   * director saving, and the statement it guards will report its own error properly if the column
+   * really is absent.
+   */
+  private boolean hasColumn(Connection connection, String column) {
+    try (ResultSet columns = connection.getMetaData()
+                                       .getColumns(connection.getCatalog(), null,
+                                                   "directorsettings", column)) {
+      return columns.next();
+    }
+    catch (Exception e) {
+      return true;
+    }
   }
 
   public ResultSet reset(Connection connection) {

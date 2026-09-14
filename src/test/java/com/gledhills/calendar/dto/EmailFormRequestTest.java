@@ -15,10 +15,10 @@ class EmailFormRequestTest {
     private static EmailFormRequest none() {
         return new EmailFormRequest(
             null, null,
-            null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null, null,
             null, null, null,
             null, null,
-            null, null, null, null,
+            null, null, null, null, null,
             null, null, null, null, null, null,
             null, null, null, null, null, null,
             null, null);
@@ -43,15 +43,15 @@ class EmailFormRequestTest {
     void classifications_listsOnlyTheFlagsThatAreSet() {
         EmailFormRequest request = new EmailFormRequest(
             null, null,
-            true, null, true, null, null, null, null, null, null, true,   // BAS, SR, OTH
+            true, null, true, null, null, null, null, null, null, true, true,  // BAS, SR, OTH, NSK
             null, null, null,
             null, null,
-            null, null, null, null,
+            null, null, null, null, null,
             null, null, null, null, null, null,
             null, null, null, null, null, null,
             null, null);
 
-        assertEquals(List.of("BAS", "SR", "OTH"), request.classifications());
+        assertEquals(List.of("BAS", "SR", "OTH", "NSK"), request.classifications());
     }
 
     @Test
@@ -64,13 +64,14 @@ class EmailFormRequestTest {
     }
 
     @Test
-    void instructorMask_combinesOecCprSkiAndToboggan() {
+    void instructorMask_combinesOecCprSkiTobogganAndSnowboard() {
         assertEquals(0, none().instructorMask());
-        assertEquals(1, withInstructor(true, false, false, false).instructorMask());
-        assertEquals(2, withInstructor(false, true, false, false).instructorMask());
-        assertEquals(4, withInstructor(false, false, true, false).instructorMask());
-        assertEquals(8, withInstructor(false, false, false, true).instructorMask());
-        assertEquals(15, withInstructor(true, true, true, true).instructorMask());
+        assertEquals(1, withInstructor(true, false, false, false, false).instructorMask());
+        assertEquals(2, withInstructor(false, true, false, false, false).instructorMask());
+        assertEquals(4, withInstructor(false, false, true, false, false).instructorMask());
+        assertEquals(8, withInstructor(false, false, false, true, false).instructorMask());
+        assertEquals(16, withInstructor(false, false, false, false, true).instructorMask());
+        assertEquals(31, withInstructor(true, true, true, true, true).instructorMask());
     }
 
     @Test
@@ -87,10 +88,10 @@ class EmailFormRequestTest {
 
         EmailFormRequest request = new EmailFormRequest(
             null, null,
-            null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null, null,
             null, null, null,
             null, null,
-            null, null, null, null,
+            null, null, null, null, null,
             null, null, null, null, null, null,
             1, 0, 2026, 31, 11, 2026,
             null, null);
@@ -101,22 +102,23 @@ class EmailFormRequestTest {
     private static EmailFormRequest withCommitment(boolean fullTime, boolean partTime, boolean inactive) {
         return new EmailFormRequest(
             null, null,
-            null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null, null,
             fullTime, partTime, inactive,
             null, null,
-            null, null, null, null,
+            null, null, null, null, null,
             null, null, null, null, null, null,
             null, null, null, null, null, null,
             null, null);
     }
 
-    private static EmailFormRequest withInstructor(boolean oec, boolean cpr, boolean ski, boolean toboggan) {
+    private static EmailFormRequest withInstructor(boolean oec, boolean cpr, boolean ski,
+                                                   boolean toboggan, boolean snowboard) {
         return new EmailFormRequest(
             null, null,
-            null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null, null,
             null, null, null,
             null, null,
-            oec, cpr, ski, toboggan,
+            oec, cpr, ski, toboggan, snowboard,
             null, null, null, null, null, null,
             null, null, null, null, null, null,
             null, null);
@@ -125,10 +127,10 @@ class EmailFormRequestTest {
     private static EmailFormRequest withMinDays(Integer minDays, boolean minDaysFlag) {
         return new EmailFormRequest(
             null, null,
-            null, null, null, null, null, null, null, null, null, null,
+            null, null, null, null, null, null, null, null, null, null, null,
             null, null, null,
             null, null,
-            null, null, null, null,
+            null, null, null, null, null,
             null, null, null, null, null, null,
             null, null, null, null, null, null,
             minDays, minDaysFlag);

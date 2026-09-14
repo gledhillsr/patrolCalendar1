@@ -16,7 +16,7 @@ import java.util.Map;
  * @param sortOptions     sort1/sort2/sort3 as chosen on the setup page
  * @param classifications classification codes to include (empty means no classification filter)
  * @param commitment      bit flags: 4=full time, 2=part time, 1=inactive
- * @param instructorFlags bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan
+ * @param instructorFlags bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan, 16=Snowboard
  * @param listAll         list everyone, ignoring the classification/commitment filters
  * @param listDirector    list directors only
  * @param firstNameFirst  render names as "First Last" rather than "Last, First"

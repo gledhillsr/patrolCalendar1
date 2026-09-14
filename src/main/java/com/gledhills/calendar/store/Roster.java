@@ -32,15 +32,16 @@ public class Roster {
   final static String[] month = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
   static {
-    lookupClassification.put("BAS", "Basic");
+    lookupClassification.put("BAS", "Alpine");
     //        lookupClassification.put("INA","Inactive");
-    lookupClassification.put("SR", "Senior");
-    lookupClassification.put("SRA", "Senior Auxiliary");
+    lookupClassification.put("SR", "Senior Alpine");
+    lookupClassification.put("SRA", "Senior Patroller");
     lookupClassification.put("ALM", "Alumni");
-    lookupClassification.put("PRO", "Pro");
-    lookupClassification.put("AUX", "Auxiliary");
+    lookupClassification.put("PRO", "Paid");
+    lookupClassification.put("AUX", "Patroller");
     lookupClassification.put("TRA", "Transfer");
     lookupClassification.put("CAN", "Candidate");
+    lookupClassification.put("NSK", "Not Skiing");
     lookupClassification.put("OTH", "Other");
   }
 
@@ -223,6 +224,9 @@ public class Roster {
         }
         if (request.getParameter("TOBOGGAN") != null) {
           idx += 8;
+        }
+        if (request.getParameter("SNOWBOARD") != null) {
+          idx += 16;
         }
         memberData[i] = "" + idx;
       }
@@ -537,7 +541,7 @@ public class Roster {
    * Update Info checkboxes use. Empty when nothing is set or the field cannot be parsed.
    * Unlike getInstructorString this adds no "&nbsp;" prefix, so it is safe outside raw HTML.
    *
-   * @param value bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan
+   * @param value bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan, 16=Snowboard
    */
   public static String getInstructorLabel(String value) {
     int bits;
@@ -559,6 +563,9 @@ public class Roster {
     }
     if ((bits & 8) != 0) {
       certifications.add("Toboggan");
+    }
+    if ((bits & 16) != 0) {
+      certifications.add("Snowboard");
     }
     return String.join(", ", certifications);
   }
@@ -591,7 +598,14 @@ public class Roster {
         }
       }
       if ((idx & 8) == 8) {
+        idx -= 8;
         str += "Toboggan";
+        if (idx > 8) {
+          str += ", ";
+        }
+      }
+      if ((idx & 16) == 16) {
+        str += "Snowboard";
       }
     }
     catch (Exception e) {
@@ -642,15 +656,58 @@ public class Roster {
     } //end try
   }
 
+  /**
+   * This member's classification as a director reads it - "Alpine", "Senior Patroller", "Paid".
+   *
+   * <p>Falls back to the stored code when nothing maps it, rather than to null or blank: "INA" is
+   * on real rosters and is deliberately not in the table above, and a blank cell where a member
+   * plainly has a classification reads as a bug rather than as an unrecognised value.
+   */
   public String getFullClassification() {
-    String classification = null;
-    try {
-      classification = lookupClassification.get(getClassification());
+    String code = getClassification();
+    if (code == null) {
+      return "";
     }
-    catch (Exception ex) {
-      LOG.error("ERROR, classification not found" + getClassification());
+    code = stripPlaceholder(code);
+    String classification = lookupClassification.get(code);
+    return classification != null ? classification : code;
+  }
+
+  /**
+   * The display name of a classification code - "SRA" gives "Senior Patroller" - or the code
+   * itself when nothing maps it, on the same reasoning as getFullClassification.
+   */
+  public static String getClassificationName(String code) {
+    if (code == null) {
+      return "";
     }
-    return classification;
+    String wanted = code.trim();
+    String name = lookupClassification.get(wanted);
+    return name != null ? name : wanted;
+  }
+
+  /**
+   * The classification code whose display name is {@code label} - "Senior Alpine" gives "SR" - or
+   * null when nothing matches. Case and surrounding space are ignored, and a code passed in
+   * ("SR") is accepted as itself.
+   *
+   * <p>Read out of the one lookupClassification table rather than a second hand-written list, so
+   * renaming a classification above is all it takes: nothing else has to be kept in step.
+   */
+  public static String getClassificationCode(String label) {
+    if (label == null) {
+      return null;
+    }
+    String wanted = label.trim();
+    if (wanted.isEmpty()) {
+      return null;
+    }
+    for (String code : lookupClassification.keySet()) {
+      if (code.equalsIgnoreCase(wanted) || lookupClassification.get(code).equalsIgnoreCase(wanted)) {
+        return code;
+      }
+    }
+    return null;
   }
 
   public String getExcelHeader() {
@@ -1231,7 +1288,7 @@ public class Roster {
       return false;
     }
 
-    //AND 3rd test Everyone/director/cpr/oec/ski/toboggan
+    //AND 3rd test Everyone/director/cpr/oec/ski/toboggan/snowboard
     //Log.log(member.getID()+ ") listDirector = "+listDirector+"  isDirector="+member.isDirector());
     if (bListAll) {
       ok = true;

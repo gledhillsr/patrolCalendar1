@@ -27,7 +27,7 @@ import java.util.Vector;
 public class RosterQueryService {
 
   private static final String[] CLASSIFICATION_CODES =
-    { "BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "OTH" };
+    { "BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "NSK", "OTH" };
 
   /**
    * Read the filters and column choices out of the request, then load the matching members.
@@ -170,6 +170,9 @@ public class RosterQueryService {
     }
     if (request.getParameter("Toboggan") != null) {
       flags += 8;
+    }
+    if (request.getParameter("Snowboard") != null) {
+      flags += 16;
     }
     return flags;
   }

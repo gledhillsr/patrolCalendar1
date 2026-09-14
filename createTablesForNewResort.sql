@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS `directorsettings` (
   `removeAccess` int NOT NULL DEFAULT '0',
   `salt` char(64) DEFAULT NULL,
   `timeZone` varchar(40) NOT NULL DEFAULT '',
+  `calendarSyncEnabled` varchar(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`PatrolName`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 CREATE TABLE IF NOT EXISTS `menubuttons` (
@@ -163,4 +164,17 @@ CREATE TABLE IF NOT EXISTS `{RESORT}_password_reset_tokens` (
   PRIMARY KEY (`token`),
   KEY `idx_member_id` (`member_id`),
   KEY `idx_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- One row per patroller who has asked for a personal calendar subscription link. The token is the
+-- whole of the authentication on that link, since a calendar app cannot sign in - see
+-- store/CalendarFeedToken. Re-issuing replaces the row, which is also how "reset my link" works.
+--
+CREATE TABLE IF NOT EXISTS `calendarfeedtokens` (
+  `PatrollerId` varchar(16) NOT NULL,
+  `Token` varchar(64) NOT NULL,
+  `Created` datetime NOT NULL,
+  PRIMARY KEY (`PatrollerId`),
+  UNIQUE KEY `Token` (`Token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

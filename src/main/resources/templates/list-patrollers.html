@@ -120,7 +120,7 @@
             <td th:text="${firstNameFirst ? member.getFullName() : member.getFullName_lastNameFirst()}">Name</td>
             <td th:if="${showBlank}">&nbsp;</td>
             <td th:if="${showBlankWide}">&nbsp;&nbsp;&nbsp;</td>
-            <td th:if="${showClass}" th:text="${member.getClassification()}">Class</td>
+            <td th:if="${showClass}" th:text="${member.getFullClassification()}">Class</td>
             <td th:if="${showID}" th:text="${member.getID()}">ID</td>
             <td th:if="${showSpouse}" th:text="${#strings.replace(member.getSpouse(), '&amp;nbsp;', '')}">Spouse</td>
             <td th:if="${showAddr}" th:text="${#strings.replace(member.getAddress(), '&amp;nbsp;', '')}">Address</td>

@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <title th:text="'Website Preferences for: ' + ${resortFullName}">Website Preferences</title>
     <th:block th:replace="~{fragments/head :: icons}"></th:block>
+    <!-- confirmActionDialog for the "Tidy my shift template times" button. Without this the
+         function is undefined, the onclick returns undefined, and the form submits with no
+         confirmation at all - a silent failure rather than a visible one. -->
+    <script th:src="@{/js/dialogs.js}"></script>
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
     <style type="text/css">
@@ -145,33 +149,153 @@
                     </td>
                 </tr>
 
-                <!-- Time zone. Sits above the season dates because everything below it is a time
-                     of day, and this is what says which clock they are on. -->
+                <!--
+                  Personal calendar sync.
+
+                  Everything a shift needs before it can leave this site and land correctly in
+                  somebody's own calendar, in one place: which clock the times are on, and whether
+                  the times can be read at all. Sits above the season dates because everything
+                  below is a time of day and this is what gives those times a meaning elsewhere.
+                -->
                 <tr>
                     <td colspan="2">
-                        <h3>Time Zone</h3>
-                        <p style="font-size: 0.9em; color: #444; margin: 0 0 10px 0; max-width: 46em">
-                            The clock your mountain runs on. Shift times shown on this site are
-                            read by somebody standing at the resort, so this changes nothing you
-                            see here &mdash; it is what lets a shift be described correctly to
-                            anything outside, a patroller&rsquo;s own phone calendar above all.
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Resort time zone:</font>
-                    </td>
-                    <td width="300">
-                        <select th:field="*{timeZone}">
-                            <option th:each="zone : ${T(com.gledhills.calendar.utils.ResortTimeZones).CHOICES}"
-                                    th:value="${zone}"
-                                    th:text="${T(com.gledhills.calendar.utils.ResortTimeZones).label(zone)}">
-                                Mountain
-                            </option>
-                        </select>
-                        <span th:if="${#fields.hasErrors('timeZone')}" class="error-message"
-                              th:errors="*{timeZone}">Time Zone Error</span>
+                        <div id="calendarSyncPanel"
+                             style="border:2px solid #2f6f9f; border-radius:6px; padding:12px 16px;
+                                    background:#f5f9fc; margin:6px 0 14px 0;">
+                            <h3 style="margin-top:0; color:#1d4f75;">
+                                Enable PatrolCalendar sync to personal calendars
+                                (Google&nbsp;/&nbsp;Apple&nbsp;/&nbsp;Outlook)
+                            </h3>
+
+                            <p style="font-size:0.9em; color:#444; margin:0 0 10px 0; max-width:46em">
+                                Lets a patroller subscribe to their own shifts, so the ones they are
+                                signed up for appear in the calendar they already use and update
+                                themselves when the schedule changes.
+                            </p>
+
+                            <!-- The master switch. Off by default and off for any resort whose
+                                 column the site-wide job has not reached, because while the feed is
+                                 still being built "off" is the only safe direction to fall. -->
+                            <p style="margin:0 0 12px 0;">
+                                <label>
+                                    <input type="checkbox" th:field="*{syncEnabled}"
+                                           th:disabled="${!maySwitchOnSync}"/>
+                                    <b>Enabled</b>
+                                    <span style="color:#994f00;">(Still under Development)</span>
+                                </label>
+                            </p>
+                            <!-- Greyed out everywhere but the resort proving the feature. Turning
+                                 it on elsewhere would switch on something that does not exist yet,
+                                 and the director would find out from their patrollers. -->
+                            <p th:unless="${maySwitchOnSync}"
+                               style="font-size:0.85em; margin:-8px 0 12px 22px; max-width:46em;
+                                      color:#666;">
+                                This switch is not available yet. The feature is still being built
+                                and tested at one patrol; it will be opened up once it works.
+                                <b>Everything below is worth doing now</b> &mdash; the shifts you
+                                tidy today are what will sync the day it is switched on.
+                            </p>
+
+                            <p style="font-size:0.9em; margin:0 0 12px 0; max-width:46em;
+                                      padding:6px 10px; border-left:4px solid #cc7000;
+                                      background:#fffaf3; color:#5a3d00;">
+                                <b>Please note:</b> a shift with no valid start <i>and</i> end time
+                                cannot be synced to a personal calendar, and will be left out. The
+                                rest of the shift&rsquo;s day is unaffected &mdash; it still appears
+                                on this site exactly as it does now.
+                            </p>
+
+                            <!-- (1) which clock the times are on -->
+                            <p style="margin:0 0 4px 0;">
+                                <label for="timeZoneSelect"><b>Resort time zone:</b></label>
+                                <select id="timeZoneSelect" th:field="*{timeZone}">
+                                    <option th:each="zone : ${T(com.gledhills.calendar.utils.ResortTimeZones).CHOICES}"
+                                            th:value="${zone}"
+                                            th:text="${T(com.gledhills.calendar.utils.ResortTimeZones).label(zone)}">
+                                        Mountain
+                                    </option>
+                                </select>
+                                <span th:if="${#fields.hasErrors('timeZone')}" class="error-message"
+                                      th:errors="*{timeZone}">Time Zone Error</span>
+                            </p>
+                            <p style="font-size:0.85em; color:#555; margin:0 0 14px 0; max-width:46em">
+                                The clock your mountain runs on. This changes nothing you see on
+                                this site &mdash; every time here is read by somebody standing at
+                                the resort &mdash; but without it a shift sent to a phone elsewhere
+                                lands at the wrong hour. Saved with <b>Save Preferences</b> below.
+                            </p>
+
+                            <!-- (2) whether the times can be read. What the tidy button just did. -->
+                            <p th:if="${tidied}" class="success-message"
+                               style="margin:0 0 10px 0; padding:6px 10px; border-radius:4px;
+                                      background:#eef7ee; border:1px solid #b7d7b7; color:#2d662d;">
+                                Shift template times: <span th:text="${tidied}">nothing to do</span>
+                            </p>
+                            <p th:if="${scheduledTidied}" class="success-message"
+                               style="margin:0 0 10px 0; padding:6px 10px; border-radius:4px;
+                                      background:#eef7ee; border:1px solid #b7d7b7; color:#2d662d;">
+                                Scheduled shifts from today on:
+                                <span th:text="${scheduledTidied}">nothing to do</span>
+                            </p>
+
+                            <p style="margin:0 0 6px 0;"
+                               th:if="${syncReadiness != null and syncReadiness.isClean()}">
+                                &#10003;
+                                <b th:text="${syncReadiness.ready()}">0</b> of
+                                <b th:text="${syncReadiness.total()}">0</b>
+                                shift template rows can be synced. Nothing needs your attention.
+                            </p>
+                            <p style="margin:0 0 6px 0; color:#994f00;"
+                               th:if="${syncReadiness != null and !syncReadiness.isClean()}">
+                                <b th:text="${syncReadiness.ready()}">0</b> of
+                                <b th:text="${syncReadiness.total()}">0</b>
+                                shift template rows can be synced &mdash;
+                                <b th:text="${syncReadiness.needsAttention()}">0</b>
+                                still need a start or end time you can read.
+                                <a th:href="@{/EditShiftTemplates(resort=${resort}, ID=${patrollerId})}">
+                                    See which ones on Edit Shift Templates</a>.
+                            </p>
+
+                            <p style="font-size:0.85em; color:#555; margin:6px 0 8px 0; max-width:46em">
+                                The button below rewrites times that are already readable into one
+                                form &mdash; <code>1600</code> and <code>4:30pm</code> both become
+                                <code>16:00</code> &mdash; and fills in a missing start time
+                                from a Label that holds one &mdash; <code>4:00P</code>,
+                                <code>Vol 10:00AM</code> and <code>8:30 Paid</code> all give a start
+                                time. <b>Your labels are not changed</b>, so the calendar still reads
+                                as it does today, and a bare number is never read as a clock time
+                                (<code>Train 2</code> stays a course number). <b>It only touches shift templates, never a day
+                                that has already been scheduled</b>, and it leaves alone anything it
+                                cannot read rather than guessing. Safe to press more than once.
+                            </p>
+
+                            <!-- formaction, because these buttons live inside the preferences
+                                 form: HTML has no nested forms, and the panel has to sit here
+                                 beside the time zone it belongs with. The handlers ignore the
+                                 form's fields - neither of them saves a preference. -->
+                            <input type="submit" value="Tidy my shift template start and end times"
+                                   th:formaction="@{/WebSitePreferences/tidyShiftTimes}"
+                                   formmethod="post"
+                                   onclick="return confirmActionDialog(this,
+                                       'Rewrite this resort\'s shift TEMPLATE start and end times into one standard form, and fill in a missing start time from a Label that holds one. Your labels are not changed.\n\nScheduled days are not touched, and anything that cannot be read is left alone. Safe to run more than once. Continue?',
+                                       'Tidy shift template times?')"/>
+
+                            <!-- The templates are what build a season; these are the days already
+                                 built. A resort that has laid its season out needs both. -->
+                            <p style="font-size:0.85em; color:#555; margin:14px 0 8px 0; max-width:46em">
+                                Templates are what future days are built from. If your season is
+                                already laid out on the calendar, those days need the same tidy-up
+                                &mdash; and they are what a patroller&rsquo;s calendar actually
+                                reads. <b>Only days from today onwards are touched;</b> a shift
+                                somebody has already worked is a record and is left alone.
+                            </p>
+                            <input type="submit" value="Tidy this season's scheduled shifts"
+                                   th:formaction="@{/WebSitePreferences/tidyScheduledShifts}"
+                                   formmethod="post"
+                                   onclick="return confirmActionDialog(this,
+                                       'Rewrite the start and end times on days already scheduled on your calendar, from today onwards, into one standard form.\n\nNothing before today is touched, and anything that cannot be read is left alone. Safe to run more than once. Continue?',
+                                       'Tidy this season\'s scheduled shifts?')"/>
+                        </div>
                     </td>
                 </tr>
 

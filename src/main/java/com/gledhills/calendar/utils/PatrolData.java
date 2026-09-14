@@ -53,6 +53,37 @@ public class PatrolData {
     return resort != null && DEMO_RESORTS.contains(resort.trim());
   }
 
+  /**
+   * Which resorts may switch personal calendar sync on.
+   *
+   * <p><b>Brighton only, while the feature is being proved.</b> The feed is not built yet, so a
+   * director elsewhere who ticked the box would be switching on something that does not exist,
+   * then waiting for patrollers to report that it never worked. Holding the switch back is kinder
+   * than explaining it afterwards.
+   *
+   * <p><b>This set is the one line to change as it rolls out</b> - add a resort here and its
+   * director can turn it on. It is a set rather than a literal for exactly that reason: the
+   * shift-Label migration was held to Sample the same way, and the thing that made widening it
+   * safe was having one named place to widen.
+   */
+  private static final Set<String> CALENDAR_SYNC_RESORTS = Set.of("Brighton");
+
+  /**
+   * Whether a director here may switch personal calendar sync on.
+   *
+   * <p>Demo resorts can never: their members are invented, which is the same reason
+   * {@link #isDemoResort} keeps them out of every mailing. A shift in Sample is somebody's
+   * experiment, and it has no business appearing in a real calendar.
+   *
+   * <p>The Web Site Preferences checkbox is disabled when this is false, and <b>the save checks it
+   * again</b> - a disabled input simply is not posted, which is no obstacle at all to anyone who
+   * wants to post one.
+   */
+  public static boolean maySwitchOnCalendarSync(String resort) {
+    return resort != null && !isDemoResort(resort)
+             && CALENDAR_SYNC_RESORTS.contains(resort.trim());
+  }
+
   public static final HashMap<String, ResortData> resortMap = new HashMap<>();
   static private final int IMG_HEIGHT = 80;
 

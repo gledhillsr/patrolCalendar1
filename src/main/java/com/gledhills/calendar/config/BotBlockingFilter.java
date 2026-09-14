@@ -1,5 +1,6 @@
 package com.gledhills.calendar.config;
 
+import com.gledhills.calendar.controller.CalendarFeedController;
 import com.gledhills.calendar.controller.LockerRoomApiController;
 import com.gledhills.calendar.controller.ServletAdapter;
 import com.gledhills.calendar.utils.Logger;
@@ -30,6 +31,15 @@ public class BotBlockingFilter extends OncePerRequestFilter {
     //confusing 403 for a legitimate client.
     if (request.getRequestURI() != null &&
         request.getRequestURI().contains(LockerRoomApiController.API_PREFIX)) {
+      chain.doFilter(request, response);
+      return;
+    }
+    //A calendar subscription is fetched by a calendar app, which sends no User-Agent at all or one
+    //containing "java/" - both of which this filter calls a bot. Blocking it would give every
+    //subscriber a silent 403 forever, and the patroller's calendar would simply stay empty with
+    //nothing anywhere to say why. The token in the path is what guards the feed.
+    if (request.getRequestURI() != null &&
+        request.getRequestURI().contains(CalendarFeedController.FEED_PREFIX)) {
       chain.doFilter(request, response);
       return;
     }

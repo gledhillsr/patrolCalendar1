@@ -73,6 +73,41 @@ public final class ShiftTimeAudit {
   }
 
   /**
+   * How ready this resort's templates are, as a director would want it summarised.
+   *
+   * @param total          named template rows - unnamed artifacts are somebody else's problem
+   * @param ready          rows that could become a calendar entry today
+   * @param needsAttention rows that could not, which is {@link #problems} counted
+   */
+  public record Readiness(int total, int ready, int needsAttention) {
+
+    /** Nothing left for a director to do here. */
+    public boolean isClean() {
+      return needsAttention == 0;
+    }
+  }
+
+  /**
+   * The one-line answer to "is my patrol ready to sync?".
+   *
+   * <p>Counted over the same rows {@link #problems} walks, so the two can never disagree on screen
+   * - a summary saying "3 to fix" above a list of five would be worse than no summary at all.
+   */
+  public static Readiness readiness(List<ShiftDefinitions> shifts) {
+    int total = 0;
+    if (shifts != null) {
+      for (ShiftDefinitions shift : shifts) {
+        String name = shift.parsedEventName();
+        if (name != null && !name.isEmpty()) {
+          total++;
+        }
+      }
+    }
+    int needsAttention = problems(shifts).size();
+    return new Readiness(total, total - needsAttention, needsAttention);
+  }
+
+  /**
    * What is wrong with one row, or null when it is fine.
    *
    * <p>Ordered so the worst thing about a row is the thing it gets listed for. A row with neither a

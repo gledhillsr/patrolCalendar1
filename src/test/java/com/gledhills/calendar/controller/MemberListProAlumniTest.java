@@ -127,7 +127,9 @@ class MemberListProAlumniTest {
 
     assertTrue(page.contains(">Class</font>"), "there should be a Class column: " + page);
     assertTrue(page.contains(">Commitment</font>"), "and a Commitment column");
-    assertTrue(page.contains("<td>BAS</td>"), "with classification codes in it");
+    //the name, not the stored code: BAS is what the row holds, Alpine is what a director reads
+    assertTrue(page.contains("<td>Alpine</td>"), "with classifications spelled out in it");
+    assertFalse(page.contains("<td>BAS</td>"), "and not the three-letter code");
     assertTrue(page.contains("<td>Full Time</td>") || page.contains("<td>Part Time</td>"),
                "and readable commitment labels");
   }

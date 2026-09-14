@@ -111,7 +111,7 @@ public class RosterExcelExporter {
 
     addIf(columns, flags, "showBlank", new Column(BLANK_HEADING, member -> ""));
     addIf(columns, flags, "showBlankWide", new Column(BLANK_HEADING, member -> ""));
-    addIf(columns, flags, "showClass", new Column("Class", Roster::getClassification));
+    addIf(columns, flags, "showClass", new Column("Class", Roster::getFullClassification));
     addIf(columns, flags, "showID", new Column("ID", Roster::getID));
     addIf(columns, flags, "showSpouse", new Column("Spouse", member -> clean(member.getSpouse())));
     addIf(columns, flags, "showAddr", new Column("Address", member -> clean(member.getAddress())));

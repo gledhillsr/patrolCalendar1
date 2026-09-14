@@ -25,8 +25,9 @@ import java.util.List;
 public class MemberListController {
 
     /**
-     * Classifications this tab lists. Other (OTH) and the legacy Inactive (INA) are left out
-     * entirely. Pro (PRO) and Alumni (ALM) have a checkbox each: Pro starts ticked, so the default
+     * Classifications this tab lists. Not Skiing (NSK), Other (OTH) and the legacy Inactive (INA)
+     * are left out entirely - Not Skiing for the reason it is named, it is somebody who is not
+     * patrolling, which is what the trimmed roster exists to leave out. Pro (PRO) and Alumni (ALM) have a checkbox each: Pro starts ticked, so the default
      * view is unchanged from before the boxes existed, and Alumni starts unticked.
      *
      * The listing loop and the "email THESE patrollers" URL are both built from this one list, so
@@ -41,7 +42,7 @@ public class MemberListController {
 
     /**
      * Everything the roster recognises, for the "Show FULL roster" toggle - the trimmed list plus
-     * Alumni, "Other" and the legacy Inactive code. Matches Roster.okToDisplay's vocabulary, so the
+     * Alumni, "Not Skiing", "Other" and the legacy Inactive code. Matches Roster.okToDisplay's vocabulary, so the
      * email URL built from it asks EmailForm for exactly what the page drew.
      *
      * Note a member whose classification or commitment holds something outside these values is
@@ -49,7 +50,7 @@ public class MemberListController {
      * pre-existing behaviour of okToDisplay, not something this toggle introduces.
      */
     private static final List<String> ALL_CLASSIFICATIONS =
-        List.of("BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "OTH");
+        List.of("BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "NSK", "OTH");
 
     /** Query parameter that flips the tab between the trimmed list and everybody. */
     public static final String FULL_ROSTER = "fullRoster";
@@ -184,7 +185,7 @@ public class MemberListController {
                     String email = cleanField(member.getEmailAddress());
 
                     members.add(new MemberInfo(name, homePhone, workPhone, cellPhone, email,
-                                               cleanField(member.getClassification()),
+                                               cleanField(member.getFullClassification()),
                                                member.getCommitmentLabel()));
 
                     // Build email list for EmailForm button

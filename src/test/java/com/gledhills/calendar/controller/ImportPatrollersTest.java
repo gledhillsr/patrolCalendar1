@@ -89,7 +89,13 @@ class ImportPatrollersTest {
 
     private static String row(String id, String first, String last, String memberType,
                               String email, String phone) {
-        return id + "," + first + "," + last + ",Paid," + memberType + ",Alpine,V,12/31/2026,CU,,"
+        return row(id, first, last, memberType, email, phone, "Alpine");
+    }
+
+    /** The same row with nsp.org's Primary Initial Class - the patrol class - spelled out. */
+    private static String row(String id, String first, String last, String memberType,
+                              String email, String phone, String nspClass) {
+        return id + "," + first + "," + last + ",Paid," + memberType + "," + nspClass + ",V,12/31/2026,CU,,"
                  + "\"<a href=\"\"/edit?ID=" + id + "\"\">Edit</a>\","
                  + email + ",,,,,3/9/2023,,,8/25/2025,,,FALSE,FALSE," + phone + ","
                  + "\"1 Main Street, WI 53121UNITED STATES\",10/20/1975,";
@@ -174,9 +180,41 @@ class ImportPatrollersTest {
         assertEquals("Patroller", added.getLast());
         assertEquals("new@example.com", added.getEmailAddress());
         assertEquals("847-372-5936", added.getCellPhone(), "stored in the roster's phone format");
-        assertEquals("BAS", added.getClassification());
+        assertEquals("BAS", added.getClassification(), "Alpine in the file, BAS in the roster");
         assertEquals("2", added.getCommitment(), "Full Time");
         assertFalse(added.isDirector(), "an imported patroller is never a director");
+    }
+
+    /**
+     * The class is carried across, not defaulted. Proved through the real controller and the real
+     * roster because that is the whole of it: the file says "Senior Alpine", the row says "SR".
+     */
+    @Test
+    void theClassInTheFileDecidesTheClassification() throws Exception {
+        confirm(csv(row(NEW_ID, "Sen", "Alpine", "Patroller", "a@example.com", "",
+                        "Senior Alpine"),
+                    row(SECOND_ID, "Pa", "Trol", "Patroller", "b@example.com", "",
+                        "Senior Patroller")));
+
+        assertEquals("SR", memberOnRoster(NEW_ID).getClassification());
+        assertEquals("SRA", memberOnRoster(SECOND_ID).getClassification());
+    }
+
+    /**
+     * A class nsp.org names in words this site does not know. It becomes Other, which says what
+     * happened rather than guessing - and the director is told, on the page and in the log.
+     */
+    @Test
+    void aClassThisSiteHasNoNameForIsImportedAsOther() throws Exception {
+        String preview = preview(csv(row(NEW_ID, "Nor", "Dic", "Patroller", "a@example.com", "",
+                                         "Nordic")));
+
+        assertTrue(preview.contains("this site does not have a name for"),
+                   "the preview should warn before anything is written: " + preview);
+
+        confirm(csv(row(NEW_ID, "Nor", "Dic", "Patroller", "a@example.com", "", "Nordic")));
+
+        assertEquals("OTH", memberOnRoster(NEW_ID).getClassification());
     }
 
     /**

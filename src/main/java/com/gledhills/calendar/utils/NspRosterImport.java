@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.gledhills.calendar.store.Roster;
+
 /**
  * Reads the roster a patrol representative downloads from nsp.org and works out which rows are
  * new patrollers this resort does not already have.
@@ -28,8 +30,26 @@ public final class NspRosterImport {
     /** What nsp.org calls somebody who patrols; other member types are not imported. */
     private static final String PATROLLER = "Patroller";
 
-    /** Every new member is created as a full-time basic patroller who is not a director. */
-    public static final String NEW_CLASSIFICATION = "BAS";
+    /**
+     * The column nsp.org puts the patrol class in. Its values are the words this site now uses -
+     * "Alpine", "Senior Alpine", "Patroller", "Senior Patroller", "Paid" - which is why the
+     * classifications were renamed to match: an import can then carry the class across instead of
+     * flattening everybody into one.
+     */
+    private static final String CLASS_COLUMN = "Primary Initial Class";
+
+    /**
+     * What a row whose class cannot be resolved is created as.
+     *
+     * <p>"Other" (OTH) says what actually happened: this class was not recognised. Every real
+     * classification would be a guess, and a guess is indistinguishable afterwards from a class
+     * the file genuinely gave - whereas Other is a member a director can find and correct. It is
+     * also outside the trimmed roster and outside the ListPatrollers defaults, so an unrecognised
+     * member is not quietly counted among the patrollers a listing is about.
+     */
+    public static final String DEFAULT_CLASSIFICATION = "OTH";
+
+    /** Every new member is created full time and not a director. */
     public static final String NEW_COMMITMENT = "2";      //Full Time
     public static final String NEW_DIRECTOR = "no";
     /** No certifications are known from the export; the column is an integer bit field. */
@@ -47,10 +67,16 @@ public final class NspRosterImport {
      */
     public record Candidate(int rowNumber, String id, String firstName, String lastName,
                             String email, String cellPhone, String memberType,
+                            String nspClass, String classification, boolean classificationResolved,
                             boolean importable, String reason) {
 
         public String getFullName() {
             return (firstName + " " + lastName).trim();
+        }
+
+        /** The classification this member would be created with, as a director reads it. */
+        public String getClassificationLabel() {
+            return Roster.getClassificationName(classification);
         }
 
         //Thymeleaf reads these off the record through getters
@@ -61,6 +87,9 @@ public final class NspRosterImport {
         public String getEmail()     { return email; }
         public String getCellPhone() { return cellPhone; }
         public String getMemberType() { return memberType; }
+        public String getNspClass()  { return nspClass; }
+        public String getClassification() { return classification; }
+        public boolean isClassificationResolved() { return classificationResolved; }
         public boolean isImportable() { return importable; }
         public String getReason()    { return reason; }
     }
@@ -100,6 +129,13 @@ public final class NspRosterImport {
         String email = value(fields, column, "Email");
         String memberType = value(fields, column, "Member Type");
         String phone = normalizePhone(value(fields, column, "Phone"));
+        String nspClass = value(fields, column, CLASS_COLUMN);
+
+        String classification = Roster.getClassificationCode(nspClass);
+        boolean classificationResolved = classification != null;
+        if (!classificationResolved) {
+            classification = DEFAULT_CLASSIFICATION;
+        }
 
         String reason = "";
         if (id.isEmpty()) {
@@ -123,6 +159,7 @@ public final class NspRosterImport {
         }
 
         return new Candidate(rowNumber, id, first, last, email, phone, memberType,
+                             nspClass, classification, classificationResolved,
                              reason.isEmpty(), reason);
     }
 

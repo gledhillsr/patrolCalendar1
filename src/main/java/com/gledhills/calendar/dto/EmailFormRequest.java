@@ -14,10 +14,10 @@ import java.util.List;
 public record EmailFormRequest(
     Boolean EveryBody, Boolean SubList,
     Boolean BAS, Boolean INA, Boolean SR, Boolean SRA, Boolean ALM,
-    Boolean PRO, Boolean AUX, Boolean TRA, Boolean CAN, Boolean OTH,
+    Boolean PRO, Boolean AUX, Boolean TRA, Boolean CAN, Boolean OTH, Boolean NSK,
     Boolean FullTime, Boolean PartTime, Boolean Inactive,
     Boolean ALL, Boolean ListDirector,
-    Boolean OEC, Boolean CPR, Boolean Ski, Boolean Toboggan,
+    Boolean OEC, Boolean CPR, Boolean Ski, Boolean Toboggan, Boolean Snowboard,
     Boolean DAY_CNT, Boolean SWING_CNT, Boolean NIGHT_CNT,
     Boolean TRAINING_CNT, Boolean OTHER_CNT, Boolean HOLIDAY_CNT,
     Integer StartDay, Integer StartMonth, Integer StartYear,
@@ -29,9 +29,10 @@ public record EmailFormRequest(
     return new EmailFormRequest(
         true, null,                                                  // EveryBody, SubList
         null, null, null, null, null, null, null, null, null, null,  // classifications
+        null,                                                        // NSK
         null, null, null,                                            // commitment
         null, null,                                                  // ALL, ListDirector
-        null, null, null, null,                                      // instructor
+        null, null, null, null, null,                                // instructor
         null, null, null, null, null, null,                          // shift type counters
         null, null, null, null, null, null,                          // date range
         null, null);                                                 // MinDays, MIN_DAYS
@@ -58,6 +59,7 @@ public record EmailFormRequest(
     if (isSet(TRA)) classifications.add("TRA");
     if (isSet(CAN)) classifications.add("CAN");
     if (isSet(OTH)) classifications.add("OTH");
+    if (isSet(NSK)) classifications.add("NSK");
     return classifications;
   }
 
@@ -70,13 +72,14 @@ public record EmailFormRequest(
     return mask;
   }
 
-  /** Bit mask expected by {@code Roster.okToDisplay}: 1=OEC, 2=CPR, 4=ski, 8=toboggan. */
+  /** Bit mask expected by {@code Roster.okToDisplay}: 1=OEC, 2=CPR, 4=ski, 8=toboggan, 16=snowboard. */
   public int instructorMask() {
     int mask = 0;
     if (isSet(OEC)) mask += 1;
     if (isSet(CPR)) mask += 2;
     if (isSet(Ski)) mask += 4;
     if (isSet(Toboggan)) mask += 8;
+    if (isSet(Snowboard)) mask += 16;
     return mask;
   }
 

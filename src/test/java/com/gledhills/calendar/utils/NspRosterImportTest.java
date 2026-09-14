@@ -30,7 +30,13 @@ class NspRosterImportTest {
     /** The real row, quotes and commas and all. */
     private static String row(String id, String first, String last, String memberType,
                               String email, String phone) {
-        return id + "," + first + "," + last + ",Paid," + memberType + ",Alpine,V,12/31/2026,CU,,"
+        return row(id, first, last, memberType, email, phone, "Alpine");
+    }
+
+    /** The same row with the Primary Initial Class - the patrol class - spelled out. */
+    private static String row(String id, String first, String last, String memberType,
+                              String email, String phone, String nspClass) {
+        return id + "," + first + "," + last + ",Paid," + memberType + "," + nspClass + ",V,12/31/2026,CU,,"
                  + "\"<a class=\"\"edit-link\"\" href=\"\"/iparts/PanelEdit.aspx?ID=" + id
                  + "&TemplateType=E\"\" name=\"\"NSP_EditRoster\"\">Edit</a>\","
                  + email + ",,,,,3/9/2023,,,8/25/2025,,,FALSE,FALSE," + phone + ","
@@ -161,10 +167,72 @@ class NspRosterImportTest {
     }
 
     @Test
-    void everyNewMemberIsAFullTimeBasicPatrollerWhoIsNotADirector() {
-        assertEquals("BAS", NspRosterImport.NEW_CLASSIFICATION);
+    void everyNewMemberIsFullTimeAndNotADirector() {
         assertEquals("2", NspRosterImport.NEW_COMMITMENT, "2 is Full Time in the roster");
         assertFalse(NspRosterImport.NEW_DIRECTOR.toLowerCase().startsWith("y"),
                     "isDirector reads the first letter, so this must not begin with Y");
+    }
+
+    /**
+     * The point of renaming the classifications: nsp.org's Primary Initial Class is already
+     * written in these words, so the class comes across instead of everybody arriving the same.
+     */
+    @Test
+    void theClassInTheFileBecomesTheClassification() throws Exception {
+        assertEquals("BAS", classificationFor("Alpine"));
+        assertEquals("SR", classificationFor("Senior Alpine"));
+        assertEquals("AUX", classificationFor("Patroller"));
+        assertEquals("SRA", classificationFor("Senior Patroller"));
+        assertEquals("PRO", classificationFor("Paid"));
+        assertEquals("ALM", classificationFor("Alumni"));
+        assertEquals("CAN", classificationFor("Candidate"));
+    }
+
+    /** nsp.org's capitalisation is not ours to depend on, and the column carries stray spaces. */
+    @Test
+    void theClassIsMatchedWithoutRegardToCaseOrSpace() throws Exception {
+        assertEquals("SR", classificationFor("SENIOR ALPINE"));
+        assertEquals("BAS", classificationFor("  alpine  "));
+    }
+
+    /**
+     * The fallback, and the flag that says it was one. Other says what happened rather than
+     * guessing at a real classification, which afterwards could not be told from one the file
+     * actually gave.
+     */
+    @Test
+    void aClassThisSiteHasNoNameForBecomesOther() throws Exception {
+        NspRosterImport.Candidate candidate = candidateWithClass("Nordic");
+
+        assertTrue(candidate.importable(), candidate.reason());
+        assertEquals("OTH", candidate.classification());
+        assertEquals("Other", candidate.getClassificationLabel());
+        assertFalse(candidate.classificationResolved(), "this one could not be resolved");
+        assertEquals("Nordic", candidate.nspClass(), "what the file said is kept, for the report");
+    }
+
+    @Test
+    void aBlankClassBecomesOther() throws Exception {
+        NspRosterImport.Candidate candidate = candidateWithClass("");
+
+        assertEquals(NspRosterImport.DEFAULT_CLASSIFICATION, candidate.classification());
+        assertFalse(candidate.classificationResolved());
+    }
+
+    /** A class that resolved is not flagged, or every row would be marked on the preview. */
+    @Test
+    void aClassThatResolvedIsNotFlagged() throws Exception {
+        assertTrue(candidateWithClass("Alpine").classificationResolved());
+    }
+
+    private static String classificationFor(String nspClass) throws Exception {
+        return candidateWithClass(nspClass).classification();
+    }
+
+    private static NspRosterImport.Candidate candidateWithClass(String nspClass) throws Exception {
+        String csv = HEADER + "\n"
+                       + row("100001", "Pat", "Ron", "Patroller", "a@example.com", "", nspClass)
+                       + "\n";
+        return read(csv, Set.of()).get(0);
     }
 }

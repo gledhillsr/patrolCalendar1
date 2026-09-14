@@ -23,12 +23,18 @@ import java.util.Properties;
  * app now expects:
  *
  * <ol>
- *   <li><b>A time sitting in the Label.</b> {@code ShiftTime} used to insist on the {@code m} of
- *       the meridiem, so {@code 4:00P} and {@code 8:00 a} were read as labels and moved out of
- *       StartTime by the original migration, which then blanked the start. The value is intact and
- *       the reversal is exact: on KellyCanyon's history all 1,794 such labels matched the
- *       pre-migration StartTime character for character. Those rows have <b>no start time at all</b>
- *       until this puts it back.</li>
+ *   <li><b>A time sitting in the Label, with no start beside it.</b> {@code ShiftTime} used to
+ *       insist on the {@code m} of the meridiem, so {@code 4:00P} and {@code 8:00 a} were read as
+ *       labels and moved out of StartTime by the original migration, which then blanked the start.
+ *       Those rows have <b>no start time at all</b> until this fills one in. The value is intact
+ *       and the reading is exact: on KellyCanyon's history all 1,794 such labels matched the
+ *       pre-migration StartTime character for character.
+ *
+ *       <p><b>The Label is left exactly as it is.</b> Only the missing start is added. The label is
+ *       what the calendar draws - {@code getDisplayStartString} prefers it over the time - so
+ *       clearing it would change what a director sees on days they never touched, to no purpose:
+ *       what was missing was the machine-readable start, not the caption. A row ends up carrying
+ *       both, which is precisely the arrangement the Label/Start split was built for.</li>
  *   <li><b>A StartTime that is a time but not canonical.</b> The original pass did this, so there
  *       should be none left; it is here because a resort migrated before the meridiem was widened
  *       can still produce one, and because a pass that silently depends on another having run first
@@ -113,19 +119,50 @@ public final class ShiftTimeCleanup {
    * to run the other job first.
    */
   public static ResortOutcome cleanResort(Connection connection) {
+    return clean(connection, TABLE, "EventName", "");
+  }
+
+  /**
+   * The same tidy-up over the days that are actually <b>scheduled</b>, from today forward.
+   *
+   * <p>This is the half that a calendar feed actually reads. {@link #cleanResort} fixes the
+   * templates, which stops the problem recurring as the season is built; this fixes the days
+   * already on the calendar, which is what a patroller would be subscribing to.
+   *
+   * <p><b>From today forward, and no further back.</b> The same faults run through twenty years of
+   * history - thousands of rows - and rewriting a shift somebody worked in 2019 changes a record
+   * for nobody's benefit. A past shift is a record; a future one is a plan, and only the plan needs
+   * to be readable. The cut is made in SQL on the date prefix of the key, which is stored
+   * {@code yyyy-mm-dd_<n>} and so compares correctly as text.
+   */
+  public static ResortOutcome cleanScheduledDays(Connection connection, java.time.LocalDate from) {
+    String cutoff = from.toString();
+    return clean(connection, "assignments", "Date",
+                 " WHERE LEFT(`Date`, 10) >= '" + cutoff.replace("'", "") + "'");
+  }
+
+  /**
+   * One table's worth of tidying.
+   *
+   * @param keyColumn what identifies a row - the template name, or the dated slot
+   * @param where     an optional SQL filter, already safe to concatenate
+   */
+  private static ResortOutcome clean(Connection connection, String table, String keyColumn,
+                                     String where) {
     try {
-      if (!hasLabelColumn(connection)) {
+      if (!hasLabelColumn(connection, table)) {
         return new ResortOutcome(true, false, "no Label column yet - run the shift Label job first");
       }
 
-      List<String[]> updates = new ArrayList<>();   //name, newStart, newLabel, newEnd (null = keep)
+      List<String[]> updates = new ArrayList<>();   //key, newStart, newEnd (null = leave alone)
       int startsRecovered = 0;
       int startsNormalized = 0;
       int endsNormalized = 0;
 
       try (Statement statement = connection.createStatement();
            ResultSet rows = statement.executeQuery(
-             "SELECT `EventName`, `StartTime`, `EndTime`, `Label` FROM `" + TABLE + "`")) {
+             "SELECT `" + keyColumn + "`, `StartTime`, `EndTime`, `Label` FROM `"
+             + table + "`" + where)) {
         while (rows.next()) {
           String name = rows.getString(1);
           String start = text(rows.getString(2));
@@ -133,14 +170,18 @@ public final class ShiftTimeCleanup {
           String label = text(rows.getString(4));
 
           String newStart = null;
-          String newLabel = null;
           String newEnd = null;
 
-          //(1) a time stranded in the Label, with no start beside it, belongs back in the start
+          //(1) a time sitting in the Label with no start beside it: fill the start in from it and
+          //    LEAVE THE LABEL ALONE. The label is what the calendar draws, so clearing it would
+          //    change what every director sees on a day they did not touch - for no gain, since
+          //    what was actually missing is the machine-readable start, not the caption.
           String labelAsTime = ShiftTime.normalize(label);
+          if (labelAsTime == null) {
+            labelAsTime = timeInsideLabel(label);      //"Vol 10:00AM", "8:30 Paid"
+          }
           if (labelAsTime != null && start.isEmpty()) {
             newStart = labelAsTime;
-            newLabel = "";
             startsRecovered++;
           }
           //(2) a start that reads as a time but is not written canonically
@@ -162,18 +203,18 @@ public final class ShiftTimeCleanup {
           }
 
           if (newStart != null || newEnd != null) {
-            updates.add(new String[] {name, newStart, newLabel, newEnd});
+            updates.add(new String[] {name, newStart, newEnd});
           }
         }
       }
 
-      applyUpdates(connection, updates);
+      applyUpdates(connection, table, keyColumn, updates);
 
       if (updates.isEmpty()) {
         return new ResortOutcome(true, false, "nothing to do");
       }
       StringBuilder detail = new StringBuilder();
-      append(detail, startsRecovered, "start time(s) recovered from the Label");
+      append(detail, startsRecovered, "start time(s) filled in from the Label");
       append(detail, startsNormalized, "start time(s) rewritten");
       append(detail, endsNormalized, "end time(s) rewritten");
       return new ResortOutcome(true, true, detail.toString());
@@ -184,41 +225,36 @@ public final class ShiftTimeCleanup {
   }
 
   /**
-   * Each row is updated by name, one statement per row.
+   * Each row is updated by key, one statement per column that changed.
    *
    * <p>Only the columns that actually changed are written: a row whose end was tidied must not have
    * its start rewritten as a side effect, because "the start was already right" and "the start was
    * set to what it already said" look identical afterwards and only one of them is true.
+   *
+   * <p><b>The Label is never written here.</b> Nothing this pass does is worth changing a caption a
+   * director chose.
    */
-  private static void applyUpdates(Connection connection, List<String[]> updates) throws Exception {
-    String startAndLabel =
-      "UPDATE `" + TABLE + "` SET `StartTime` = ?, `Label` = ? WHERE `EventName` = ?";
-    String startOnly = "UPDATE `" + TABLE + "` SET `StartTime` = ? WHERE `EventName` = ?";
-    String endOnly = "UPDATE `" + TABLE + "` SET `EndTime` = ? WHERE `EventName` = ?";
+  private static void applyUpdates(Connection connection, String table, String keyColumn,
+                                   List<String[]> updates) throws Exception {
+    String startOnly =
+      "UPDATE `" + table + "` SET `StartTime` = ? WHERE `" + keyColumn + "` = ?";
+    String endOnly = "UPDATE `" + table + "` SET `EndTime` = ? WHERE `" + keyColumn + "` = ?";
 
-    try (PreparedStatement withLabel = connection.prepareStatement(startAndLabel);
-         PreparedStatement timeOnly = connection.prepareStatement(startOnly);
+    try (PreparedStatement startStatement = connection.prepareStatement(startOnly);
          PreparedStatement endStatement = connection.prepareStatement(endOnly)) {
       for (String[] update : updates) {
-        String name = update[0];
+        String key = update[0];
         String newStart = update[1];
-        String newLabel = update[2];
-        String newEnd = update[3];
+        String newEnd = update[2];
 
-        if (newStart != null && newLabel != null) {
-          withLabel.setString(1, newStart);
-          withLabel.setString(2, newLabel);
-          withLabel.setString(3, name);
-          withLabel.executeUpdate();
-        }
-        else if (newStart != null) {
-          timeOnly.setString(1, newStart);
-          timeOnly.setString(2, name);
-          timeOnly.executeUpdate();
+        if (newStart != null) {
+          startStatement.setString(1, newStart);
+          startStatement.setString(2, key);
+          startStatement.executeUpdate();
         }
         if (newEnd != null) {
           endStatement.setString(1, newEnd);
-          endStatement.setString(2, name);
+          endStatement.setString(2, key);
           endStatement.executeUpdate();
         }
       }
@@ -231,13 +267,57 @@ public final class ShiftTimeCleanup {
     }
   }
 
+
+  /**
+   * A start time a director wrote into one end of a label, or null when there is not one.
+   *
+   * <p>Real examples, all with an empty StartTime beside them: {@code Vol 10:00AM},
+   * {@code Pd 1:00PM}, {@code HC 8:00}, {@code Vol 1530}, {@code 8:30 Paid}, {@code 9:15 Ski}. The
+   * time is at the end more often than the start, but both happen, and a rule that read only one
+   * end would fix {@code HC 8:00} while leaving {@code 8:30 Paid} - the single commonest label of
+   * this shape - untouched.
+   *
+   * <p><b>Only the first or last whitespace-separated word is considered</b>, never the middle.
+   * The label is a caption somebody wrote; hunting through it for anything time-shaped is how
+   * {@code TC: 4 00} turns into a shift at four o'clock.
+   */
+  private static String timeInsideLabel(String label) {
+    String[] words = label.trim().split("\\s+");
+    if (words.length < 2) {
+      return null;                     //one word: either it is a time, and the caller had it, or not
+    }
+    String fromEnd = deliberateTime(words[words.length - 1]);
+    return fromEnd != null ? fromEnd : deliberateTime(words[0]);
+  }
+
+  /**
+   * The word as a time, but <b>only when it was plainly meant as one</b>.
+   *
+   * <p>Stricter than {@link ShiftTime#normalize} on purpose, and this is the whole safety of the
+   * feature. {@code normalize} reads a bare number as a 24 hour clock - which is right for a Start
+   * field, where a director typing "8" means eight o'clock, and catastrophic here: the real labels
+   * include {@code Train 2}, {@code Avy 1}, {@code Mentee 9} and {@code S&amp;T 9}, which are course
+   * and team numbers. Reading those as times would put patrollers on shifts at 2am that nobody
+   * scheduled, and the label would still say "Train 2" so nobody would spot it.
+   *
+   * <p>So a word counts only if it carries its own evidence of being a clock time: a colon
+   * ({@code 8:00}), a meridiem attached to a digit ({@code 10AM}, {@code 4P}), or the three-or-four
+   * digit packed form ({@code 1530}). A bare one or two digit number never qualifies.
+   */
+  private static String deliberateTime(String word) {
+    boolean saysItIsATime = word.contains(":")
+                            || word.matches("(?i).*\\d\\s*[ap]\\.?m?\\.?")
+                            || word.matches("\\d{3,4}");
+    return saysItIsATime ? ShiftTime.normalize(word) : null;
+  }
+
   private static String text(String raw) {
     return raw == null ? "" : raw.trim();
   }
 
-  private static boolean hasLabelColumn(Connection connection) throws Exception {
+  private static boolean hasLabelColumn(Connection connection, String table) throws Exception {
     try (ResultSet columns =
-           connection.getMetaData().getColumns(connection.getCatalog(), null, TABLE, "Label")) {
+           connection.getMetaData().getColumns(connection.getCatalog(), null, table, "Label")) {
       return columns.next();
     }
   }

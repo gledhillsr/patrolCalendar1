@@ -58,12 +58,24 @@
             <input type="submit" value="Create these tables in every resort"/>
         </form>
 
-        <h3>Give every resort a time zone</h3>
+        <h3>Give every resort its calendar-sync settings</h3>
         <p>
             Adds a <code>timeZone</code> column to each resort's settings and fills it in with the
             zone worked out from that resort's name and website. A resort that already has one
             &mdash; because a director set it on <i>Web Site Preferences</i> &mdash; is left alone,
             so this never overrides somebody's answer.
+        </p>
+        <p>
+            It also adds the <code>calendarSyncEnabled</code> switch, <b>created switched off</b>. Personal
+            calendar sync is a resort's own decision, made by its director on <i>Web Site
+            Preferences</i> &mdash; turning it on for 44 resorts from a button pressed here would be
+            found by a patroller, not by you.
+        </p>
+        <p>
+            <b>Run this before deploying a jar that expects those columns.</b> A save names every
+            column it writes, so a resort missing one would lose a director's whole preferences
+            change, not merely the new setting &mdash; the code guards against it, but the guard is
+            a safety net rather than the plan.
         </p>
         <p>
             <b>Safe to press again.</b> A resort already done reports <i>already set</i>.
@@ -78,7 +90,7 @@
             <input type="hidden" name="resort" th:value="${resort}"/>
             <input type="hidden" name="ID" th:value="${patrollerId}"/>
             <input type="hidden" name="action" value="timeZones"/>
-            <input type="submit" value="Set the time zone in every resort"/>
+            <input type="submit" value="Set up calendar sync settings in every resort"/>
         </form>
 
         <h3>Add the shift Label column, and sort the old Start values into it</h3>
@@ -130,10 +142,18 @@
         </p>
         <ul>
             <li>
-                A <b>time stranded in the Label</b>. The old rule insisted on the <code>m</code> of
-                the meridiem, so <code>4:00P</code> and <code>8:00&nbsp;a</code> were read as labels
-                and moved out of the Start column, which was then emptied. Those shifts have
-                <b>no start time at all</b> until this puts it back.
+                A <b>time sitting in the Label with no Start beside it</b>. The old rule insisted
+                on the <code>m</code> of the meridiem, so <code>4:00P</code> and
+                <code>8:00&nbsp;a</code> were read as labels and moved out of the Start column,
+                which was then emptied. Those shifts have <b>no start time at all</b> until this
+                fills one in &mdash; <code>4:00P</code> gives a Start of <code>16:00</code>.
+                <b>The Label itself is left exactly as it is</b>, so the calendar goes on showing
+                what it shows today; only the missing Start is added.
+                <br>
+                It also reads a time written into one <i>end</i> of a caption &mdash;
+                <code>Vol 10:00AM</code> and <code>8:30 Paid</code> both give a Start, and keep
+                their caption. A bare number is never read as a time, so <code>Train 2</code> and
+                <code>Avy 1</code> stay as they are: those are course and team numbers.
             </li>
             <li>
                 A <b>Start that is a time but not written canonically</b>.
@@ -162,7 +182,7 @@
             <input type="hidden" name="action" value="shiftTimes"/>
             <input type="submit" value="Tidy shift template times in every resort"
                    onclick="return confirmActionDialog(this,
-                       'Rewrite shift TEMPLATE start and end times in EVERY resort into one canonical form, and put back any start time that was moved into the Label.\n\nScheduled days and their history are not touched. Safe to run more than once. Continue?',
+                       'Rewrite shift TEMPLATE start and end times in EVERY resort into one canonical form, and fill in a missing start time from a Label that holds one. Labels themselves are not changed.\n\nScheduled days and their history are not touched. Safe to run more than once. Continue?',
                        'Tidy shift template times everywhere?')"/>
         </form>
 

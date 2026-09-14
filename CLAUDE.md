@@ -336,7 +336,20 @@ it from Directors → Site Wide Configuration ("Tidy shift template times in eve
 `ShiftTimeCleanup.main` for one resort from the command line. Three things it fixes, all of them
 the computer's to decide:
 
-- **a time stranded in the Label** with StartTime blank — the meridiem bug above; it goes back
+- **a time sitting in the Label** with StartTime blank — the meridiem bug above. The Start is
+  filled in from it (`4:00P` → `16:00`) and **the Label is left alone**: it is what
+  `getDisplayStartString` draws on the calendar, so clearing it would change what directors see on
+  days they never touched, to no purpose — what was missing was the machine-readable start, not the
+  caption. The row ends up carrying both, which is what the Label/Start split was for
+- **a time written into one end of a Label** — `Vol 10:00AM`, `Pd 1:00PM`, `HC 8:00`, `Vol 1530`,
+  and `8:30 Paid` / `9:15 Ski` with the time on the front. Only the **first or last whitespace-
+  separated word** is considered, never the middle, and only when the word carries its own evidence
+  of being a clock time: a colon, a meridiem attached to a digit, or the 3-4 digit packed form.
+  **A bare one or two digit number never qualifies** — the real labels include `Train 2`, `Avy 1`,
+  `Mentee 9` and `S&T 9`, which are course and team numbers, and reading those as times would
+  schedule people at 2am while the label still said "Train 2", so nothing on the page would look
+  wrong. `deliberateTime` is deliberately stricter than `ShiftTime.normalize`, which reads a bare
+  number as 24-hour because that is right for a Start field and disastrous inside a caption
 - **a StartTime that is a time but not canonical**
 - **an EndTime that is a time but not canonical** — `1600`, `4:30pm`, `2100`. End was never
   migrated, so this is most of the work
@@ -366,6 +379,111 @@ Two things that bit while building it, both now pinned:
   *absent*, and that is exactly the one this made meaningless.
 - **A label-only shift** (`mentee`, no times) is listed, and is the one entry that may be correct as
   it stands — so it is worded as "cannot sync" rather than as an error.
+
+### Personal Calendar Sync Settings
+
+`WebSitePreferences` carries a bordered group, **Enable PatrolCalendar sync to personal calendars
+(Google/Apple/Outlook)**, holding everything a shift needs before it can leave this site and land
+correctly in somebody's own calendar. `PersonalCalendarSyncPanelTest` covers it.
+
+- **Enabled (Still under Development)** — `directorsettings.calendarSyncEnabled`, off by default and
+  off for a resort whose column the site-wide job has not reached. While the feed is being built,
+  off is the only safe direction for a default to fall.
+
+  **The switch is greyed out everywhere except the resort proving the feature.**
+  `PatrolData.maySwitchOnCalendarSync` is the one rule, and `CALENDAR_SYNC_RESORTS` — currently
+  `Brighton` alone — is **the one line to change as it rolls out**. A director elsewhere who ticked
+  it would be switching on something that does not exist, and would hear about it from their
+  patrollers. Demo resorts can never qualify however far it widens, for the same reason
+  `isDemoResort` keeps them out of every mailing.
+
+  It is **drawn rather than hidden**, with a line saying it is coming and that tidying shifts now is
+  still worth doing — a control that vanishes teaches a director nothing.
+
+  **The save checks the same rule again**, because a disabled checkbox simply is not posted, which
+  stops nobody from posting one. And a resort that may not change it has its stored value **left
+  alone rather than set to false**: an unposted checkbox binds as `false`, so writing that would let
+  every ordinary preferences save at 43 resorts silently clear a setting they cannot even see.
+  `aSwitchPostedByHandIsIgnored` and `anOrdinarySaveDoesNotClearTheStoredSwitch` pin both halves —
+  the second sets the stored value to true *underneath* the controller first, because with it left
+  false it would pass whatever the save did.
+- **Resort time zone**, moved here from its own section — it belongs with the thing it exists for.
+- **A readiness line** from `ShiftTimeAudit.readiness`: "23 of 29 shift template rows can be
+  synced — 6 still need a start or end time you can read", linking to the audit panel.
+- **Tidy my shift template start and end times** — `ShiftTimeCleanup.cleanResort` for this one
+  resort, so a director fixes their own without the site owner doing it.
+- **Tidy this season's scheduled shifts** — `ShiftTimeCleanup.cleanScheduledDays`, **from today
+  forward only**. This is the half a feed actually reads: templates build future days, but the days
+  already on the calendar are what a patroller subscribes to. The cut is made in SQL on the date
+  prefix of the key (`yyyy-mm-dd_<n>`, so text comparison is correct), and *today* is taken in the
+  **resort's** zone, not the server's — a resort three hours behind must not have tonight's shift
+  treated as past because the box has rolled over.
+
+**The column is deliberately not called `syncEnabled`.** That name is already taken, on Brighton and
+KellyCanyon, by a dead feature: `html/screenshots8/sync.php` used it to switch the
+locker-room-to-web sync on and off, and now decides that from a file with the database code
+commented out. The column and its values outlived the feature — **KellyCanyon's still reads `1`** —
+so adopting the name would have switched personal calendar sync on there the day it shipped, chosen
+by nobody. Nothing in `src/main` referenced it, which is exactly why a `grep` of this repo alone
+would have said the name was free.
+
+**A column named in `DirectorSettings.getUpdateQueryString` had better exist.** The UPDATE names
+every column it writes, so adding one before the site-wide job has run breaks *the whole save* —
+a director loses every preference change, not merely the new setting. `write` therefore asks
+whether `calendarSyncEnabled` is there and leaves it out when it is not, and `hasColumn` answers
+**true on any error** so a failed metadata call cannot be the thing that stops a save. `timeZone` is
+not guarded this way because it is already on all 44 resorts; **anything added after it should be.**
+This is not hypothetical - it broke `theTimeZoneIsSavedAndComesBack` the moment the column joined
+the statement.
+
+Both buttons sit inside the preferences form and reach their handlers with **`formaction`**, because
+HTML has no nested forms and the panel has to sit beside the time zone it belongs with. The handlers
+ignore the form's fields — neither saves a preference. The page also had to start loading
+`dialogs.js`: without it `confirmActionDialog` is undefined, the `onclick` returns `undefined`, and
+the form **submits with no confirmation at all**.
+
+### Patroller Classifications
+
+The roster stores a three-letter **code** — `BAS`, `SR`, `SRA`, `ALM`, `PRO`, `AUX`, `TRA`, `CAN`,
+`NSK`, `OTH` — and that is what twenty years of rows hold, what every query parameter says
+(`ListPatrollers?...&PRO=1`), and what `okToDisplay` filters on. **The codes never change.** What
+changed is the **name** each one is shown under:
+
+| Code | Name |
+|------|------|
+| BAS | Alpine |
+| SR | Senior Alpine |
+| SRA | Senior Patroller |
+| AUX | Patroller |
+| PRO | Paid |
+| NSK | Not Skiing (new; the others were renamed) |
+
+**Adding one means four lists, not one.** `Roster.lookupClassification` gives it a name, and then
+`RosterQueryService.CLASSIFICATION_CODES` lets ListPatrollers filter on it,
+`MemberListController.ALL_CLASSIFICATIONS` lets the Patrollers tab's full roster show it, and
+`EmailFormRequest` needs a component of that name or the "e-mail THESE patrollers" URL drops it and
+the mail goes to a different set of people than the page listed. Plus the checkbox on
+`setup-list-patrollers.html` and the option on `update-info.html`. `NSK` is the worked example.
+
+**`NSK` is deliberately not in `MemberListController.LISTED_CLASSIFICATIONS`** — the trimmed roster
+exists to leave out people who are not patrolling, which is what Not Skiing says. It shows on the
+full roster, and on ListPatrollers when its box is ticked.
+
+`Roster.lookupClassification` is the one table, and everything reads it: `getFullClassification()`
+for a member's own name, `getClassificationName(code)` and `getClassificationCode(label)` for the
+two directions. **Add a classification there and nowhere else** — the nsp.org import resolves
+against the same table, so a name added or renamed in one place cannot leave the import matching
+the old word while the pages show the new one. `ClassificationNamesTest` pins the round trip.
+
+**An unmapped code shows as itself rather than as a blank.** `INA` is on real rosters and is
+deliberately not in the table; a blank cell where a member plainly has a classification reads as a
+bug, and `getFullClassification()` used to return null for exactly that case.
+
+**ListPatrollers, the Patrollers tab and the Excel download show the name, not the code** — the
+download because it is documented to hold exactly what the page displayed. Note **"Sort by
+Classification" still orders by the stored code** (`ORDER BY ClassificationCode` in SQL), so
+members of one classification still group together, but the groups run in code order rather than
+alphabetically by name.
 
 ### Roster Listing & Download
 
@@ -469,8 +587,24 @@ Director-only.
 member is left untouched, so the same file can be run twice and anything a director edited by hand
 survives. Rows are skipped, with the reason shown, when the ID is missing or not numeric, the
 `Member Type` is not `Patroller`, the ID is already on the roster, or the ID repeats inside the
-file. A new member is created **BAS / Full Time / not a director**, with `Instructor` set to `"0"` —
-a fresh `Roster` initialises its fields to `" "`, which MySQL rejects for that integer column.
+file. A new member is created **Full Time / not a director**, with `Instructor` set to `"0"` — a
+fresh `Roster` initialises its fields to `" "`, which MySQL rejects for that integer column.
+
+**The classification comes out of the file**, from nsp.org's `Primary Initial Class` column, which
+is why the classifications were renamed to the words nsp.org uses: `Alpine`, `Senior Alpine`,
+`Patroller`, `Senior Patroller`, `Paid`. The resolution is `Roster.getClassificationCode`, matching
+on the display names (case and surrounding space ignored, and a bare code accepted as itself), so
+there is no second list to keep in step — rename a classification and the import follows.
+
+**Anything it cannot resolve becomes `OTH` (Other), and says so.**
+`NspRosterImport.DEFAULT_CLASSIFICATION` is that fallback. `Other` is chosen because it records what
+actually happened — this class was not recognised — where any real classification would be a guess,
+and afterwards a guess cannot be told from a class the file genuinely gave. It also sits outside the
+trimmed roster and outside the ListPatrollers defaults, so an unrecognised member is not quietly
+counted among the patrollers a listing is about. Every such row is
+marked in italics on the preview *before* anything is written, carries the raw nsp.org wording in
+its tooltip, and is named one per line in the log at import time — a bare count of "8 defaulted"
+tells nobody which eight or to what.
 
 **Two steps, and the second re-reads the file.** The preview writes nothing; pressing Import posts
 the file again and the controller parses it and re-checks the roster from scratch. Nothing the

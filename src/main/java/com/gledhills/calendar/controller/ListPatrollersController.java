@@ -299,6 +299,9 @@ public class ListPatrollersController {
     if ((instructorFlags & 8) == 8) {
       url.append("&Toboggan=1");
     }
+    if ((instructorFlags & 16) == 16) {
+      url.append("&Snowboard=1");
+    }
 
     // Every counter the setup page lets "Only list if less than N shifts" apply to, not just
     // day/swing/night: a Training-only or Holiday-only listing used to drop the whole block, and

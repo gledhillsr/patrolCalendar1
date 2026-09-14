@@ -5,7 +5,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import com.gledhills.calendar.utils.*;
+import com.gledhills.calendar.ShiftLabelMigration;
+import com.gledhills.calendar.ShiftTimeCleanup;
 import com.gledhills.calendar.dto.WebSitePreferencesForm;
+import com.gledhills.calendar.service.ShiftTimeAudit;
 import com.gledhills.calendar.store.DirectorSettings;
 import com.gledhills.calendar.store.Roster;
 import org.springframework.stereotype.Controller;
@@ -32,6 +35,9 @@ public class WebSitePreferencesController {
     public String showPreferences(
             @RequestParam String resort,
             @RequestParam(name = "ID") String id,
+            //what the tidy button did, handed back through the redirect so the page can say so
+            @RequestParam(name = "tidied", required = false) String tidied,
+            @RequestParam(name = "scheduledTidied", required = false) String scheduledTidied,
             HttpServletRequest request,
             HttpServletResponse response,
             Model model) throws IOException {
@@ -101,6 +107,7 @@ public class WebSitePreferencesController {
             form.setTimeZone(settings.getTimeZone().isEmpty()
                                  ? ResortTimeZones.forResort(resort).getId()
                                  : settings.getTimeZone());
+            form.setSyncEnabled(settings.getSyncEnabled());
             form.setOnlyDirectors(settings.getDirectorsOnlyChange());
             form.setRemoveAccess(settings.getRemoveAccess());
             form.setStartDay(settings.getStartDay());
@@ -121,6 +128,14 @@ public class WebSitePreferencesController {
             model.addAttribute("patrollerId", loggedInUserId);
             model.addAttribute("isDirector", true);
             model.addAttribute("preferencesForm", form);
+            // How ready this resort's templates are to sync. Read here rather than linked to
+            // blindly, because "you have 6 shifts to fix" is the thing that tells a director
+            // whether the Edit Shift Templates panel is worth opening at all.
+            model.addAttribute("syncReadiness",
+                               ShiftTimeAudit.readiness(patrolData.readShiftDefinitions()));
+            model.addAttribute("tidied", tidied);
+            model.addAttribute("maySwitchOnSync", PatrolData.maySwitchOnCalendarSync(resort));
+            model.addAttribute("scheduledTidied", scheduledTidied);
 
             // Add resort metadata for header
             ResortData resortData = PatrolData.getResortInfo(resort);
@@ -187,6 +202,17 @@ public class WebSitePreferencesController {
             settings.setReminderDays(form.getReminderDays());
             settings.setEmailAll(form.getEmailAll() != null && form.getEmailAll());
             settings.setTimeZone(form.getTimeZone());
+            //Only a resort cleared for calendar sync may change the switch, and the stored value is
+            //left exactly as it is for everybody else - not set to false, which would be a change
+            //in its own right. A disabled checkbox is not posted at all, so an ordinary save from
+            //one of those resorts would otherwise read as "the director turned it off".
+            if (PatrolData.maySwitchOnCalendarSync(form.getResort())) {
+                settings.setSyncEnabled(form.isSyncEnabled());
+            }
+            else if (form.isSyncEnabled()) {
+                LOG.info("ignored a calendar sync switch posted for " + form.getResort()
+                           + ", which is not cleared for it");
+            }
             settings.setDirectorsOnlyChange(form.getOnlyDirectors() != null && form.getOnlyDirectors());
             settings.setRemoveAccess(form.getRemoveAccess());
             settings.setStartDay(form.getStartDay());
@@ -252,5 +278,152 @@ public class WebSitePreferencesController {
         } finally {
             patrolData.close();
         }
+    }
+
+    /**
+     * Tidy this one resort's shift template times, from the Personal Calendar Sync panel.
+     *
+     * <p>The same pass the Site Wide Configuration button runs over all 44 resorts
+     * ({@link ShiftTimeCleanup}), scoped to the resort whose page this is - so a director can put
+     * their own templates right without the site owner doing it for them, and without reaching into
+     * anybody else's data.
+     *
+     * <p><b>Templates only, and nothing a person has to judge.</b> It rewrites times that are
+     * already readable into one canonical form, and fills in a missing start time from a Label that
+     * holds one - without touching the Label itself. A time nobody can read is left exactly as it is and listed on Edit Shift Templates,
+     * because guessing at it is how a shift ends up on somebody's calendar at the wrong hour.
+     *
+     * <p>Director-gated like everything else on this page. The button sits inside the preferences
+     * form and reaches here with {@code formaction}, so the form's own fields arrive too and are
+     * deliberately ignored - this action saves no preferences, and binding them would let a tidy
+     * press quietly write a half-filled form.
+     */
+    @PostMapping("/WebSitePreferences/tidyShiftTimes")
+    public String tidyShiftTimes(
+            @RequestParam String resort,
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+
+        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+        Logger LOG = new Logger(WebSitePreferencesController.class, javaxRequest, "POST", resort,
+                                Logger.INFO);
+
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
+
+        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        ValidateCredentialsRedirectIfNeeded credentials =
+            new ValidateCredentialsRedirectIfNeeded(
+                sessionData, javaxRequest, javaxResponse,
+                "WebSitePreferences", patrolData, LOG);
+
+        if (credentials.hasInvalidCredentials()) {
+            patrolData.close();
+            return null;
+        }
+
+        try {
+            String loggedInUserId = sessionData.getLoggedInUserId();
+            Roster member = patrolData.getMemberByID(loggedInUserId);
+            if (member == null || !member.isDirector()) {
+                LOG.info("non-director tried to tidy shift times: (" + loggedInUserId + ")");
+                response.sendError(403, "You must be a director to do this");
+                return null;
+            }
+
+            ShiftLabelMigration.ResortOutcome outcome =
+                ShiftTimeCleanup.cleanResort(patrolData.getConnection());
+            if (!outcome.ok()) {
+                LOG.error("shift time cleanup failed for " + resort + ": " + outcome.detail());
+            }
+
+            sendBackToPreferences(response, resort, loggedInUserId, "tidied", outcome.detail());
+            return null;
+        }
+        finally {
+            patrolData.close();
+        }
+    }
+
+    /**
+     * The same tidy-up over the days already on the calendar, from today forward.
+     *
+     * <p>The sibling above fixes the templates, which is what stops the problem recurring as a
+     * season is built. This one fixes the days that have <b>already</b> been scheduled - and those
+     * are what a personal calendar would actually be reading, so a resort whose season is already
+     * laid out needs this one as well.
+     *
+     * <p><b>Nothing before today is touched</b>, which is the whole reason this is safe to put in
+     * front of a director. A shift somebody worked in 2019 is a record and stays exactly as it is.
+     */
+    @PostMapping("/WebSitePreferences/tidyScheduledShifts")
+    public String tidyScheduledShifts(
+            @RequestParam String resort,
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+
+        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+        Logger LOG = new Logger(WebSitePreferencesController.class, javaxRequest, "POST", resort,
+                                Logger.INFO);
+
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
+
+        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        ValidateCredentialsRedirectIfNeeded credentials =
+            new ValidateCredentialsRedirectIfNeeded(
+                sessionData, javaxRequest, javaxResponse,
+                "WebSitePreferences", patrolData, LOG);
+
+        if (credentials.hasInvalidCredentials()) {
+            patrolData.close();
+            return null;
+        }
+
+        try {
+            String loggedInUserId = sessionData.getLoggedInUserId();
+            Roster member = patrolData.getMemberByID(loggedInUserId);
+            if (member == null || !member.isDirector()) {
+                LOG.info("non-director tried to tidy scheduled shifts: (" + loggedInUserId + ")");
+                response.sendError(403, "You must be a director to do this");
+                return null;
+            }
+
+            //today in the resort's own zone, not the server's - a resort three hours behind must
+            //not have tonight's shift treated as past because the box has already rolled over
+            java.time.LocalDate today = java.time.LocalDate.now(
+                ResortTimeZones.inForce(resort, patrolData.readDirectorSettings()));
+
+            ShiftLabelMigration.ResortOutcome outcome =
+                ShiftTimeCleanup.cleanScheduledDays(patrolData.getConnection(), today);
+            if (!outcome.ok()) {
+                LOG.error("scheduled shift cleanup failed for " + resort + ": " + outcome.detail());
+            }
+
+            sendBackToPreferences(response, resort, loggedInUserId, "scheduledTidied",
+                                  outcome.detail());
+            return null;
+        }
+        finally {
+            patrolData.close();
+        }
+    }
+
+    /** Back to the page that asked, carrying what happened so it can be shown. */
+    private void sendBackToPreferences(HttpServletResponse response, String resort, String userId,
+                                       String parameter, String detail) throws IOException {
+        response.sendRedirect("../WebSitePreferences?resort=" + resort + "&ID=" + userId
+                                + "&" + parameter + "=" + java.net.URLEncoder.encode(
+                                    detail, java.nio.charset.StandardCharsets.UTF_8));
     }
 }

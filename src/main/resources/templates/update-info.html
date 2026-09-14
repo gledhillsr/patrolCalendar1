@@ -245,14 +245,15 @@
                     <td width="600">
                         <span th:unless="${isDirector or isAddPatroller}" th:text="${classification}">Classification</span>
                         <select th:if="${isDirector or isAddPatroller}" th:field="*{classification}">
-                            <option value="BAS">Basic</option>
-                            <option value="SR">Senior</option>
-                            <option value="SRA">Senior Auxiliary</option>
+                            <option value="BAS">Alpine</option>
+                            <option value="SR">Senior Alpine</option>
+                            <option value="SRA">Senior Patroller</option>
                             <option value="ALM">Alumni</option>
-                            <option value="PRO">Pro</option>
-                            <option value="AUX">Auxiliary</option>
+                            <option value="PRO">Paid</option>
+                            <option value="AUX">Patroller</option>
                             <option value="TRA">Transfer</option>
                             <option value="CAN">Candidate</option>
+                            <option value="NSK">Not Skiing</option>
                             <option value="OTH">Other</option>
                         </select>
                     </td>
@@ -276,7 +277,8 @@
                             <input type="checkbox" th:field="*{instructorOEC}" />OEC&nbsp;&nbsp;
                             <input type="checkbox" th:field="*{instructorCPR}" />CPR&nbsp;&nbsp;
                             <input type="checkbox" th:field="*{instructorSki}" />Ski&nbsp;&nbsp;
-                            <input type="checkbox" th:field="*{instructorToboggan}" />Toboggan
+                            <input type="checkbox" th:field="*{instructorToboggan}" />Toboggan&nbsp;&nbsp;
+                            <input type="checkbox" th:field="*{instructorSnowboard}" />Snowboard
                         </span>
                     </td>
                 </tr>
@@ -368,6 +370,143 @@
                 </tr>
             </table>
         </form>
+
+        <!--
+          Personal calendar subscription.
+
+          Outside the form above on purpose: this is not a preference that gets saved with the rest
+          of My Info, it is a link that exists or does not, and HTML has no nested forms.
+        -->
+        <div th:if="${showCalendarSync}" id="calendarSyncPanel"
+             style="border:2px solid #2f6f9f; border-radius:6px; padding:12px 18px;
+                    background:#f5f9fc; margin:18px 0; font-size:10pt; color:#222;">
+            <h3 style="margin-top:0; color:#1d4f75;">
+                Sync my PatrolCalendar shifts to my personal calendar
+            </h3>
+
+            <p style="margin:0 0 10px 0; max-width:52em;">
+                Your shifts can appear in the calendar you already use &mdash; Google, Apple or
+                Outlook &mdash; and keep themselves up to date as the schedule changes. You only
+                set this up once.
+            </p>
+
+            <!-- Nothing yet: one button, and no instructions until there is a link to use. -->
+            <form th:if="${calendarFeedUrl == null}" th:action="@{/UpdateInfo/calendarLink}"
+                  method="post">
+                <input type="hidden" name="resort" th:value="${resort}"/>
+                <input type="submit" value="Create my calendar link"/>
+            </form>
+
+            <div th:if="${calendarFeedUrl != null}">
+                <p style="margin:0 0 6px 0;"><b>Step 1 &mdash; copy your personal link:</b></p>
+                <p style="margin:0 0 10px 0;">
+                    <input type="text" id="feedUrl" readonly th:value="${calendarFeedUrl}"
+                           onclick="this.select();"
+                           style="width:100%; max-width:44em; font-family:monospace; font-size:9pt;
+                                  padding:4px;"/>
+                    <br>
+                    <input type="button" value="Copy link" style="margin-top:6px;"
+                           onclick="copyFeedUrl(this);"/>
+                    <span id="feedCopied" style="color:#2d662d; font-weight:bold; display:none;">
+                        Copied
+                    </span>
+                </p>
+
+                <p style="margin:10px 0 6px 0;">
+                    <b>Step 2 &mdash; add it to your calendar.</b> Pick whichever you use:
+                </p>
+                <ul style="margin:0 0 10px 0; max-width:52em; line-height:1.5;">
+                    <li>
+                        <b>Google Calendar</b> &mdash; on a computer, not the phone app. In the left
+                        column find <i>Other calendars</i>, click <b>+</b>, choose
+                        <i>From URL</i>, paste the link, then <i>Add calendar</i>.
+                    </li>
+                    <li>
+                        <b>Apple &mdash; iPhone or iPad.</b> Settings &rarr; Apps &rarr; Calendar
+                        &rarr; Accounts &rarr; <i>Add Account</i> &rarr; <i>Other</i> &rarr;
+                        <i>Add Subscribed Calendar</i>, paste the link, then <i>Next</i> and
+                        <i>Save</i>.
+                    </li>
+                    <li>
+                        <b>Apple &mdash; Mac.</b> Calendar &rarr; File menu &rarr;
+                        <i>New Calendar Subscription</i>, paste the link, then <i>Subscribe</i>.
+                        You can set it to refresh every 5 minutes here.
+                    </li>
+                    <li>
+                        <b>Outlook</b> (outlook.com or Microsoft 365) &mdash; go to Calendar,
+                        <i>Add calendar</i> &rarr; <i>Subscribe from web</i>, paste the link, give
+                        it a name, then <i>Import</i>.
+                    </li>
+                </ul>
+
+                <!-- The three things that otherwise arrive as complaints. -->
+                <div style="margin:12px 0 10px 0; padding:8px 12px; max-width:52em;
+                            border-left:4px solid #cc7000; background:#fffaf3; color:#5a3d00;">
+                    <p style="margin:0 0 6px 0;">
+                        <b>It is not instant.</b> How often your calendar checks for changes is up
+                        to your calendar, not to us. Apple can check every few minutes; Outlook is
+                        usually a few hours; <b>Google can take up to a day</b> and gives you no way
+                        to hurry it. If you sign up for a shift and it is not on your phone
+                        straight away, nothing is broken.
+                    </p>
+                    <p style="margin:0 0 6px 0;">
+                        <b>It only reads.</b> Deleting a shift in your own calendar does not drop
+                        the shift &mdash; it will simply reappear. Sign up and swap here, as always.
+                    </p>
+                    <p style="margin:0;">
+                        <b>Shifts with no start and end time will not appear.</b> If one of yours is
+                        missing, that shift has no times recorded on it; ask a director to add them.
+                    </p>
+                </div>
+
+                <p style="margin:10px 0 6px 0; max-width:52em;">
+                    <b>Keep this link private.</b> It needs no password, so anyone you send it to
+                    can see when you are working. If it goes astray, replace it &mdash; the old one
+                    stops working at once, and you paste the new one into your calendar again.
+                </p>
+                <form th:action="@{/UpdateInfo/calendarLink}" method="post"
+                      style="display:inline;">
+                    <input type="hidden" name="resort" th:value="${resort}"/>
+                    <input type="submit" value="Replace my link"
+                           onclick="return confirmActionDialog(this,
+                               'Your current calendar link will stop working immediately. You will need to paste the new one into your calendar again.\n\nReplace it?',
+                               'Replace your calendar link?')"/>
+                </form>
+                <form th:action="@{/UpdateInfo/calendarLink}" method="post"
+                      style="display:inline;">
+                    <input type="hidden" name="resort" th:value="${resort}"/>
+                    <input type="hidden" name="remove" value="yes"/>
+                    <input type="submit" value="Turn off syncing"
+                           onclick="return confirmActionDialog(this,
+                               'Your calendar link will stop working and your shifts will no longer update in your personal calendar.\n\nTurn it off?',
+                               'Turn off calendar syncing?')"/>
+                </form>
+            </div>
+
+            <script>
+                // Clipboard access needs a secure context; falling back to selecting the text means
+                // the button still does something useful on plain http or an old browser.
+                function copyFeedUrl(button) {
+                    var field = document.getElementById("feedUrl");
+                    var done = document.getElementById("feedCopied");
+                    field.select();
+                    field.setSelectionRange(0, 99999);
+                    var show = function () {
+                        done.style.display = "inline";
+                        setTimeout(function () { done.style.display = "none"; }, 2500);
+                    };
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(field.value).then(show, function () {
+                            document.execCommand("copy");
+                            show();
+                        });
+                    } else {
+                        document.execCommand("copy");
+                        show();
+                    }
+                }
+            </script>
+        </div>
     </div>
 
     <div th:replace="~{fragments/footer :: footer}"></div>

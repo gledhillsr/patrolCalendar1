@@ -87,7 +87,7 @@
                  distinguishable from a plain link that never had the boxes on it -->
             <input type="hidden" name="filters" value="1"/>
             <label><input type="checkbox" name="pro" value="true"
-                          th:checked="${includePro}" onchange="this.form.submit()"/> Pro</label>
+                          th:checked="${includePro}" onchange="this.form.submit()"/> Paid</label>
             <label><input type="checkbox" name="alumni" value="true"
                           th:checked="${includeAlumni}" onchange="this.form.submit()"/> Alumni</label>
         </form>
@@ -100,7 +100,7 @@
                    onclick="window.location=this.getAttribute('data-url')"/>
             <!-- Only alongside "Show Trimmed Roster", to say what trimming leaves out -->
             <span th:if="${fullRoster}" class="help-dot" title="What is a trimmed roster?"
-                  onclick="showMessageDialog('Trimmed roster does not show Inactive or \'Other\' patrollers.\n\nPro and Alumni are controlled by the boxes above.', null, 'What is a trimmed roster?');">?</span>
+                  onclick="showMessageDialog('Trimmed roster does not show Inactive or \'Other\' patrollers.\n\nPaid and Alumni are controlled by the boxes above.', null, 'What is a trimmed roster?');">?</span>
         </span>
     </div>
 

@@ -62,6 +62,13 @@
             color: #FF0000;
             font-weight: bold;
         }
+        /* A class that nsp.org named in words this site does not know, so it fell back to
+           Patroller. Marked rather than hidden: it is the one field on the row that may be wrong,
+           and the director is the only one who can say what it should have been. */
+        .defaulted {
+            color: #856404;
+            font-style: italic;
+        }
         .password-note {
             background: #fff3cd;
             border: 1px solid #f0c74a;
@@ -121,10 +128,15 @@
             <div class="panel" th:if="${!#lists.isEmpty(importing)}">
                 <h2>Will be added</h2>
                 <p>
-                    Each is added as a <b>Basic</b> patroller, <b>Full Time</b>, and not a
-                    director. You can change any of that afterwards on their My Info page.
+                    Each is added <b>Full Time</b> and not a director, with the classification
+                    nsp.org gave them. You can change any of that afterwards on their My Info page.
                     <b>Their password is set to their last name</b> &mdash; tell them to sign in
                     with their member number and last name, and change it on My Info.
+                </p>
+                <p th:if="${anyClassDefaulted}" class="defaulted">
+                    A class shown in italics is one this site does not have a name for, so that
+                    patroller is being added as <b>Other</b>. Set their real classification on
+                    their My Info page.
                 </p>
                 <table class="rows">
                     <tr>
@@ -138,7 +150,10 @@
                         <td th:text="${row.lastName}">Hauca</td>
                         <td th:text="${row.email}">chris@example.com</td>
                         <td th:text="${row.cellPhone}">847-372-5936</td>
-                        <td>BAS</td>
+                        <td th:text="${row.classificationLabel}"
+                            th:classappend="${row.classificationResolved ? '' : 'defaulted'}"
+                            th:title="${row.classificationResolved ? null
+                                        : 'nsp.org calls this: ' + row.nspClass}">Alpine</td>
                         <td>Full Time</td>
                         <td>No</td>
                     </tr>

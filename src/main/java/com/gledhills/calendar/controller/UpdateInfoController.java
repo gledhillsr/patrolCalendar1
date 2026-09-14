@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import com.gledhills.calendar.store.CalendarFeedToken;
+import com.gledhills.calendar.store.DirectorSettings;
 import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.utils.*;
 import org.springframework.stereotype.Controller;
@@ -14,6 +16,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -70,6 +73,7 @@ public class UpdateInfoController {
         private boolean instructorCPR;
         private boolean instructorSki;
         private boolean instructorToboggan;
+        private boolean instructorSnowboard;
         private String director;
         private String teamLead;
         private String mentoring;
@@ -248,6 +252,9 @@ public class UpdateInfoController {
         public boolean isInstructorToboggan() { return instructorToboggan; }
         public void setInstructorToboggan(boolean instructorToboggan) { this.instructorToboggan = instructorToboggan; }
 
+        public boolean isInstructorSnowboard() { return instructorSnowboard; }
+        public void setInstructorSnowboard(boolean instructorSnowboard) { this.instructorSnowboard = instructorSnowboard; }
+
         public String getDirector() { return director; }
         public void setDirector(String director) { this.director = director; }
 
@@ -296,6 +303,7 @@ public class UpdateInfoController {
                 form.setInstructorCPR((instructorBits & 2) != 0);
                 form.setInstructorSki((instructorBits & 4) != 0);
                 form.setInstructorToboggan((instructorBits & 8) != 0);
+                form.setInstructorSnowboard((instructorBits & 16) != 0);
             } catch (NumberFormatException ignored) {
             }
             String dir = roster.memberData[Roster.DIRECTOR];
@@ -360,7 +368,8 @@ public class UpdateInfoController {
                     roster.memberData[Roster.COMMITMENT] = commitment;
                 }
                 int bits = (instructorOEC ? 1 : 0) | (instructorCPR ? 2 : 0)
-                         | (instructorSki ? 4 : 0) | (instructorToboggan ? 8 : 0);
+                         | (instructorSki ? 4 : 0) | (instructorToboggan ? 8 : 0)
+                         | (instructorSnowboard ? 16 : 0);
                 roster.memberData[Roster.INSTRUCTOR] = String.valueOf(bits);
                 if (director != null) {
                     roster.memberData[Roster.DIRECTOR] = director;
@@ -399,7 +408,7 @@ public class UpdateInfoController {
      * for the legacy servlets, which wrote it straight into the HTML stream. Thymeleaf's
      * th:text escapes its value, so the entity would show up on the page as text.
      *
-     * @param value Bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan
+     * @param value Bit flags: 1=OEC, 2=CPR, 4=Ski, 8=Toboggan, 16=Snowboard
      */
     private String getInstructorLabel(String value) {
         return Roster.getInstructorLabel(value);
@@ -633,6 +642,8 @@ public class UpdateInfoController {
             model.addAttribute("hiddenTeamLead", member.memberData[Roster.TEAM_LEAD]);
             model.addAttribute("hiddenMentoring", member.memberData[Roster.MENTORING]);
             model.addAttribute("hiddenComments", member.memberData[Roster.COMMENTS]);
+
+            addCalendarSyncPanel(model, request, resort, loggedInUserId, patrollerId, patrolData, LOG);
 
             // 13. Add resort metadata for header
             ResortData resortData = PatrolData.getResortInfo(resort);
@@ -1447,5 +1458,125 @@ public class UpdateInfoController {
         // Redirect to Directors page
         response.sendRedirect("Directors?resort=" + resort + "&ID=" + loggedInUserId);
         return null;
+    }
+
+    /**
+     * The "Sync my PatrolCalendar shifts" panel, when this viewer should see one.
+     *
+     * <p>Three conditions, all of which have to hold: the resort is cleared for calendar sync, its
+     * director has switched it on, and <b>the member is looking at their own record</b>. That last
+     * one matters - a director editing somebody else's My Info must not be shown, still less able
+     * to create, a link that reads that person's schedule.
+     *
+     * <p>Never throws. This is a panel on a page every member uses to change their phone number;
+     * a resort whose token table is missing gets no panel rather than no My Info.
+     */
+    private void addCalendarSyncPanel(Model model, HttpServletRequest request, String resort,
+                                      String loggedInUserId, String viewingPatrollerId,
+                                      PatrolData patrolData, Logger LOG) {
+        model.addAttribute("showCalendarSync", false);
+        try {
+            if (!PatrolData.maySwitchOnCalendarSync(resort)
+                  || loggedInUserId == null || !loggedInUserId.equals(viewingPatrollerId)) {
+                return;
+            }
+            DirectorSettings settings = patrolData.readDirectorSettings();
+            if (settings == null || !settings.getSyncEnabled()) {
+                return;
+            }
+            model.addAttribute("showCalendarSync", true);
+
+            String token =
+                CalendarFeedToken.forPatroller(LOG, patrolData.getConnection(), loggedInUserId);
+            model.addAttribute("calendarFeedUrl",
+                               token == null ? null : feedUrl(request, resort, token));
+        }
+        catch (Exception e) {
+            LOG.logException("could not build the calendar sync panel", e);
+            model.addAttribute("showCalendarSync", false);
+        }
+    }
+
+    /**
+     * The absolute URL a calendar app will fetch.
+     *
+     * <p>Built from the request rather than from a constant, so the link a patroller copies is on
+     * the domain they are actually using - the site answers on two, and handing somebody the other
+     * one works but looks wrong. nginx passes the original Host through
+     * ({@code server.forward-headers-strategy=native}), so this is the name in their address bar.
+     */
+    private String feedUrl(HttpServletRequest request, String resort, String token) {
+        StringBuilder url = new StringBuilder(request.getScheme()).append("://")
+                                                                  .append(request.getServerName());
+        int port = request.getServerPort();
+        boolean standard = ("http".equals(request.getScheme()) && port == 80)
+                             || ("https".equals(request.getScheme()) && port == 443);
+        if (!standard && port > 0) {
+            url.append(':').append(port);
+        }
+        return url.append(request.getContextPath())
+                  .append(CalendarFeedController.FEED_PREFIX)
+                  .append(resort).append('/').append(token).append(".ics").toString();
+    }
+
+    /**
+     * Create this member's subscription link, or replace the one they have.
+     *
+     * <p>One action for both, because "reset" and "create" differ only in whether a row was already
+     * there - and a reset path that is only exercised after something has gone wrong is the one
+     * that turns out not to work.
+     *
+     * <p>Acts on the <b>session's</b> member, never on a posted id: this hands out a key to
+     * somebody's schedule, and the id in a form is whatever the sender typed.
+     */
+    @PostMapping("/UpdateInfo/calendarLink")
+    public String calendarLink(@RequestParam String resort,
+                               @RequestParam(name = "remove", required = false) String remove,
+                               HttpServletRequest request,
+                               HttpServletResponse response) throws IOException {
+
+        javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+        javax.servlet.http.HttpServletResponse javaxResponse = ServletAdapter.toJavaxResponse(response);
+        Logger LOG = new Logger(UpdateInfoController.class, javaxRequest, "POST", resort, Logger.INFO);
+
+        if (!PatrolData.isValidResort(resort)) {
+            response.sendError(400, "Resort not found: " + resort);
+            return null;
+        }
+
+        SessionData sessionData = new SessionData(javaxRequest, null, LOG);
+        PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
+
+        ValidateCredentialsRedirectIfNeeded credentials =
+            new ValidateCredentialsRedirectIfNeeded(sessionData, javaxRequest, javaxResponse,
+                                                    "UpdateInfo", patrolData, LOG);
+        if (credentials.hasInvalidCredentials()) {
+            patrolData.close();
+            return null;
+        }
+
+        try {
+            String loggedInUserId = sessionData.getLoggedInUserId();
+            DirectorSettings settings = patrolData.readDirectorSettings();
+            if (!PatrolData.maySwitchOnCalendarSync(resort)
+                  || settings == null || !settings.getSyncEnabled()) {
+                LOG.info("calendar link requested where sync is not on: " + resort);
+                response.sendError(404);
+                return null;
+            }
+
+            if (remove != null && !remove.isEmpty()) {
+                CalendarFeedToken.revoke(LOG, patrolData.getConnection(), loggedInUserId);
+            }
+            else {
+                CalendarFeedToken.issue(LOG, patrolData.getConnection(), loggedInUserId);
+            }
+
+            response.sendRedirect("../UpdateInfo?resort=" + resort + "&ID=" + loggedInUserId);
+            return null;
+        }
+        finally {
+            patrolData.close();
+        }
     }
 }

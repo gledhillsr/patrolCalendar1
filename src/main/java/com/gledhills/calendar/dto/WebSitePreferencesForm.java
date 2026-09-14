@@ -22,6 +22,9 @@ public class WebSitePreferencesForm {
     /** The resort's own time zone, an IANA id. Blank means "use the built-in default". */
     private String timeZone = "";
 
+    /** Whether patrollers here may subscribe to their shifts. Off unless a director says otherwise. */
+    private boolean syncEnabled = false;
+
     // Calendar Permissions
     private Boolean onlyDirectors = false;
 
@@ -111,6 +114,14 @@ public class WebSitePreferencesForm {
 
     public String getTimeZone() {
         return timeZone;
+    }
+
+    public boolean isSyncEnabled() {
+        return syncEnabled;
+    }
+
+    public void setSyncEnabled(boolean syncEnabled) {
+        this.syncEnabled = syncEnabled;
     }
 
     public void setTimeZone(String timeZone) {

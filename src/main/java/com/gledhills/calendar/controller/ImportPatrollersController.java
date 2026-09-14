@@ -155,6 +155,19 @@ public class ImportPatrollersController {
             LOG.warn("nsp.org roster import into " + resort + " by " + sessionData.getLoggedInUserId()
                        + ": " + added + " added, " + failures.size() + " failed");
 
+            //Named one row at a time rather than counted: the value nsp.org used is the thing
+            //that has to be read to decide whether it is a class this site should know, and a
+            //bare count of "8 defaulted" tells nobody which eight or to what.
+            for (NspRosterImport.Candidate candidate : candidates) {
+                if (candidate.importable() && !candidate.classificationResolved()) {
+                    LOG.warn("nsp.org import: " + candidate.id() + " " + candidate.getFullName()
+                               + " - class \""
+                               + (candidate.nspClass().isEmpty() ? "(blank)" : candidate.nspClass())
+                               + "\" matches no classification here, imported as "
+                               + candidate.getClassificationLabel());
+                }
+            }
+
             //spent: pressing back and Import again must not run the same file a second time
             request.getSession().removeAttribute(PENDING_FILE);
             request.getSession().removeAttribute(PENDING_FILE_NAME);
@@ -195,7 +208,7 @@ public class ImportPatrollersController {
             member.setLast(candidate.lastName());
             member.setEmail(candidate.email());
             member.setCellPhone(candidate.cellPhone());
-            member.setClassification(NspRosterImport.NEW_CLASSIFICATION);
+            member.setClassification(candidate.classification());
             member.setCommitment(NspRosterImport.NEW_COMMITMENT);
             member.setDirector(NspRosterImport.NEW_DIRECTOR);
             //Instructor is an integer column and a new Roster starts its fields as " ", which
@@ -225,12 +238,18 @@ public class ImportPatrollersController {
     private void addCandidates(Model model, List<NspRosterImport.Candidate> candidates) {
         List<NspRosterImport.Candidate> importing = new ArrayList<>();
         List<NspRosterImport.Candidate> skipping = new ArrayList<>();
+        boolean anyClassDefaulted = false;
         for (NspRosterImport.Candidate candidate : candidates) {
             (candidate.importable() ? importing : skipping).add(candidate);
+            if (candidate.importable() && !candidate.classificationResolved()) {
+                anyClassDefaulted = true;
+            }
         }
         model.addAttribute("importing", importing);
         model.addAttribute("skipping", skipping);
         model.addAttribute("rowCount", candidates.size());
+        //the note explaining the italics is drawn only when there is something in italics
+        model.addAttribute("anyClassDefaulted", anyClassDefaulted);
     }
 
     /** Every member id already on this resort's roster. */

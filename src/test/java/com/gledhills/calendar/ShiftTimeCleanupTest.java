@@ -42,10 +42,12 @@ class ShiftTimeCleanupTest {
       assertTrue(outcome.ok(), outcome.detail());
       assertTrue(outcome.changed(), "it had work to do: " + outcome.detail());
 
-      //(1) a time the old rule rejected, stranded in the Label with no start beside it. This is
+      //(1) a time the old rule rejected, sitting in the Label with no start beside it. This is
       //    the row that had no start time at all until now.
-      assertEquals("16:00", startOf(connection, "Friday_0"), "the start comes back out of the Label");
-      assertEquals("", labelOf(connection, "Friday_0"), "and the Label is cleared, not left doubled");
+      assertEquals("16:00", startOf(connection, "Friday_0"), "the start is filled in from the Label");
+      assertEquals("4:00P", labelOf(connection, "Friday_0"),
+                   "and the Label is left exactly as the director wrote it - it is what the "
+                     + "calendar draws, and only the missing start was the problem");
       assertEquals("21:00", endOf(connection, "Friday_0"), "'9:00 p' is a time, so it is tidied too");
 
       //(2) an end that was never migrated: readable, just not canonical
@@ -68,6 +70,30 @@ class ShiftTimeCleanupTest {
 
       //(6) a packed start still gets canonicalised
       assertEquals("8:00", startOf(connection, "Friday_5"));
+
+      //(7) a director may deliberately caption a shift with an abbreviated time - "6pm" is a
+      //    perfectly good thing to want on the calendar. The caption stays exactly as typed and
+      //    the machine-readable start is added beside it, which is the whole point of the split.
+      assertEquals("6pm", labelOf(connection, "Friday_6"), "the abbreviation the director chose");
+      assertEquals("18:00", startOf(connection, "Friday_6"), "with the real start filled in");
+      assertEquals("22:00", endOf(connection, "Friday_6"), "and the end tidied as usual");
+
+      //(8) a time written into one end of a caption is used for the start, caption untouched
+      assertEquals("Vol 10:00AM", labelOf(connection, "Friday_7"), "the caption is the director's");
+      assertEquals("10:00", startOf(connection, "Friday_7"), "with the time taken off the end");
+      assertEquals("14:00", endOf(connection, "Friday_7"));
+
+      assertEquals("8:30 Paid", labelOf(connection, "Friday_8"));
+      assertEquals("8:30", startOf(connection, "Friday_8"), "and off the front when it is there");
+
+      //(9) THE important one. "Train 2" and "Avy 1" are course and team numbers. Reading the bare
+      //    number as a clock time would schedule people at 02:00 and 01:00 while the label still
+      //    said "Train 2", so nothing on the page would look wrong.
+      assertEquals("", startOf(connection, "Friday_9"),
+                   "a course number must never be read as a time");
+      assertEquals("Train 2", labelOf(connection, "Friday_9"));
+      assertEquals("", startOf(connection, "Friday_10"), "nor a team number");
+      assertEquals("Avy 1", labelOf(connection, "Friday_10"));
 
       //and it is settled: pressing the button again writes nothing
       ResortOutcome again = ShiftTimeCleanup.cleanResort(connection);
@@ -127,7 +153,12 @@ class ShiftTimeCleanupTest {
         + " ('Friday_2','dir','8:00','16:30'),"    //already right
         + " ('Friday_3','','8:00','Close'),"       //an end nobody can read
         + " ('Friday_4','mentee','',''),"          //a label-only shift
-        + " ('Friday_5','','0800','')");           //a packed start
+        + " ('Friday_5','','0800',''),"            //a packed start
+        + " ('Friday_6','6pm','','10pm'),"         //an abbreviated time used as the label
+        + " ('Friday_7','Vol 10:00AM','','2:00PM'),"  //a time on the end of a caption
+        + " ('Friday_8','8:30 Paid','',''),"       //and a time on the front of one
+        + " ('Friday_9','Train 2','',''),"         //a COURSE number, not half past two
+        + " ('Friday_10','Avy 1','','')");         //nor a shift at one o'clock
     }
     return connection;
   }

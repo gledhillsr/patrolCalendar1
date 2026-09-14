@@ -115,7 +115,7 @@ class DownloadRosterControllerTest {
    */
   private void assertLabelsNotRawNumbers(Sheet sheet, int commitmentColumn, int instructorColumn) {
     List<String> commitmentLabels = List.of("Inactive", "Part Time", "Full Time", "");
-    List<String> certifications = List.of("OEC", "CPR", "Ski", "Toboggan");
+    List<String> certifications = List.of("OEC", "CPR", "Ski", "Toboggan", "Snowboard");
 
     for (int rowNumber = 2; rowNumber <= sheet.getLastRowNum(); rowNumber++) {
       Row row = sheet.getRow(rowNumber);
@@ -149,7 +149,7 @@ class DownloadRosterControllerTest {
     // Filters: every classification, every commitment level, everyone listed.
     // okToDisplay() drops a member unless their classification and commitment are both asked for.
     for (String classification :
-      List.of("BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "OTH")) {
+      List.of("BAS", "INA", "SR", "SRA", "ALM", "PRO", "AUX", "TRA", "CAN", "NSK", "OTH")) {
       builder = builder.param(classification, "1");
     }
     builder = builder.param("FullTime", "1").param("PartTime", "1").param("Inactive", "1")
