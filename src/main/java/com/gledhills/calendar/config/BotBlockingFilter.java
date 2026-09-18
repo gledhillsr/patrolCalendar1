@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * Rejects requests from web crawlers, scrapers, and scanners before they reach
@@ -43,6 +44,16 @@ public class BotBlockingFilter extends OncePerRequestFilter {
       chain.doFilter(request, response);
       return;
     }
+    //A stylesheet, script or icon is not a page, and the thing asking for one is very often not
+    //the browser proper: a favicon in particular is fetched by a background icon loader that sends
+    //no User-Agent at all, which this filter reads as a script. Injury_icon.svg is the site's
+    //favicon and real members were being given a 403 for it - their tab simply showed no icon, and
+    //nothing anywhere said why. Blocking assets buys nothing either: a crawler that fetches a
+    //stylesheet costs nothing, and Google needs the CSS and JS to render a page it is indexing.
+    if (isStaticAsset(request.getRequestURI())) {
+      chain.doFilter(request, response);
+      return;
+    }
     String userAgent = request.getHeader("User-Agent");
     if (StaticUtils.isRequestFromBot(userAgent)) {
       Logger LOG = new Logger(BotBlockingFilter.class, ServletAdapter.toJavaxRequest(request),
@@ -56,4 +67,33 @@ public class BotBlockingFilter extends OncePerRequestFilter {
     }
     chain.doFilter(request, response);
   }
+
+  /**
+   * Matched on the extension rather than on a list of paths, so a file added to
+   * {@code src/main/resources/static} is covered without anybody remembering to come back here -
+   * including the ones at its root, like the two icons, which no directory prefix would catch.
+   *
+   * <p>Safe because no endpoint in this application has an extension: they are {@code /DayShifts},
+   * {@code /MonthCalendar} and the like. The one URL that does, the {@code .ics} calendar feed, is
+   * let through above for its own reasons.
+   */
+  private static boolean isStaticAsset(String uri) {
+    if (uri == null) {
+      return false;
+    }
+    String path = uri.toLowerCase();
+    for (String extension : STATIC_ASSET_EXTENSIONS) {
+      if (path.endsWith(extension)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Content types served straight off disk: stylesheets, scripts, images, fonts, documents. */
+  private static final Set<String> STATIC_ASSET_EXTENSIONS = Set.of(
+    ".css", ".js", ".map",
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp",
+    ".woff", ".woff2", ".ttf", ".eot",
+    ".pdf");
 }

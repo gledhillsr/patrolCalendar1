@@ -763,7 +763,7 @@ public class EditShiftTemplatesController {
     }
 
     private static String shiftKey(ShiftDefinitions shift) {
-        return shift.getStartString() + " - " + shift.getEndString();
+        return shift.getShiftKey();
     }
 
     /**

@@ -34,11 +34,15 @@ class EndTimeEditTest {
     assertEquals("end time", edit.value());
   }
 
+  /**
+   * An edit has to <em>be</em> a time; it does not have to be written as 24 hour. Same rule as
+   * Start Time, and for the same reason - this is the director's own wording on their own page.
+   */
   @Test
-  void anEditedValueIsStoredCanonically() {
-    assertEquals("16:30", EndTimeEdit.of("4:30pm", "end time").value());
-    assertEquals("16:00", EndTimeEdit.of("1600", "16:30").value());
-    assertEquals("8:00", EndTimeEdit.of("8am", "").value());
+  void anEditedValueIsStoredExactlyAsItWasTyped() {
+    assertEquals("4:30pm", EndTimeEdit.of("4:30pm", "end time").value());
+    assertEquals("1600", EndTimeEdit.of("1600", "16:30").value());
+    assertEquals("8am", EndTimeEdit.of("8am", "").value());
     assertFalse(EndTimeEdit.of("4:30pm", "end time").rejected());
   }
 

@@ -11,9 +11,10 @@ import com.gledhills.calendar.utils.ShiftTime;
  * be data loss for nothing. They stay exactly as they are.
  *
  * <p>The rule is therefore about <b>editing</b> rather than about storing: a value the director did
- * not touch is kept whatever it says, and a value they did touch has to be a time, stored
- * canonically like a Start Time. A resort's history stays readable while everything typed from now
- * on is machine-readable, which is what the personal-calendar sync needs.
+ * not touch is kept whatever it says, and a value they did touch has to be a time - stored as they
+ * typed it, like a Start Time. {@code 4pm} stays {@code 4pm}. The sync reads it through
+ * {@link ShiftTime#normalize} at the point it needs a machine-readable time, so nothing is lost by
+ * leaving the director's own wording alone.
  *
  * <p>"Did not touch" is decided by comparing with what was on the row, not by trusting a hidden
  * field, so nothing posted can talk the server into keeping a new non-time value.
@@ -35,12 +36,11 @@ record EndTimeEdit(String value, boolean rejected) {
       return new EndTimeEdit("", false);           //clearing it is allowed; End is not required
     }
 
-    String canonical = ShiftTime.normalize(typed);
-    if (canonical == null) {
+    if (!ShiftTime.isTime(typed)) {
       //changed to something that is not a time: keep the old value and let the caller say so
       return new EndTimeEdit(was, true);
     }
-    return new EndTimeEdit(canonical, false);
+    return new EndTimeEdit(typed, false);
   }
 
   /** What both editors tell a director who typed one, worded once. */

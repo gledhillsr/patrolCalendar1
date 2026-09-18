@@ -251,9 +251,26 @@ already migrated and would let a `migrateResort` that did nothing at all pass ev
 **`ShiftTime` is the single answer to "is this a time?"**, used by the migration, by both
 controllers through `StartAndLabel`, and mirrored in `static/js/shiftTime.js` for the browser.
 It accepts what people actually type — `8:00`, `08:00`, `0800`, `800`, `8`, `8am`, `8:00am`,
-`4:00 pm`, `1900`, `4:30P` — and **normalizes everything to `H:MM`**. That is not tidiness: `shiftKey`
-identifies one shift by its start and end strings, so `0800` and `8am` on two rows of the same
-shift would otherwise be two different shifts and nobody would notice a double booking.
+`4:00 pm`, `1900`, `4:30P` — and `normalize` answers in canonical `H:MM`.
+
+**That answer is not what gets stored.** The editors keep a Start or End Time **exactly as the
+director typed it**: `8am` stays `8am`, `4pm` stays `4pm`, and only surrounding space is taken off.
+It is their own shorthand and the calendar shows it straight back to them, so rewriting it to
+`16:00` was tidiness at their expense. The rule is that a value must **read** as a time, not that it
+be written one particular way. `normalize` is still how anything needing a machine-readable time
+gets one — `CalendarFeedService.timeOf` does exactly that at read time.
+
+**What must not be left to the stored text is whether two rows are the same shift.**
+`ShiftTime.shiftKey(start, end)` normalizes both ends before joining them, and that is what the
+duplicate check groups by — otherwise one long shift entered as `8am` on one row and `08:00` on the
+next is two shifts, the "nobody twice on the same shift" check looks in two buckets, and a double
+booking goes unnoticed. A value that is *not* a time keys as itself (trimmed), because unmigrated
+End values like `end time` still have to group with each other.
+
+It is reached through **`Assignments.getShiftKey()` and `ShiftDefinitions.getShiftKey()`** so the
+controllers and the templates cannot drift: `day-shifts.html` renders `data-shift` from the store
+object directly, while `edit-shift-templates.html` gets it via `TemplateSlot.time`. Both are the
+same key. `ShiftTimeTest` pins the grouping, in both directions.
 
 **The match is anchored and whole-string.** `PMExtra` is a real label in Brighton's data; anything
 that searches for "pm" inside the string turns it into noon and loses a label. `ShiftTimeTest` is
@@ -290,6 +307,10 @@ Things worth knowing:
   and day-shifts.html builds both in its `th:with`. Merging them would split one long shift's rows
   into separate shifts whenever their labels differed, and let somebody be booked on both.
   `NoDuplicateOnAShiftTest` asserts no `data-shift` on either page ever contains a bracket.
+- **`ShiftTimeCleanup` still canonicalizes**, and that is now the one thing that will rewrite a
+  director's `8am` to `8:00`. It is opt-in and named "Tidy shift template times", so pressing it is
+  asking for exactly that — but it is worth knowing it undoes the typing the editors now preserve.
+  Templates only; scheduled days go through `cleanScheduledDays`.
 - **A non-time typed into Start moves to the Label** (`StartAndLabel`) rather than being rejected,
   which is the same rule the migration applied to twenty years of them. The browser says so first;
   the server is the backstop for a form posted around it.

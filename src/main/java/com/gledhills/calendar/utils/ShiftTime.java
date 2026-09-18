@@ -14,11 +14,17 @@ import java.util.regex.Pattern;
  * in three places that must agree: the migration that sorts the existing rows, the controllers that
  * validate what a director types, and the tests.
  *
- * <p><b>Everything is normalized to {@code H:MM}</b> - {@code 0800} and {@code 8am} and
- * {@code 8:00} all become {@code 8:00}. That is not tidiness: {@code shiftKey} in both controllers
- * identifies one shift by its start and end strings, so two rows of the same shift typed
- * {@code 8:00} and {@code 0800} would otherwise count as two different shifts and let somebody be
- * booked on both.
+ * <p><b>{@link #normalize} answers in canonical {@code H:MM}</b> - {@code 0800}, {@code 8am} and
+ * {@code 8:00} all come back as {@code 8:00}. <b>That is the answer to "what time is this?", not
+ * an instruction to store it that way.</b> The editors deliberately keep what a director typed, so
+ * a row that says {@code 8am} stays saying {@code 8am}; callers that need a machine-readable time
+ * - the calendar feed, the migrations - normalize as they read.
+ *
+ * <p>Which leaves one thing that must not be left to the stored text: <b>whether two rows are the
+ * same shift</b>. A shift needing more than 10 patrollers is entered as several rows sharing a
+ * start and end, and one of them may say {@code 8am} where another says {@code 08:00}. Keyed on
+ * the text those are two shifts, and somebody can be booked on both. {@link #shiftKey} is what
+ * both editors group by, and it normalizes first for exactly that reason.
  *
  * <p><b>The {@code m} of the meridiem is optional</b>, so {@code 4:30P} reads as 4:30pm. That is
  * not a guess at what somebody meant: {@code 4:30P} was one resort's house style for years, and
@@ -93,6 +99,29 @@ public final class ShiftTime {
   /** Whether this value belongs in the Start/End field rather than in the Label beside it. */
   public static boolean isTime(String raw) {
     return normalize(raw) != null;
+  }
+
+  /**
+   * What makes two rows one shift: the start and the end, each read as a time.
+   *
+   * <p>Stored values are whatever the director typed, so one row of a long shift may say
+   * {@code 8am} and the next {@code 08:00}. Keying on the text would make those two shifts and let
+   * the same person be booked on both, which is the one thing the duplicate check exists to stop.
+   *
+   * <p>A value that is not a time is keyed as itself, trimmed. End Time was never migrated and
+   * still holds things like {@code end time} and {@code 5:30-9} on historical rows; those rows
+   * have to group with each other, and there is nothing else to group them by.
+   */
+  public static String shiftKey(String start, String end) {
+    return forKey(start) + " - " + forKey(end);
+  }
+
+  private static String forKey(String raw) {
+    String canonical = normalize(raw);
+    if (canonical != null) {
+      return canonical;
+    }
+    return raw == null ? "" : raw.trim();
   }
 
   /**

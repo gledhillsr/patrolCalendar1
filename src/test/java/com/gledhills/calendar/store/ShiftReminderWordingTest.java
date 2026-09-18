@@ -29,9 +29,19 @@ class ShiftReminderWordingTest {
 
   @Test
   void aLabelAndBothTimes() {
-    assertEquals(" from Helper 8am to 4:30pm", shift("Helper", "8am", "4:30pm").describeShiftTimes());
+    assertEquals(" from (Helper) 8am to 4:30pm", shift("Helper", "8am", "4:30pm").describeShiftTimes());
   }
 
+  /**
+   * Why the brackets. The labels in real data are words like "can", "dir" and "PMExtra"; run
+   * together with the times, "from can 1830 to 2130" reads as though "can" were part of the time.
+   */
+  @Test
+  void theLabelIsBracketedSoItCannotBeReadAsPartOfTheTime() {
+    assertEquals(" from (can) 1830 to 2130", shift("can", "1830", "2130").describeShiftTimes());
+  }
+
+  /** No label, so no empty brackets to explain away. */
   @Test
   void timesWithNoLabel() {
     assertEquals(" from 8:00 to 16:30", shift("", "8:00", "16:30").describeShiftTimes());
@@ -40,12 +50,12 @@ class ShiftReminderWordingTest {
   /** The reported bug: a label, no times. It must not read "from Helper to ". */
   @Test
   void aLabelAndNoTimesAtAll() {
-    assertEquals(" from Helper", shift("Helper", "", "").describeShiftTimes());
+    assertEquals(" from (Helper)", shift("Helper", "", "").describeShiftTimes());
   }
 
   @Test
   void aLabelAndAStartButNoEnd() {
-    assertEquals(" from Helper 8am", shift("Helper", "8am", "").describeShiftTimes());
+    assertEquals(" from (Helper) 8am", shift("Helper", "8am", "").describeShiftTimes());
   }
 
   /** An end but nothing to start from - "from  to 16:30" would be worse than saying "until". */
@@ -63,13 +73,13 @@ class ShiftReminderWordingTest {
   /** Null times are what an unset column reads back as, and must not reach the email as "null". */
   @Test
   void nullsAreNotTheWordNull() {
-    assertEquals(" from Helper", shift("Helper", null, null).describeShiftTimes());
+    assertEquals(" from (Helper)", shift("Helper", null, null).describeShiftTimes());
     assertEquals("", shift("", null, null).describeShiftTimes());
   }
 
   @Test
   void surroundingSpaceDoesNotDoubleUp() {
-    assertEquals(" from Helper 8am to 4:30pm",
+    assertEquals(" from (Helper) 8am to 4:30pm",
                  shift("  Helper ", " 8am ", " 4:30pm ").describeShiftTimes());
   }
 }

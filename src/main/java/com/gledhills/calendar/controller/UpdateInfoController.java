@@ -1461,7 +1461,7 @@ public class UpdateInfoController {
     }
 
     /**
-     * The "Sync my PatrolCalendar shifts" panel, when this viewer should see one.
+     * The "Automatically sync my PatrolCalendar shifts" panel, when this viewer should see one.
      *
      * <p>Three conditions, all of which have to hold: the resort is cleared for calendar sync, its
      * director has switched it on, and <b>the member is looking at their own record</b>. That last

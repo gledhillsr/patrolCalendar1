@@ -1,5 +1,19 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+<!--
+  Refresher and Training.
+
+  Two parts, and the order matters. The three older links sit at the TOP - the 2021 online
+  refresher, the Smith's donations link and Know Before You Go - because they are what somebody
+  comes back to this page for all season. Below them is the refresher that is actually coming up,
+  which is the thing that changes every year.
+
+  The 2021 refresher link is still built per member (its URL carries their id), so it still tracks
+  who opened it - it is simply no longer presented as their personal link to work through.
+
+  The season's refresher is static prose, like new-features.html: next year's is an edit to this
+  file and nothing else.
+-->
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
@@ -12,13 +26,132 @@
             color: #000000;
             background-color: #ffffff;
         }
+        .page {
+            max-width: 900px;
+            margin: 0 auto 40px auto;
+        }
+        h2.page-title {
+            font-size: 1.5em;
+            color: #003366;
+            margin-bottom: 4px;
+        }
+
+        /* ---- the standing links, at the top ---- */
+        .links {
+            background: #ffffff;
+            border: 2px solid #003366;
+            border-radius: 6px;
+            padding: 12px 18px;
+            margin: 14px 0 26px 0;
+        }
+        .links h3 {
+            font-size: 1.05em;
+            margin: 0 0 10px 0;
+            color: #003366;
+        }
+        .links p {
+            margin: 0 0 12px 0;
+            line-height: 1.5;
+        }
+        .links p:last-child {
+            margin-bottom: 0;
+        }
         .training-link {
             font-size: 10pt;
             color: red;
             font-weight: bold;
         }
-        .warning {
+        .note {
+            color: #555;
+        }
+
+        /* ---- this season's refresher ---- */
+        .refresher {
+            background: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 16px 20px 18px 20px;
+            margin-bottom: 18px;
+        }
+        .refresher h3 {
+            margin: 0 0 4px 0;
+            font-size: 1.25em;
+            color: #003366;
+        }
+        .refresher h4 {
+            margin: 18px 0 6px 0;
+            font-size: 1.02em;
+            color: #003366;
+        }
+        .refresher p {
+            line-height: 1.55;
+            margin: 0 0 10px 0;
+        }
+        .when {
+            background: #eef3f8;
+            border-left: 4px solid #003366;
+            padding: 10px 14px;
+            margin: 0 0 16px 0;
+            line-height: 1.6;
+        }
+        .when .date {
+            font-size: 1.1em;
             font-weight: bold;
+            color: #003366;
+        }
+        .venue {
+            font-style: normal;
+            line-height: 1.5;
+            margin: 0 0 8px 0;
+        }
+        .venue .name {
+            font-weight: bold;
+        }
+        /* Where to leave the car is the one instruction a neighbour complains about, so it is
+           called out rather than buried in the address block. */
+        .parking {
+            background: #fff3cd;
+            border: 1px solid #f0c74a;
+            border-radius: 4px;
+            padding: 8px 12px;
+            color: #856404;
+            margin: 0 0 8px 0;
+        }
+        .bring {
+            margin: 0 0 10px 0;
+            padding-left: 22px;
+            line-height: 1.7;
+        }
+        /* The deadline is the only thing on this page that stops somebody attending, so it is the
+           loudest thing on it. */
+        .deadline {
+            background: #fdecea;
+            border: 2px solid #c0392b;
+            border-radius: 4px;
+            padding: 10px 14px;
+            margin: 4px 0 12px 0;
+            line-height: 1.55;
+        }
+        .deadline .date {
+            font-weight: bold;
+            color: #c0392b;
+        }
+        .attachment {
+            display: inline-block;
+            background: #003366;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 7px 14px;
+            margin: 2px 0 10px 0;
+        }
+        .attachment:link, .attachment:visited {
+            color: #ffffff;
+        }
+        .signoff {
+            margin-top: 20px;
+            line-height: 1.6;
         }
     </style>
 </head>
@@ -26,28 +159,103 @@
     <!-- Header -->
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
-    <h2 th:text="${resortFullName} + ' Ski Patrol - Refresher and Training information'">Refresher and Training</h2>
+    <div class="page">
 
-    <br/><br/>
-    <span th:text="${memberName}">Name</span>, this is <b>your</b> link to the new online refresher:
-    <a class="training-link" th:href="${refresherUrl}" target="_blank">2021 Brighton Ski Patrol Refresher</a>
+        <h2 class="page-title"
+            th:text="${resortFullName} + ' Ski Patrol - Refresher and Training information'">Refresher and Training</h2>
 
-    <br/><br/><br/>
-    <span class="warning">Please do NOT share this link. IT IS NOT PUBLIC INFORMATION.</span>
-    <br/><br/>
-    Also, this link is specific to you, it will be how we track your progress!
+        <!-- ===== The standing links, kept together at the top ===== -->
+        <div class="links">
+            <h3>Older links</h3>
 
-    <br/><br/><br/>
-    Support Brighton Ski Patrol via donations from
-    <a th:href="${@site.hostedContentBase} + '/Brighton/BrightonSmiths_4.20222.pdf'" target="_blank"><b>Smith&lsquo;s Inspiring Donations</b></a> program.
+            <p>
+                OLD online refresher (still contains good information):
+                <a class="training-link" th:href="${refresherUrl}" target="_blank">2021 Brighton Ski Patrol Refresher</a>
+            </p>
 
-    <h3>Ongoing Training</h3>
-    <br/>
-    <a class="training-link" href="https://youtu.be/b2gi3gqgYSg" target="_blank">December 2021 Brighton Ski Patrol Meeting</a>
-    <br/><br/>
-    <a class="training-link" href="https://www.youtube.com/watch?v=xvVSpyec5LM&feature=youtu.be" target="_blank">
-        Know Before You Go avalanche awareness refresher presented by Peter Tucker (27 min), Joey Manship (30 min), and Craig Gordon (55 min)
-    </a>
+            <p>
+                Support Brighton Ski Patrol via donations from
+                <a th:href="${@site.hostedContentBase} + '/Brighton/BrightonSmiths_4.20222.pdf'" target="_blank"><b>Smith&lsquo;s Inspiring Donations</b></a> program.
+            </p>
+
+            <p>
+                <a class="training-link" href="https://www.youtube.com/watch?v=xvVSpyec5LM&feature=youtu.be" target="_blank">
+                    Know Before You Go avalanche awareness refresher presented by Peter Tucker (27 min), Joey Manship (30 min), and Craig Gordon (55 min)
+                </a>
+            </p>
+        </div>
+
+        <!-- ===== This season's refresher ===== -->
+        <div class="refresher">
+            <h3>OEC Refresher &mdash; 2026&ndash;2027 Season</h3>
+            <p class="note">Outdoor Emergency Care General Refresher</p>
+
+            <div class="when">
+                <span class="date">Saturday, October 3, 2026</span><br/>
+                Doors open at <b>7:00 AM</b> &nbsp;&middot;&nbsp; we start at <b>8:00 AM</b>
+                &nbsp;&middot;&nbsp; finished by <b>5:00 PM</b>
+            </div>
+
+            <p>
+                Fruit, yogurt, pastries, water, coffee and tea will be provided in the morning.
+                <b>Bring your own lunch.</b>
+            </p>
+
+            <h4>Where</h4>
+            <p class="venue">
+                <span class="name">Christ United Methodist Church</span><br/>
+                2375 E 3300 S<br/>
+                Salt Lake City, UT 84109
+                <br/>
+                <a href="https://maps.google.com/?q=Christ+United+Methodist+Church,+2375+E+3300+S,+Salt+Lake+City,+UT+84109"
+                   target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
+            </p>
+            <p class="parking">
+                Please <b>do not park</b> in the veterinarian&rsquo;s parking area, just west of the
+                church, or on 3300 South.
+            </p>
+
+            <h4>Bring with you</h4>
+            <ul class="bring">
+                <li>Jacket to use for the shoulder drag skill</li>
+                <li>Stethoscope</li>
+                <li>Blood pressure cuff</li>
+                <li>Watch with second hand</li>
+            </ul>
+
+            <h4>How to enroll</h4>
+            <p>
+                See the attachment below for how to enroll.
+            </p>
+            <p>
+                <a class="attachment" th:href="@{/documents/Refresher_Enroll_Instructions.pdf}"
+                   target="_blank" rel="noopener noreferrer">Refresher Enroll Instructions (PDF)</a>
+            </p>
+            <p>
+                For the <b>Skills Session</b>, click <b>Choose Session</b>, then pick
+                <b>Brighton</b> from the <i>All locations</i> dropdown, and pick the refresher
+                scheduled for <b>October 3, 2026</b>.
+            </p>
+
+            <h4>Online modules &mdash; before you can attend</h4>
+            <div class="deadline">
+                You must complete the Online Modules by
+                <span class="date">Monday, September 28, 2026</span>.
+                Please do not wait until the last minute &mdash; it will take some time.
+                <b>Failure to complete the online modules by September 28 will prevent you from
+                attending the skills on October 3, 2026.</b>
+            </div>
+            <p>
+                You do not need to send the completion certificate.
+            </p>
+
+            <p class="signoff">
+                Thank you,<br/>
+                <b>Kristen and David</b>
+            </p>
+        </div>
+
+    </div>
 
     <!-- Footer -->
     <div th:replace="~{fragments/footer :: footer}"></div>

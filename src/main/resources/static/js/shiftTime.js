@@ -61,16 +61,21 @@ function normalizeShiftTime(raw) {
 }
 
 /**
- * Checked as the director leaves the Start Time box. A recognised time is rewritten in its
- * canonical form there and then, so what will be stored is what they can see.
+ * Checked as the director leaves the Start Time box.
+ *
+ * A recognised time is LEFT AS THEY TYPED IT. It used to be rewritten to 8:00 on the way out of
+ * the box, which is what the server then stored; "8am" and "4pm" are a director's own shorthand
+ * and the calendar shows it back to them, so the tidying was at their expense. Two rows of one
+ * long shift typed "8am" and "08:00" are still one shift - ShiftTime.shiftKey normalizes before
+ * it groups, and the server renders that key into data-shift, so nothing here depends on the
+ * boxes matching each other.
  */
 function checkStartTime(field) {
     var typed = field.value.trim();
     if (typed === '') {
         return true;      //blank is allowed: the slot then shows its Label, or nothing
     }
-    var canonical = normalizeShiftTime(typed);
-    if (canonical === null) {
+    if (normalizeShiftTime(typed) === null) {
         showMessageDialog('"' + typed + '" is not a time.\n\n'
               + 'Start Time takes a time like 8:00, 8am, 16 or 16:30.\n\n'
               + 'If this is a name for the shift - "TL", "dir", "mentee" - put it in the Label box '
@@ -83,7 +88,6 @@ function checkStartTime(field) {
               'That is not a time');
         return false;
     }
-    field.value = canonical;
     return true;
 }
 
@@ -104,8 +108,7 @@ function checkEndTime(field) {
     if (typed === '') {
         return true;      //clearing it is allowed; End Time is not required
     }
-    var canonical = normalizeShiftTime(typed);
-    if (canonical === null) {
+    if (normalizeShiftTime(typed) === null) {
         showMessageDialog('"' + typed + '" is not a time.\n\n'
               + 'End Time takes a time like 8:00, 8am, 16 or 16:30.\n\n'
               + 'Older shifts may still show something else here. Those are left as they are, but '
@@ -118,7 +121,6 @@ function checkEndTime(field) {
               'That is not a time');
         return false;
     }
-    field.value = canonical;
     return true;
 }
 

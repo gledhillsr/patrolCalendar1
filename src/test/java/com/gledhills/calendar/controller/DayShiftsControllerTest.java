@@ -57,7 +57,8 @@ class DayShiftsControllerTest {
    * so two rows of the same shift typed differently still count as one shift in shiftKey.
    */
   private static final String EDITED_START_TIME = "06:15";
-  private static final String EDITED_START_TIME_AS_STORED = "6:15";
+  //stored exactly as typed: the editors no longer rewrite a time into 24 hour canonical form
+  private static final String EDITED_START_TIME_AS_STORED = EDITED_START_TIME;
 
   @Autowired
   private WebApplicationContext webApplicationContext;
@@ -244,11 +245,11 @@ class DayShiftsControllerTest {
     assertTrue(grid.contains("Change Today's Assignments"),
                "we should have landed on the group assignment grid");
     assertTrue(grid.contains(EDITED_START_TIME_AS_STORED),
-               "the grid should show the edited start time, canonically: expected "
+               "the grid should show the edited start time as typed: expected "
                  + EDITED_START_TIME_AS_STORED);
 
     assertEquals(EDITED_START_TIME_AS_STORED, savedStartTimeOnDisk(),
-                 "and the edit should have been written to the database in canonical form");
+                 "and the edit should have been written to the database exactly as typed");
   }
 
   private static final String MEMBER_ID = "200401";

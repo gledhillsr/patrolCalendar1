@@ -221,7 +221,7 @@ public class MemberLoginController {
       if (resetToken == null || !resetToken.isValid()) {
         RESET_RATE_LIMITER.recordAttempt(resort, null, remoteAddress);
         model.addAttribute("errorMessage", "Invalid or expired reset token");
-        return "redirect:/MemberLogin?resort=" + resort;
+        return PostRedirect.view(request, "redirect:/MemberLogin?resort=" + resort);
       }
 
       // 5. Load member and update password
@@ -230,7 +230,7 @@ public class MemberLoginController {
 
       if (member == null) {
         model.addAttribute("errorMessage", "Member not found");
-        return "redirect:/MemberLogin?resort=" + resort;
+        return PostRedirect.view(request, "redirect:/MemberLogin?resort=" + resort);
       }
 
       // 6. Update password in database
@@ -242,8 +242,8 @@ public class MemberLoginController {
       LOG.info("Password reset successful for member " + memberId);
 
       // 8. Redirect to login with success message
-      return "redirect:/MemberLogin?resort=" + resort +
-        "&successMessage=Password reset successful. Please login with your new password.";
+      return PostRedirect.view(request, "redirect:/MemberLogin?resort=" + resort +
+        "&successMessage=Password reset successful. Please login with your new password.");
 
     }
     catch (Exception e) {
@@ -305,7 +305,9 @@ public class MemberLoginController {
 
         String redirectUrl = PatrolData.SERVLET_URL + gotoPage +
           "?resort=" + resort + "&ID=" + id;
-        response.sendRedirect(redirectUrl);
+        //303, not sendRedirect's 302: gotoPage only answers GET, and a client that repeats the
+        //POST - which 302 permits - is shown a 405 just as it thinks it has signed in
+        PostRedirect.sendTo(response, redirectUrl);
         return null; // redirect already sent
 
       }

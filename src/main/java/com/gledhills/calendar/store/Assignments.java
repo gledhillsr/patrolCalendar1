@@ -3,6 +3,7 @@ package com.gledhills.calendar.store;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
 import com.gledhills.calendar.utils.SessionData;
+import com.gledhills.calendar.utils.ShiftTime;
 import com.gledhills.calendar.utils.StaticUtils;
 
 import static com.gledhills.calendar.utils.StaticUtils.sqlEncode;
@@ -200,11 +201,27 @@ public class Assignments {
   }
 
   /**
-   * This shift as it reads in a sentence - " from Helper 8am to 4:30pm" - including the leading
+   * What counts as one shift for the "nobody twice on the same shift" rule: its times, not its row
+   * and never its label. Read {@link ShiftTime#shiftKey} for why it is normalized when the stored
+   * values are not.
+   */
+  public String getShiftKey() {
+    return ShiftTime.shiftKey(szStartTime, szEndTime);
+  }
+
+  /**
+   * This shift as it reads in a sentence - " from (Helper) 8am to 4:30pm" - including the leading
    * space, or "" when there is nothing to say.
    *
    * <p>Unlike the calendar, an email has room for both: the label names the job and the times say
    * when to turn up, so a reminder gives the patroller both rather than choosing.
+   *
+   * <p><b>The label is bracketed</b>, which is what tells the two apart. Run together, "from can
+   * 1830 to 2130" reads as though "can" were part of the time - and the labels people actually
+   * use are words like {@code can}, {@code dir} and {@code PMExtra}, not obviously captions. The
+   * brackets are also how both assign grids already draw it
+   * ({@link ShiftDefinitions#describeLabelAndTimes}), so a reminder reads the way the page the
+   * shift was entered on does.
    *
    * <p>Every part is optional, which is the point. Pasting the three together unconditionally is
    * what produced "from Helper to ." in a real reminder - a label with no times, rendered as
@@ -215,7 +232,10 @@ public class Assignments {
     String start = szStartTime == null ? "" : szStartTime.trim();
     String end = szEndTime == null ? "" : szEndTime.trim();
 
-    String from = (label + " " + start).trim();   //"Helper 8am", or just one of them, or ""
+    if (!label.isEmpty()) {
+      label = "(" + label + ")";
+    }
+    String from = (label + " " + start).trim();   //"(Helper) 8am", or just one of them, or ""
 
     if (from.isEmpty() && end.isEmpty()) {
       return "";

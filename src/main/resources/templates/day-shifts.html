@@ -493,7 +493,7 @@
                                                     <tr th:with="id=${assignment.getPosID(j)},
                                                                  cleanId=${id.charAt(0) == '-' ? id.substring(1) : id},
                                                                  name=${numToName.get(cleanId)},
-                                                                 time=${assignment.getStartingTimeString() + ' - ' + assignment.getEndingTimeString()},
+                                                                 time=${assignment.getShiftKey()},
                                                                  displayTime=${assignment.describeLabelAndTimes()},
                                                                  fieldName=${'name' + T(com.gledhills.calendar.utils.PatrolData).IndexToString(iStat.index) + '_' + T(com.gledhills.calendar.utils.PatrolData).IndexToString(j)}">
                                                         <td width="20%" bgcolor="#C0C0C0">

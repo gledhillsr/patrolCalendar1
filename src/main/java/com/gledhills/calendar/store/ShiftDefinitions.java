@@ -2,6 +2,7 @@ package com.gledhills.calendar.store;
 
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
+import com.gledhills.calendar.utils.ShiftTime;
 
 import com.gledhills.calendar.utils.SqlWriter;
 
@@ -245,6 +246,15 @@ public class ShiftDefinitions {
 
   public int getType() {
     return type;
+  }
+
+  /**
+   * What counts as one shift for the "nobody twice on the same shift" rule: its times, not its row
+   * and never its label. Read {@link ShiftTime#shiftKey} for why it is normalized when the stored
+   * values are not.
+   */
+  public String getShiftKey() {
+    return ShiftTime.shiftKey(getStartString(), getEndString());
   }
 
   public String getUpdateShiftDefinitionsQueryString(String resort) {

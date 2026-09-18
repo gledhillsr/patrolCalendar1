@@ -652,7 +652,7 @@ public class DayShiftsController {
     }
 
     private String shiftKey(Assignments assignment) {
-        return assignment.getStartingTimeString() + " - " + assignment.getEndingTimeString();
+        return assignment.getShiftKey();
     }
 
     private void processDeleteAllShifts(PatrolData patrolData, ArrayList<Assignments> assignments) {

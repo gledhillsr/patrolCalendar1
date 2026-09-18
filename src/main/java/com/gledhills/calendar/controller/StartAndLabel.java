@@ -12,9 +12,12 @@ import com.gledhills.calendar.utils.ShiftTime;
  * <p>The rule:
  *
  * <ul>
- *   <li>a Start that is a time is stored canonically - {@code 0800}, {@code 8am} and {@code 8:00}
- *       become one string, which is what lets {@code shiftKey} see two rows of a long shift as one
- *       shift</li>
+ *   <li>a Start that is a time is stored <b>exactly as it was typed</b> - {@code 8am} stays
+ *       {@code 8am} and {@code 4pm} stays {@code 4pm}. It is a director's own shorthand and the
+ *       calendar shows it back to them; rewriting it to {@code 16:00} was tidiness at their
+ *       expense. Two rows of a long shift typed {@code 8am} and {@code 08:00} are still one shift,
+ *       because {@link com.gledhills.calendar.utils.ShiftTime#shiftKey} normalizes before it
+ *       groups rather than relying on the stored text</li>
  *   <li>a Start that is <b>not</b> a time was a label typed into the wrong box. It moves to the
  *       Label when the Label is empty, exactly as the migration treated twenty years of them, and
  *       the Start is left blank so the column holds only real times</li>
@@ -53,9 +56,9 @@ record StartAndLabel(String start, String label) {
       return new StartAndLabel("", label);
     }
 
-    String canonical = ShiftTime.normalize(start);
-    if (canonical != null) {
-      return new StartAndLabel(canonical, label);
+    if (ShiftTime.isTime(start)) {
+      //kept as typed: normalize decides whether it IS a time, it does not decide how it is written
+      return new StartAndLabel(start, label);
     }
 
     if (label.isEmpty()) {

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -150,6 +151,42 @@ class ShiftTimeTest {
    * <p>Textual rather than behavioural: running the JavaScript would need an engine in the build,
    * and the sub-pattern is the whole of what differs between the two files.
    */
+  /**
+   * The guarantee that lets the editors keep what a director typed.
+   *
+   * <p>A shift needing more than 10 patrollers is entered as several rows sharing a start and an
+   * end, and one row may say {@code 8am} where the next says {@code 08:00}. If those key
+   * differently they are two shifts, and the "nobody twice on the same shift" check - the only
+   * thing stopping a double booking - looks at two separate buckets and sees no duplicate.
+   */
+  @Test
+  void rowsOfOneShiftKeyTheSameHoweverTheTimesWereTyped() {
+    String canonical = ShiftTime.shiftKey("8:00", "16:30");
+
+    assertEquals(canonical, ShiftTime.shiftKey("8am", "4:30pm"));
+    assertEquals(canonical, ShiftTime.shiftKey("0800", "1630"));
+    assertEquals(canonical, ShiftTime.shiftKey(" 08:00 ", " 4:30 PM "));
+  }
+
+  /** The other half: two genuinely different shifts must not collapse into one bucket. */
+  @Test
+  void differentShiftsKeyDifferently() {
+    assertNotEquals(ShiftTime.shiftKey("8am", "4pm"), ShiftTime.shiftKey("8am", "5pm"));
+    assertNotEquals(ShiftTime.shiftKey("8am", "4pm"), ShiftTime.shiftKey("9am", "4pm"));
+  }
+
+  /**
+   * End Time was never migrated, so historical rows hold things that are not times at all. They
+   * still have to group with each other - there is nothing else to group them by - so a non-time
+   * keys as itself rather than as blank, which would have merged every such row into one shift.
+   */
+  @Test
+  void aValueThatIsNotATimeKeysAsItself() {
+    assertEquals(ShiftTime.shiftKey("8am", "end time"), ShiftTime.shiftKey("08:00", " end time "));
+    assertNotEquals(ShiftTime.shiftKey("8am", "end time"), ShiftTime.shiftKey("8am", "5:30-9"));
+    assertNotEquals(ShiftTime.shiftKey("8am", "end time"), ShiftTime.shiftKey("8am", ""));
+  }
+
   @Test
   void theBrowserCopyCarriesTheSameMeridiemRule() throws Exception {
     String server = java.nio.file.Files.readString(
