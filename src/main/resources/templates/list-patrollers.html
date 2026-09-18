@@ -116,7 +116,21 @@
             <th th:if="${showHolidayList}">Holiday Shift Details</th>
         </tr>
 
-        <tr th:each="member : ${members}">
+        <!--
+          The shift counters are indexed by Assignments' own shift-type constants rather than by
+          literal numbers. They used to be literals, and they were rotated by one: Day read slot 1,
+          Swing read slot 2 and Night read slot 0 - so every day shift a member worked was counted
+          into the Night Shifts column, which is what most shifts are. RosterQueryService fills the
+          array by the constants, and RosterExcelExporter reads it by them, so the page was the only
+          thing disagreeing and the .xlsx of the same query had the numbers in the right columns.
+        -->
+        <tr th:each="member : ${members}"
+            th:with="DAY=${T(com.gledhills.calendar.store.Assignments).DAY_TYPE},
+                     SWING=${T(com.gledhills.calendar.store.Assignments).SWING_TYPE},
+                     NIGHT=${T(com.gledhills.calendar.store.Assignments).NIGHT_TYPE},
+                     TRAINING=${T(com.gledhills.calendar.store.Assignments).TRAINING_TYPE},
+                     OTHER=${T(com.gledhills.calendar.store.Assignments).OTHER_TYPE},
+                     HOLIDAY=${T(com.gledhills.calendar.store.Assignments).HOLIDAY_TYPE}">
             <td th:text="${firstNameFirst ? member.getFullName() : member.getFullName_lastNameFirst()}">Name</td>
             <td th:if="${showBlank}">&nbsp;</td>
             <td th:if="${showBlankWide}">&nbsp;&nbsp;&nbsp;</td>
@@ -149,18 +163,18 @@
             <td th:if="${showTeamLead}" th:text="${member.isTeamLead() ? 'Yes' : 'No'}">Team Lead</td>
             <td th:if="${showMentoring}" th:text="${member.isMentoring() ? 'Yes' : 'No'}">Mentoring</td>
 
-            <td th:if="${showDayCnt}" th:text="${member.AssignmentCount[1]}">0</td>
-            <td th:if="${showDayList}" th:text="${#strings.replace(member.szAssignments[1], '&amp;nbsp;', '')}">Details</td>
-            <td th:if="${showSwingCnt}" th:text="${member.AssignmentCount[2]}">0</td>
-            <td th:if="${showSwingList}" th:text="${#strings.replace(member.szAssignments[2], '&amp;nbsp;', '')}">Details</td>
-            <td th:if="${showNightCnt}" th:text="${member.AssignmentCount[0]}">0</td>
-            <td th:if="${showNightList}" th:text="${#strings.replace(member.szAssignments[0], '&amp;nbsp;', '')}">Details</td>
-            <td th:if="${showTrainingCnt}" th:text="${member.AssignmentCount[3]}">0</td>
-            <td th:if="${showTrainingList}" th:text="${#strings.replace(member.szAssignments[3], '&amp;nbsp;', '')}">Details</td>
-            <td th:if="${showOtherCnt}" th:text="${member.AssignmentCount[4]}">0</td>
-            <td th:if="${showOtherList}" th:text="${#strings.replace(member.szAssignments[4], '&amp;nbsp;', '')}">Details</td>
-            <td th:if="${showHolidayCnt}" th:text="${member.AssignmentCount[5]}">0</td>
-            <td th:if="${showHolidayList}" th:text="${#strings.replace(member.szAssignments[5], '&amp;nbsp;', '')}">Details</td>
+            <td th:if="${showDayCnt}" th:text="${member.AssignmentCount[DAY]}">0</td>
+            <td th:if="${showDayList}" th:text="${#strings.replace(member.szAssignments[DAY], '&amp;nbsp;', '')}">Details</td>
+            <td th:if="${showSwingCnt}" th:text="${member.AssignmentCount[SWING]}">0</td>
+            <td th:if="${showSwingList}" th:text="${#strings.replace(member.szAssignments[SWING], '&amp;nbsp;', '')}">Details</td>
+            <td th:if="${showNightCnt}" th:text="${member.AssignmentCount[NIGHT]}">0</td>
+            <td th:if="${showNightList}" th:text="${#strings.replace(member.szAssignments[NIGHT], '&amp;nbsp;', '')}">Details</td>
+            <td th:if="${showTrainingCnt}" th:text="${member.AssignmentCount[TRAINING]}">0</td>
+            <td th:if="${showTrainingList}" th:text="${#strings.replace(member.szAssignments[TRAINING], '&amp;nbsp;', '')}">Details</td>
+            <td th:if="${showOtherCnt}" th:text="${member.AssignmentCount[OTHER]}">0</td>
+            <td th:if="${showOtherList}" th:text="${#strings.replace(member.szAssignments[OTHER], '&amp;nbsp;', '')}">Details</td>
+            <td th:if="${showHolidayCnt}" th:text="${member.AssignmentCount[HOLIDAY]}">0</td>
+            <td th:if="${showHolidayList}" th:text="${#strings.replace(member.szAssignments[HOLIDAY], '&amp;nbsp;', '')}">Details</td>
         </tr>
 
     </table>
