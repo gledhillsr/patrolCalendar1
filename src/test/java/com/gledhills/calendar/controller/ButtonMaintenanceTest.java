@@ -232,7 +232,8 @@ class ButtonMaintenanceTest {
 
         save("text_1", exactly, "url_1", "https://example.com");
 
-        assertEquals(exactly, readStored().get(0).getText(), "20 characters is fine");
+        assertEquals(exactly, readStored().get(0).getText(),
+                     MenuButton.MAX_TEXT_LENGTH + " characters is fine");
     }
 
     @Test

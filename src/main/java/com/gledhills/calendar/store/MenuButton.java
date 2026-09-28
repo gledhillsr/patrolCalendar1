@@ -37,9 +37,13 @@ public class MenuButton {
 
   /**
    * How long a button's label may be. The column holds 40, but a menu bar has finite room and a
-   * long label wraps the whole row - 20 is about what fits beside the built-in items.
+   * long label wraps the whole row - 24 is about what fits beside the built-in items.
+   *
+   * <p>The browser's {@code maxlength} and the "limited to N characters" the save answers with are
+   * both read from here, so this is the only place to change it. Anything up to 40 needs no
+   * database work; past that the {@code ButtonText} column has to grow first, in every resort.
    */
-  public static final int MAX_TEXT_LENGTH = 20;
+  public static final int MAX_TEXT_LENGTH = 24;
 
   private static final String TABLE = "menubuttons";
 

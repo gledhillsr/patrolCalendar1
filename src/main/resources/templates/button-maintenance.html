@@ -180,7 +180,10 @@
                 <tr th:each="button : ${buttons}">
                     <td class="slot" th:text="${button.position}">1</td>
                     <td class="text-col">
-                        <input type="text" maxlength="20"
+                        <!-- from MenuButton.MAX_TEXT_LENGTH, so the box and the server's own
+                             check cannot end up disagreeing about the limit -->
+                        <input type="text"
+                               th:maxlength="${T(com.gledhills.calendar.store.MenuButton).MAX_TEXT_LENGTH}"
                                th:name="'text_' + ${button.position}"
                                th:value="${button.text}"
                                th:oninput="'autoEnable(' + ${button.position} + ')'"/>
