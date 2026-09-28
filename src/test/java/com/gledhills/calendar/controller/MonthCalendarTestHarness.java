@@ -38,6 +38,18 @@ final class MonthCalendarTestHarness {
   /** November 2024 is the one month in the Sample data with a missed shift and a replacement flag. */
   static final int RICH_DATA_YEAR = 2024;
 
+  /**
+   * A month that is both <b>still in the future</b> and in season, for the tests about what a
+   * member may still sign up for. It has to be both: a past month is frozen for members now, and
+   * an out-of-season month draws no slots at all, so either would make "the link is there" fail
+   * for the wrong reason.
+   *
+   * <p>Ages like BASE_YEAR does - MonthCalendarGoldenTest.goldenYearsAreStillInsideTheAllowedWindow
+   * checks this one is still in the future and says so when it is not.
+   */
+  static final int FUTURE_MONTH = 0;          //January
+  static final int FUTURE_YEAR = BASE_YEAR + 1;
+
   private MonthCalendarTestHarness() {
   }
 

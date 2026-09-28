@@ -19,6 +19,8 @@ import java.util.regex.Pattern;
 
 import static com.gledhills.calendar.controller.MonthCalendarTestHarness.BASE_YEAR;
 import static com.gledhills.calendar.controller.MonthCalendarTestHarness.DIRECTOR_ID;
+import static com.gledhills.calendar.controller.MonthCalendarTestHarness.FUTURE_MONTH;
+import static com.gledhills.calendar.controller.MonthCalendarTestHarness.FUTURE_YEAR;
 import static com.gledhills.calendar.controller.MonthCalendarTestHarness.LEAP_YEAR;
 import static com.gledhills.calendar.controller.MonthCalendarTestHarness.MEMBER_ID;
 import static com.gledhills.calendar.controller.MonthCalendarTestHarness.calendarRequest;
@@ -105,10 +107,38 @@ class MonthCalendarRenderTest {
   /** Members still reach the shift signup screen; only the date link is director-only. */
   @Test
   void membersKeepTheirShiftSignupLinks() throws Exception {
-    String memberPage = render(mockMvc, 0, BASE_YEAR, MEMBER_ID);
+    String memberPage = render(mockMvc, FUTURE_MONTH, FUTURE_YEAR, MEMBER_ID);
 
     assertTrue(countOf(memberPage, "ChangeShiftAssignments?") > 0,
-               "a member must still be able to sign up for a shift");
+               "a member must still be able to sign up for a shift on a day still to come");
+  }
+
+  /**
+   * A day that has already happened is nobody's to change but a director's.
+   *
+   * <p>Signing yourself into a shift that finished last March, or taking your name off one you had
+   * already worked, rewrites the record a director has been reading. The freeze used to apply at
+   * KellyCanyon and Brighton alone - a hard-coded pair carried over from the servlet - and now
+   * applies everywhere.
+   */
+  @Test
+  void aMemberCannotChangeAMonthThatHasPassed() throws Exception {
+    String memberPage = render(mockMvc, 0, BASE_YEAR, MEMBER_ID);
+
+    assertEquals(0, countOf(memberPage, "ChangeShiftAssignments?"),
+                 "a member should get no signup links at all on a month in the past");
+  }
+
+  /**
+   * The other half, and the reason directors are the exception: a shift somebody actually worked
+   * sometimes has to be corrected after the fact.
+   */
+  @Test
+  void aDirectorCanStillChangeAMonthThatHasPassed() throws Exception {
+    String directorPage = render(mockMvc, 0, BASE_YEAR, DIRECTOR_ID);
+
+    assertTrue(countOf(directorPage, "ChangeShiftAssignments?") > 0,
+               "a director must still be able to fix a past shift");
   }
 
   @Test

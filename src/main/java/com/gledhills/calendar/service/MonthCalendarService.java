@@ -9,6 +9,7 @@ import com.gledhills.calendar.store.ShiftDefinitions;
 import com.gledhills.calendar.utils.EventNameSanitizer;
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
+import com.gledhills.calendar.utils.ResortTimeZones;
 import com.gledhills.calendar.utils.StaticUtils;
 import org.springframework.stereotype.Service;
 
@@ -51,7 +52,14 @@ public class MonthCalendarService {
                              int textLen, String patrollerId, String backDoorUser,
                              PatrolData patrolData, Logger LOG) {
 
-    GregorianCalendar today = new GregorianCalendar(TimeZone.getDefault());
+    DirectorSettings directorSettings = patrolData.readDirectorSettings();
+
+    //"Today" is taken in the RESORT's zone, not the server's. It decides which days are in the
+    //past and therefore frozen for members, so a resort three hours behind must not have tonight's
+    //shift treated as past because the server's clock has already rolled over. Same rule as
+    //ShiftTimeCleanup.cleanScheduledDays.
+    GregorianCalendar today = new GregorianCalendar(
+      TimeZone.getTimeZone(ResortTimeZones.inForce(resort, directorSettings)));
     int realMonth = today.get(Calendar.MONTH);
     int realYear = today.get(Calendar.YEAR);
 
@@ -61,8 +69,6 @@ public class MonthCalendarService {
       month = Integer.parseInt(requestedMonth);
       year = Integer.parseInt(requestedYear);
     }
-
-    DirectorSettings directorSettings = patrolData.readDirectorSettings();
     Hashtable<Integer, String> names = new Hashtable<>(Roster.MAX_MEMBERS);
     boolean isDirector = readRoster(patrolData, patrollerId, backDoorUser, names);
 
@@ -435,7 +441,24 @@ public class MonthCalendarService {
 
   /**
    * Who may change an assignment: directors always, everyone else only when the resort allows
-   * member changes. KellyCanyon and Brighton additionally freeze days in the past.
+   * member changes and <b>the day has not already happened</b>.
+   *
+   * <p>A day in the past is frozen for members at every resort. It used to be frozen at two -
+   * the servlet this was migrated from hard-coded {@code KellyCanyon} and {@code Brighton}, with
+   * its author's own note beside it reading "this part is a hack. put info in directors page" and
+   * "todo fix this crap" - and the migration carried the hack across faithfully. Everywhere else,
+   * a member could sign themselves into a shift that finished last March, or take their name off
+   * one they had already worked, and the roster's history would quietly change underneath the
+   * director who had been reading it.
+   *
+   * <p>Today itself stays editable: the comparison is {@code day >= realDate}, so somebody can
+   * still pick up or drop tonight's shift. "Today" is the resort's own date - see build().
+   *
+   * <p>This covers empty slots as much as filled ones, because both slot paths ask this one
+   * question: a member cannot add themselves to a vacancy on a day that has gone either.
+   *
+   * <p>Directors are unaffected and can still fix the past, which is the point of them being the
+   * exception - a shift somebody actually worked sometimes has to be corrected afterwards.
    */
   private boolean mayEdit(String resort, DirectorSettings directorSettings, boolean isDirector,
                           int month, int year, int day, int realMonth, int realYear, int realDate) {
@@ -444,9 +467,6 @@ public class MonthCalendarService {
     }
     if (directorSettings.getDirectorsOnlyChange()) {
       return false;
-    }
-    if (!resort.equals("KellyCanyon") && !resort.equals("Brighton")) {
-      return true;
     }
     if (year != realYear) {
       return year > realYear;

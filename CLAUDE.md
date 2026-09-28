@@ -111,6 +111,20 @@ markup: which days are closed (season, blackout, the "patroller id 1" closed fla
 date links to DayShifts (directors only), whether a slot links to signup, and the dense
 two-column weekend layout (`textLen` override, Brighton, or more than 12 slots on a day).
 
+**A day that has already happened is frozen for members.** `mayEdit` gives directors everything,
+refuses everyone when `directorsOnlyChange` is set, and otherwise allows only today and later —
+`day >= realDate`, so tonight's shift can still be picked up or dropped. It covers **empty slots as
+much as filled ones**, because both slot paths (`templateSlots` and `savedSlots`) ask the same
+question: a member cannot add themselves to a vacancy on a day that has gone either. This used to
+apply at `KellyCanyon` and `Brighton` alone — a hard-coded pair the servlet carried, with its
+author's own `//todo fix this crap` beside it — so at the other 42 resorts a member could sign into
+a shift that finished last March and change a record the director had been reading.
+
+**"Today" is the resort's own date**, via `ResortTimeZones.inForce`, not the server's — the same
+rule `ShiftTimeCleanup.cleanScheduledDays` follows, and it matters here for the same reason: a
+resort three hours behind must not have tonight's shift treated as past because the box has rolled
+over. That is why `readDirectorSettings()` happens before the clock is read.
+
 **Day comments are sanitized, not escaped.** The Event Name/Comment field deliberately accepts
 basic HTML, and the calendar renders it with `th:utext`, so `MonthCalendarService` runs it through
 `EventNameSanitizer` first. It escapes everything, then restores:

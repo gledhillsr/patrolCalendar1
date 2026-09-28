@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 
 import static com.gledhills.calendar.controller.MonthCalendarTestHarness.BASE_YEAR;
+import static com.gledhills.calendar.controller.MonthCalendarTestHarness.FUTURE_MONTH;
+import static com.gledhills.calendar.controller.MonthCalendarTestHarness.FUTURE_YEAR;
 import static com.gledhills.calendar.controller.MonthCalendarTestHarness.Case;
 import static com.gledhills.calendar.controller.MonthCalendarTestHarness.LEAP_YEAR;
 import static com.gledhills.calendar.controller.MonthCalendarTestHarness.RICH_DATA_YEAR;
@@ -130,12 +132,23 @@ class MonthCalendarGoldenTest {
   void goldenYearsAreStillInsideTheAllowedWindow() {
     int currentYear = new GregorianCalendar().get(Calendar.YEAR);
 
-    for (int year : List.of(BASE_YEAR, LEAP_YEAR, RICH_DATA_YEAR)) {
+    for (int year : List.of(BASE_YEAR, LEAP_YEAR, RICH_DATA_YEAR, FUTURE_YEAR)) {
       assertTrue(year >= currentYear - 2 && year <= currentYear + 1,
                  "golden year " + year + " has aged out of MonthCalendar's accepted range ("
                    + (currentYear - 2) + ".." + (currentYear + 1) + "). Pick fresh months in "
                    + "MonthCalendarTestHarness and re-record with -Dgolden.update=true");
     }
+
+    //FUTURE_MONTH/FUTURE_YEAR carries the "a member may still sign up" tests, and a past month
+    //is now frozen for members - so the day it stops being in the future those tests start
+    //failing for a reason that has nothing to do with what they are checking.
+    GregorianCalendar now = new GregorianCalendar();
+    boolean stillAhead = FUTURE_YEAR > now.get(Calendar.YEAR)
+                           || (FUTURE_YEAR == now.get(Calendar.YEAR)
+                                 && FUTURE_MONTH > now.get(Calendar.MONTH));
+    assertTrue(stillAhead,
+               "FUTURE_MONTH/FUTURE_YEAR in MonthCalendarTestHarness is no longer in the future, "
+                 + "so the member-signup tests are now asking about a frozen month. Move it on.");
   }
 
   @Test
