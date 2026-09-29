@@ -133,6 +133,7 @@
 
             <h3 class="contents-group">Available to everyone</h3>
             <ol>
+                    <li><a href="#calendar-sync">Your shifts in your own calendar &mdash; Google, Apple or Outlook</a></li>
                     <li><a href="#patrolcalendar">The site now answers at <span th:text="${@site.patrolCalendarDisplay}">the new domain</span></a></li>
                     <li><a href="#password-reset">Members can reset their own password</a></li>
                     <li><a href="#attachments">You can now add an attachment to emails</a></li>
@@ -144,6 +145,9 @@
 
             <h3 class="contents-group">Available to directors</h3>
             <ol>
+                    <li><a href="#turn-on-calendar-sync">Turn on calendar sync for your patrol</a></li>
+                    <li><a href="#typed-times">Shift times stay in the format you type them</a></li>
+                    <li><a href="#classification-names">Patroller classifications have new names</a></li>
                     <li><a href="#snowboard-instructor">Snowboard Instructor is now an instructor qualification</a></li>
                     <li><a href="#import-roster">Import a roster downloaded from nsp.org</a></li>
                     <li><a href="#shift-labels">Enhance Shift Templates to use labels, real start time, and end times</a></li>
@@ -167,6 +171,35 @@
 
         <h2 class="category">Available to everyone</h2>
         <p class="category-note">Every patroller sees these, whether or not they hold a director role.</p>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="calendar-sync">Your shifts in your own calendar &mdash; Google, Apple or Outlook</h3>
+            <div class="where">
+                <b>Where:</b> <i>My Info</i> &rarr; <i>Automatically sync my PatrolCalendar shifts
+                to my personal calendar</i>
+            </div>
+            <p>
+                The shifts you are signed up for can appear in the calendar you already carry
+                around, and <b>keep themselves up to date</b>. Sign up for a shift here and it turns
+                up on your phone; give one away and it disappears again. You do not have to
+                remember to check.
+            </p>
+            <p>
+                <b>You set it up once.</b> Press <i>Create my calendar link</i>, copy the link it
+                gives you, and paste it into your calendar &mdash; the page walks you through Google,
+                Apple on an iPhone or iPad, Apple on a Mac, and Outlook, one short list of steps
+                each. After that there is nothing to do.
+            </p>
+            <p>
+                <b>The link is yours alone</b> and shows only your own shifts, so do not pass it on.
+                It is on your own <i>My Info</i> page and nobody else can see it.
+            </p>
+            <p>
+                Not seeing the panel? Your patrol has not switched it on yet &mdash; ask a director,
+                who will find it on <i>Web Site Preferences</i>.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
         <!-- ================================================================= -->
         <div class="feature">
             <h3 id="patrolcalendar">The site now answers at
@@ -284,6 +317,89 @@
         <p class="category-note">These need a director login. Members never see them.</p>
         <!-- ================================================================= -->
         <div class="feature">
+            <h3 id="turn-on-calendar-sync">Turn on calendar sync for your patrol</h3>
+            <div class="where">
+                <b>Where:</b> Directors &rarr; <i>Web Site Preferences</i> &rarr;
+                <i>Enable PatrolCalendar sync to personal calendars</i>
+            </div>
+            <p>
+                This is the switch that gives your patrollers the personal calendar feed described
+                above. It is <b>off until you turn it on</b>, and it is now available to every
+                patrol rather than only the one that tested it. Nothing is sent anywhere until you
+                tick <i>Enabled</i>.
+            </p>
+            <p>
+                <b>Set your time zone first</b>, in the same box. A shift that says 8:00 means
+                nothing in somebody&rsquo;s calendar without it, and an hour out is worse than not
+                syncing at all.
+            </p>
+            <p>
+                <b>A shift with no readable start and end time cannot be synced</b> and is simply
+                left out of the feed &mdash; the rest of its day is unaffected and the site still
+                shows it exactly as it does now. The same box tells you how many of your shift
+                template rows are ready and how many are not, and links to the list of the ones that
+                need a look.
+            </p>
+            <p>
+                Two buttons there do the tidying for you: one for your <b>shift templates</b> and
+                one for <b>this season&rsquo;s scheduled days</b>, from today forward. Both put
+                times into one standard form, leave anything they cannot read alone, and are safe to
+                press more than once. Days that have already happened are never touched.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="typed-times">Shift times stay in the format you type them</h3>
+            <div class="where">
+                <b>Where:</b> <i>Edit Shift Templates</i>, and the shift rows on a day
+            </div>
+            <p>
+                Type <b>8am</b> and it stays <b>8am</b>. Type <b>4pm</b>, <b>0800</b> or
+                <b>16:30</b> and that is what your calendar shows. The times used to be rewritten
+                into 24 hour form the moment you left the box, which was tidy for the computer and
+                nobody else &mdash; your own shorthand is what your patrollers read.
+            </p>
+            <p>
+                The rule is only that a start or end time has to <b>be</b> a time, so it can be read
+                for the calendar feed. How it is written is up to you.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="classification-names">Patroller classifications have new names</h3>
+            <div class="where">
+                <b>Where:</b> <i>My Info</i>, <i>List Patrollers</i>, and the Patrollers tab
+            </div>
+            <p>
+                The classifications now use the words the patrol uses, matching what nsp.org calls
+                them:
+            </p>
+            <ul class="bring" style="margin:0 0 10px 22px;">
+                <li>Basic is now <b>Alpine</b></li>
+                <li>Senior is now <b>Senior Alpine</b></li>
+                <li>Senior Auxiliary is now <b>Senior Patroller</b></li>
+                <li>Auxiliary is now <b>Patroller</b></li>
+                <li>Pro is now <b>Paid</b></li>
+            </ul>
+            <p>
+                Alumni, Transfer, Candidate and Other are unchanged, and <b>Not Skiing</b> has been
+                added for a member who is on the roster but sitting the season out.
+            </p>
+            <p>
+                <b>Nobody&rsquo;s record changed</b> &mdash; only what it is called on screen. The
+                patroller lists and the Excel download now spell the classification out instead of
+                showing the three letter code, so a list reads <i>Senior Alpine</i> rather than
+                <i>SR</i>.
+            </p>
+            <p class="back-to-top"><a href="#top">&uarr; back to contents</a></p>
+        </div>
+
+        <!-- ================================================================= -->
+        <div class="feature">
             <h3 id="snowboard-instructor">Snowboard Instructor is now an instructor qualification</h3>
             <div class="where">
                 <b>Where:</b> a patroller&rsquo;s <i>My Info</i> page, and
@@ -327,9 +443,13 @@
                 survives. Running the same file twice adds nobody twice.
             </p>
             <p>
-                Each new patroller arrives as <b>Alpine</b> classification, <b>Full Time</b>
-                commitment and not a director, with their name, email and cell number from the
-                file. Change any of that afterwards on their My Info page.
+                <b>Their classification comes across with them.</b> nsp.org names its classes in the
+                same words this site now uses, so an Alpine patroller in the file arrives as Alpine,
+                a Senior Patroller as Senior Patroller, and so on. A class this site has no name for
+                is brought in as <b>Other</b> and shown in italics on the preview, so you can see
+                which rows to look at. Everyone arrives <b>Full Time</b> and not a director, with
+                their name, email and cell number from the file. Change any of that afterwards on
+                their My Info page.
             </p>
             <p>
                 <b>Each new patroller&rsquo;s password is set to their last name</b>, so tell them
@@ -582,11 +702,6 @@
             <h3 id="coming-soon">Coming soon</h3>
             <p>Not built yet, but this is the direction:</p>
             <ul>
-                <li><b>Sync shifts to a personal calendar</b> (Apple, Google, Outlook). A patroller
-                    would see their shifts appear in their own calendar automatically. This is why
-                    shifts now need a real start and end time &mdash; please fill those in on your
-                    templates before your patrollers start signing up, so every day of the season is
-                    built correctly from the start.</li>
                 <li><b>Text-message reminders and urgent notices</b> &mdash; the reason phone numbers
                     now have a standard format.</li>
             </ul>
