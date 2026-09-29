@@ -255,7 +255,69 @@ class DayShiftsControllerTest {
   private static final String MEMBER_ID = "200401";
 
   /** A POST echoing every shift row back exactly as rendered, with no action button set. */
+  /**
+   * Reducing a row's Patroller Count keeps everybody who still fits, by closing the gaps.
+   *
+   * <p>Slots are a grid rather than a queue - three patrollers can sit in slots 1, 3 and 5 - so
+   * going from five slots to three used to leave the one in slot 5 stored but no longer drawn:
+   * off the calendar, out of every count, and still on the row. This is the whole path, through
+   * the controller and back out of the database.
+   */
+  @Test
+  void reducingAShiftsCountMovesPatrollersDownIntoTheSlotsThatRemain() throws Exception {
+    String page = editPage();
+    int shiftCount = hiddenInt(page, "shiftCount");
+    saveRowsAsTyped(page, shiftCount);
+
+    //five slots on row 0, with people in the 1st, 3rd and 5th
+    withPatrolData(patrolData -> {
+      Assignments row = scratchRows(patrolData).get(0);
+      row.setCount(5);
+      row.insertAt("Sample", 0, MEMBER_ID);
+      row.insertAt("Sample", 2, DIRECTOR_ID);
+      row.insertAt("Sample", 4, "200402");
+      row.setExisted(true);
+      patrolData.writeAssignment(row);
+    });
+
+    mockMvc.perform(rowRequest(editPage(), shiftCount, java.util.Map.of("count_0", "3"))
+                      .param("saveShiftBtn", "Save Shift Changes"))
+      .andExpect(status().is3xxRedirection());
+
+    withPatrolData(patrolData -> {
+      Assignments row = scratchRows(patrolData).get(0);
+      assertEquals(3, row.getCount());
+      assertEquals(MEMBER_ID, row.getPosID(0));
+      assertEquals(DIRECTOR_ID, row.getPosID(1), "the one in slot 3 moves up, it is not lost");
+      assertEquals("200402", row.getPosID(2), "and so does the one in slot 5");
+      for (int slot = 3; slot < Assignments.MAX_ASSIGNMENT_SIZE; slot++) {
+        assertEquals("0", row.getPosID(slot), "slot " + slot + " past the count must be emptied");
+      }
+    });
+  }
+
+  /** What the browser needs to decide whether to warn: how many are really on each row. */
+  @Test
+  void theCountDropdownCarriesHowManyPatrollersAreOnTheRow() throws Exception {
+    String page = editPage();
+    saveRowsAsTyped(page, hiddenInt(page, "shiftCount"));
+    assignPatrollerToFirstSlotOfRow(0);
+
+    assertTrue(editPage().contains("data-filled=\"1\""),
+               "the count dropdown should say how many patrollers the row holds");
+  }
+
   private MockHttpServletRequestBuilder rowRequest(String page, int shiftCount) {
+    return rowRequest(page, shiftCount, java.util.Map.of());
+  }
+
+  /**
+   * @param overrides field name to value, replacing what the page rendered. They have to be
+   *   substituted rather than appended: Spring hands getParameter the FIRST of two values for the
+   *   same name, so an extra count_0 alongside the page's own would be silently ignored.
+   */
+  private MockHttpServletRequestBuilder rowRequest(String page, int shiftCount,
+                                                   java.util.Map<String, String> overrides) {
     MockHttpServletRequestBuilder request = post("/DayShifts")
       .param("resort", "Sample")
       .param("ID", DIRECTOR_ID)
@@ -270,10 +332,14 @@ class DayShiftsControllerTest {
 
     for (int row = 0; row < shiftCount; row++) {
       request = request
-        .param("startTime_" + row, namedValue(page, "startTime_" + row))
-        .param("endTime_" + row, namedValue(page, "endTime_" + row))
-        .param("count_" + row, selectedOption(page, "count_" + row))
-        .param("shift_" + row, selectedOption(page, "shift_" + row));
+        .param("startTime_" + row, overrides.getOrDefault("startTime_" + row,
+                                                          namedValue(page, "startTime_" + row)))
+        .param("endTime_" + row, overrides.getOrDefault("endTime_" + row,
+                                                        namedValue(page, "endTime_" + row)))
+        .param("count_" + row, overrides.getOrDefault("count_" + row,
+                                                      selectedOption(page, "count_" + row)))
+        .param("shift_" + row, overrides.getOrDefault("shift_" + row,
+                                                      selectedOption(page, "shift_" + row)));
     }
     return request;
   }

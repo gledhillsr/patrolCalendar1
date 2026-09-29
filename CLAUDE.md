@@ -217,6 +217,24 @@ fill a position that had nothing in it; the confirmed overwrite above is the one
 is a whole-day replace rather than a merge. Ids no longer on the roster are dropped, since the
 calendar would otherwise render them as `Err id (...)`.
 
+**Reducing a shift's patroller count closes the gaps rather than stranding people.** Slots are a
+grid, not a queue — three patrollers can sit in slots 1, 3 and 5 of a five-slot shift — so dropping
+that shift to three slots used to leave the one in slot 5 **still stored and no longer drawn**: off
+the calendar, out of every count, still on the row, with nothing to say they had gone.
+`Assignments.packPatrollersIntoCount()` moves everybody into the first `count` slots in the order
+they were already in, **zeroes every slot after that**, and returns how many did not fit.
+`saveShiftInfo` calls it on every row it writes, so a packed row is an invariant rather than
+something one path remembers to do; a negative id (a missed shift) is somebody, not an empty slot,
+and travels with the rest.
+
+**The browser warns only when patrollers really will be lost** — `confirmShiftCounts` on the Save
+Shift Changes button, comparing each row's chosen count against `data-filled`, which the count
+dropdown carries from `getFilledSlotCount()`. That counts **every** slot rather than the first
+`count` of them, so somebody stranded by an earlier reduction is included. Warning on every
+reduction would cry wolf on the case that loses nobody, and a director told "you may lose someone"
+every time stops reading it. The check is on the button, not the form's `onsubmit`, because
+`confirmActionDialog` replays the click and `saveShiftBtn` is dispatched on its name.
+
 Replacing a day wholesale is the other destructive path: the shift-format dropdown on DayShifts
 confirms how many patrollers will be removed, then POSTs `replaceShiftFormat` (a POST, not a URL, so
 a refresh cannot repeat it). `processReplaceShiftFormat` deletes the day's rows — patrollers live on
@@ -421,16 +439,25 @@ Two things that bit while building it, both now pinned:
 (Google/Apple/Outlook)**, holding everything a shift needs before it can leave this site and land
 correctly in somebody's own calendar. `PersonalCalendarSyncPanelTest` covers it.
 
-- **Enabled (Still under Development)** — `directorsettings.calendarSyncEnabled`, off by default and
-  off for a resort whose column the site-wide job has not reached. While the feed is being built,
-  off is the only safe direction for a default to fall.
+- **Enabled** — `directorsettings.calendarSyncEnabled`, off by default and off for a resort whose
+  column the site-wide job has not reached. Switching a resort's patrollers on is its director's
+  decision, not a side effect of a migration, so off is where the default falls.
 
-  **The switch is greyed out everywhere except the resort proving the feature.**
-  `PatrolData.maySwitchOnCalendarSync` is the one rule, and `CALENDAR_SYNC_RESORTS` — currently
-  `Brighton` alone — is **the one line to change as it rolls out**. A director elsewhere who ticked
-  it would be switching on something that does not exist, and would hear about it from their
-  patrollers. Demo resorts can never qualify however far it widens, for the same reason
-  `isDemoResort` keeps them out of every mailing.
+  **Every real resort may now switch it on.** `PatrolData.maySwitchOnCalendarSync` is the one
+  rule, and it is now "a resort in `resortMap` that is not a demo resort" — the `CALENDAR_SYNC_RESORTS`
+  allowlist that held it to Brighton while the feed was proved has done its job and gone. Being
+  allowed to switch it on is not the same as it being on: the column defaults to `0` everywhere and
+  each resort's director decides.
+
+  **Demo resorts never qualify**, and that is permanent rather than a stage of the rollout — their
+  members are invented, the same reason `isDemoResort` keeps them out of every mailing. A resort
+  commented out of `resortMap` is refused too: it has no database to read shifts from.
+
+  **The prerequisite is the `calendarSyncEnabled` column**, which the site-wide time-zone job adds
+  (created switched off). Without it `DirectorSettings.write` silently drops the field from the
+  UPDATE, so a director would tick the box and the tick would not stick. Verified on production:
+  **44 of 44 resorts in the map have it**, which is every resort this rule now admits; the ten
+  databases without it belong to resorts commented out of the map.
 
   It is **drawn rather than hidden**, with a line saying it is coming and that tidying shifts now is
   still worth doing — a control that vanishes teaches a director nothing.
@@ -861,8 +888,14 @@ are ignored, and so are the `resortMap.put` lines — there the domain stands in
 resort that has none of its own, which is resort data rather than site identity.
 
 **The site answers on a second domain, `patrolcalendar.com`.** Both names point at the same
-application; a visitor who arrived on that one gets a small *"Welcome to PatrolCalendar.com"* line in
-the header, above both menu bars, for every resort. On the primary domain nothing is drawn.
+application, and a small line in the header, above both menu bars, says which one you arrived on:
+*"Welcome to PatrolCalendar.com"* on the new name, *"Please update URL to use PatrolCalendar.com
+(same site)"* on `gledhills.com`.
+
+**The nudge is its own question, not the negation of the greeting.** `isPrimaryDomainHost()` sits
+beside `isPatrolCalendarHost()`, and a host that is neither — `localhost` above all — gets
+**nothing**. That is what keeps this out of every other render test and out of the goldens, and it
+is right anyway: telling a developer on localhost to change their URL is noise.
 
 It is deliberately **not** a second identity: nothing is sent *from* it and no link is built with it,
 so `DOMAIN` and every address on it are untouched — this is one greeting, not a rename.

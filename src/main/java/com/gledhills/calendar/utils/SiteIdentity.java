@@ -92,11 +92,43 @@ public class SiteIdentity {
 
   /** The matching itself, package-private so it can be tested without a request. */
   static boolean isPatrolCalendarHost(String serverName) {
+    return matches(serverName, PATROL_CALENDAR_DOMAIN);
+  }
+
+  /**
+   * Whether the request being served came in on {@link #DOMAIN}, the original name.
+   *
+   * <p>The header asks so it can nudge that visitor towards the new one. Deliberately <b>not</b>
+   * the negation of {@link #isPatrolCalendarHost}: a request on {@code localhost}, or none at all
+   * (DailyReminder, a unit test), is neither, and gets neither line. Nudging a developer on
+   * localhost to change their URL would be noise, and every render test and golden would have
+   * grown a line that no real visitor sees.
+   *
+   * <p>Never throws, for the same reason its sibling does not - this is drawn on every page.
+   */
+  public boolean isPrimaryDomainHost() {
+    RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+    if (!(attributes instanceof ServletRequestAttributes servletAttributes)) {
+      return false;
+    }
+    return isPrimaryDomainHost(servletAttributes.getRequest().getServerName());
+  }
+
+  /** The matching itself, package-private so it can be tested without a request. */
+  static boolean isPrimaryDomainHost(String serverName) {
+    return matches(serverName, DOMAIN);
+  }
+
+  /**
+   * The domain itself or one of its subdomains - {@code www.} is the same site.
+   *
+   * <p>Not an {@code endsWith}: that would greet {@code notpatrolcalendar.com} as if it were us.
+   */
+  private static boolean matches(String serverName, String domain) {
     if (serverName == null) {
       return false;
     }
     String host = serverName.toLowerCase(Locale.ROOT);
-    //www.patrolcalendar.com is the same site
-    return host.equals(PATROL_CALENDAR_DOMAIN) || host.endsWith("." + PATROL_CALENDAR_DOMAIN);
+    return host.equals(domain) || host.endsWith("." + domain);
   }
 }

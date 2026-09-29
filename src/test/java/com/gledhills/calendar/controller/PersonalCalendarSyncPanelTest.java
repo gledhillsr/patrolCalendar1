@@ -166,34 +166,70 @@ class PersonalCalendarSyncPanelTest {
 
 
   /**
-   * The switch is drawn everywhere, but only works where the feature has been proved.
+   * Where the panel sits on the page: below Season Dates, above Blackout Dates.
    *
-   * <p>Drawn rather than hidden on purpose: a director should be able to see that the feature is
-   * coming and that tidying their shifts is worth doing, which the note beside it says.
+   * <p>It is a bordered panel of its own, so wherever it goes it pushes everything after it down
+   * the window. It used to sit above Season Dates and moved below them so the settings a director
+   * actually comes to this page to change are the ones they land on.
    */
   @Test
-  void theSwitchIsDisabledWhereTheFeatureIsNotReadyYet() throws Exception {
+  void theSyncPanelSitsBetweenSeasonDatesAndBlackoutDates() throws Exception {
+    String page = preferencesPage();
+
+    int seasonDates = page.indexOf("Season Dates");
+    int syncPanel = page.indexOf("id=\"calendarSyncPanel\"");
+    int blackoutDates = page.indexOf("Blackout Dates");
+
+    assertTrue(seasonDates > 0 && syncPanel > 0 && blackoutDates > 0,
+               "all three sections should be on the page");
+    assertTrue(seasonDates < syncPanel, "the sync panel belongs below Season Dates");
+    assertTrue(syncPanel < blackoutDates, "and above Blackout Dates");
+  }
+
+  /**
+   * The switch is drawn everywhere, and greyed out on the demo resort - which these tests run
+   * against, so this is also what makes the "posted by hand" case below meaningful.
+   *
+   * <p>Drawn rather than hidden on purpose: a director should be able to see the control and read
+   * why it does nothing here, which the note beside it says.
+   */
+  @Test
+  void theSwitchIsDisabledOnTheDemoResort() throws Exception {
     String checkbox = syncCheckbox(preferencesPage());
 
     assertTrue(checkbox.contains("disabled"),
-               "Sample is not cleared for sync, so the box must be greyed: " + checkbox);
-    assertTrue(panel(preferencesPage()).contains("not available yet"),
+               "Sample's members are invented, so the box must be greyed: " + checkbox);
+    assertTrue(panel(preferencesPage()).contains("not available on the demonstration resort"),
                "and the page should say why, rather than leaving a dead control");
   }
 
   /**
    * The rule itself, in the one place it lives.
    *
-   * <p>A demo resort can never sync however the rollout widens - its members are invented, the same
-   * reason they are never emailed.
+   * <p>A demo resort can never sync however far the rollout widens - its members are invented, the
+   * same reason they are never emailed.
    */
   @Test
-  void onlyAResortClearedForItMaySwitchItOn() {
-    assertTrue(PatrolData.maySwitchOnCalendarSync("Brighton"), "the resort proving the feature");
-    assertFalse(PatrolData.maySwitchOnCalendarSync("Afton"), "not yet opened up");
+  void everyRealResortMaySwitchItOnAndNoDemoResortMay() {
+    assertTrue(PatrolData.maySwitchOnCalendarSync("Brighton"), "the resort that proved it");
+    assertTrue(PatrolData.maySwitchOnCalendarSync("Afton"), "and everywhere else now");
     assertFalse(PatrolData.maySwitchOnCalendarSync("Sample"), "a demo resort never syncs");
     assertFalse(PatrolData.maySwitchOnCalendarSync("SampleBackup"), "nor its master copy");
+    assertFalse(PatrolData.maySwitchOnCalendarSync("DevilsHead"),
+                "a resort commented out of the map has no database to read shifts from");
     assertFalse(PatrolData.maySwitchOnCalendarSync(null));
+  }
+
+  /**
+   * Walked over the whole map rather than spot-checked, because an allowlist of names is exactly
+   * how a real resort gets left behind without anybody noticing.
+   */
+  @Test
+  void theRuleHoldsForEveryResortInTheMap() {
+    for (String resort : PatrolData.resortMap.keySet()) {
+      assertEquals(!PatrolData.isDemoResort(resort), PatrolData.maySwitchOnCalendarSync(resort),
+                   resort + ": only the demo resorts should be held back");
+    }
   }
 
   /**

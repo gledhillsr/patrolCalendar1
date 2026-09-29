@@ -49,6 +49,12 @@ footer {
     font-style: italic;
     padding: 0 16px 8px;
 }
+/* The same line, but asking rather than greeting - upright and a shade warmer so it reads as
+   something to act on without shouting at somebody whose bookmark still works fine. */
+.nav-welcome.nav-nudge {
+    color: #8a4b00;
+    font-style: normal;
+}
 .nav-public {
     background: #eeeeee;
     padding: 5px 14px;

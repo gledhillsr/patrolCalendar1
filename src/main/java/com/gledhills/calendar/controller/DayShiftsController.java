@@ -959,6 +959,18 @@ public class DayShiftsController {
                         templatePatrollersByRow.get(shiftIndex), LOG);
             }
 
+            // Every row is written packed: patrollers in its first getCount() slots and "0" in the
+            // rest. Reducing a shift from 5 slots to 3 used to leave anybody in slots 4 and 5 still
+            // stored and no longer drawn - off the calendar, out of the counts, but still on the
+            // row. Packing keeps them as long as there is room, and only reports a loss when there
+            // is genuinely not. The browser warns about the same loss before the post; this is the
+            // backstop, and the only thing that can write the row.
+            int dropped = assignment.packPatrollersIntoCount();
+            if (dropped > 0) {
+                LOG.warn("DayShifts: shift " + (shiftIndex + 1) + " on " + assignment.getDate()
+                        + " was reduced to " + sh.getCount() + " patroller(s), dropping " + dropped);
+            }
+
             patrolData.writeAssignment(assignment);
         }
     }

@@ -1,5 +1,8 @@
 package com.gledhills.calendar.store;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.gledhills.calendar.utils.Logger;
 import com.gledhills.calendar.utils.PatrolData;
 import com.gledhills.calendar.utils.SessionData;
@@ -484,6 +487,55 @@ public class Assignments {
     for (int i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
       patrollerID[i] = (prevAssignment.getPosID(i));
     }
+  }
+
+  /** How many of this shift's slots hold somebody, looking at every slot rather than the first
+   * {@code count} of them - a slot past the count is a patroller who has been made invisible by an
+   * earlier reduction, and is still on the row. */
+  public int getFilledSlotCount() {
+    int filled = 0;
+    for (int i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
+      if (isOccupied(patrollerID[i])) {
+        ++filled;
+      }
+    }
+    return filled;
+  }
+
+  /**
+   * Close the gaps: move everybody on this shift into its first {@code count} slots, in the order
+   * they were already in, and empty every slot after that.
+   *
+   * <p>This is what makes reducing a shift from 5 patrollers to 3 keep the people on it. Slots are
+   * a grid, not a queue, so a shift with patrollers in slots 1, 3 and 5 was three people in five
+   * places; dropping to three slots used to leave the one in slot 5 <b>still stored but no longer
+   * drawn</b> - invisible on the calendar, absent from the counts, and still there in the row.
+   * Packing them down means nobody is lost until there are genuinely more patrollers than slots.
+   *
+   * <p>A missed shift is stored as a negative id, which is somebody rather than an empty slot, so
+   * it travels with the rest.
+   *
+   * @return how many patrollers did not fit and were dropped - 0 whenever the shift still has room
+   */
+  public int packPatrollersIntoCount() {
+    List<String> occupants = new ArrayList<>(MAX_ASSIGNMENT_SIZE);
+    for (int i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
+      if (isOccupied(patrollerID[i])) {
+        occupants.add(patrollerID[i]);
+      }
+    }
+
+    int room = Math.max(0, Math.min(count, MAX_ASSIGNMENT_SIZE));
+    int kept = Math.min(occupants.size(), room);
+    for (int i = 0; i < MAX_ASSIGNMENT_SIZE; ++i) {
+      patrollerID[i] = (i < kept) ? occupants.get(i) : "0";
+    }
+    return occupants.size() - kept;
+  }
+
+  /** An empty slot is stored as "0" - or, on older rows, as null or blank. */
+  private static boolean isOccupied(String patrollerId) {
+    return patrollerId != null && !patrollerId.trim().isEmpty() && !patrollerId.trim().equals("0");
   }
 
 }

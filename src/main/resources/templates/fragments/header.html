@@ -116,10 +116,15 @@
                      border="0" alt="NSP"/>
             </div>
 
-            <!-- Two domains point here; a visitor who came in on the second one is told so,
-                 and on the primary domain this is absent. See SiteIdentity. -->
+            <!-- Two domains point here, and the line says which one you used: a greeting on the
+                 new name, a nudge towards it on the old one. Neither is drawn on any other host -
+                 localhost gets nothing, so this stays out of the render tests and the goldens.
+                 See SiteIdentity. -->
             <div class="nav-welcome" th:if="${@site.isPatrolCalendarHost()}"
                  th:text="'Welcome to ' + ${@site.patrolCalendarDisplay}">Welcome</div>
+            <div class="nav-welcome nav-nudge" th:if="${@site.isPrimaryDomainHost()}"
+                 th:text="'Please update URL to use ' + ${@site.patrolCalendarDisplay}
+                          + ' (same site)'">Please update URL</div>
 
             <!-- Public custom buttons. Drawn only when this resort has configured one, so nobody
                  gets an empty grey strip. -->
