@@ -171,6 +171,14 @@ public class WebSitePreferencesController {
             return null;
         }
 
+        //A reminder with no number of days is not a saveable setting, and the only way to post
+        //one is to clear the box while reminders are ticked - at which point silently keeping the
+        //old value would look like the edit had been accepted.
+        if (Boolean.TRUE.equals(form.getEmailReminder()) && form.getReminderDays() == null) {
+            bindingResult.rejectValue("reminderDays", "reminderDays.required",
+                                      "Say how many days before a shift the reminder should go out");
+        }
+
         // If validation errors, return to form
         if (bindingResult.hasErrors()) {
             return showPreferencesWithErrors(form, bindingResult, request, response, model, LOG);
@@ -199,7 +207,12 @@ public class WebSitePreferencesController {
             // Update settings from form
             settings.setNotifyChanges(form.getEmailPatrollers() != null && form.getEmailPatrollers());
             settings.setSendReminder(form.getEmailReminder() != null && form.getEmailReminder());
-            settings.setReminderDays(form.getReminderDays());
+            //Absent means "leave it alone", not zero. The field is disabled on the page while
+            //reminders are off, and a disabled input is not posted at all - writing 0 here would
+            //quietly throw away the number the director chose the last time reminders were on.
+            if (form.getReminderDays() != null) {
+                settings.setReminderDays(form.getReminderDays());
+            }
             settings.setEmailAll(form.getEmailAll() != null && form.getEmailAll());
             settings.setTimeZone(form.getTimeZone());
             //Only a resort cleared for calendar sync may change the switch, and the stored value is
@@ -264,6 +277,15 @@ public class WebSitePreferencesController {
             model.addAttribute("resortFullName", PatrolData.getResortFullName(form.getResort(), LOG));
             model.addAttribute("patrollerId", loggedInUserId);
             model.addAttribute("isDirector", isDirector);
+
+            // The calendar sync panel reads both of these, and SpEL throws on a null where it
+            // wants a boolean - so a page redisplayed after ANY validation error came back as a
+            // 500 rather than as the form with its error on it. The happy path set them and this
+            // one did not, which is exactly the kind of gap only an invalid post finds.
+            model.addAttribute("maySwitchOnSync",
+                               PatrolData.maySwitchOnCalendarSync(form.getResort()));
+            model.addAttribute("syncReadiness",
+                               ShiftTimeAudit.readiness(patrolData.readShiftDefinitions()));
 
             // Add resort metadata for header
             ResortData resortData = PatrolData.getResortInfo(form.getResort());

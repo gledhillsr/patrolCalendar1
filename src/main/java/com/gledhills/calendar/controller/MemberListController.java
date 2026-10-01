@@ -228,9 +228,12 @@ public class MemberListController {
                                "EmailForm?resort=" + resort + "&ID=" + patrollerId + selection);
 
             // The download has to pick the same members for the same reason, so it is built from
-            // the same string rather than a second copy of the rules.
+            // the same string rather than a second copy of the rules - plus the columns, which
+            // only it needs. EmailForm wants to know WHO; the spreadsheet wants to know who AND
+            // WHAT, and asking for no columns is how it came out holding nothing but names.
             model.addAttribute("downloadRosterUrl",
-                               "DownloadRoster?resort=" + resort + "&ID=" + patrollerId + selection);
+                               "DownloadRoster?resort=" + resort + "&ID=" + patrollerId
+                                 + selection + DOWNLOAD_COLUMNS);
 
             // The toggle: its label describes where it goes, not where you are.
             //carry "filters" too, or the toggle would reset Pro back to ticked
@@ -263,6 +266,21 @@ public class MemberListController {
      *   <li>{@code ALL=1} either way, because the loop applies no director/instructor filter</li>
      * </ul>
      */
+    /**
+     * The columns the spreadsheet is asked for: the ones this page draws, and only those.
+     *
+     * <p>DownloadRoster builds its workbook from the column parameters in the URL, so a URL
+     * carrying none produces a sheet of nothing but names - which is exactly what the button did.
+     * The audience parameters in {@link #selectionQuery} were there from the start, because
+     * EmailForm needs them; nothing needed the columns until a download button appeared beside it.
+     *
+     * <p><b>Keep this in step with the table in member-list.html.</b> A column added there and not
+     * here is a column missing from the download, which is the same drift this page already guards
+     * against for the member list itself.
+     */
+    private static final String DOWNLOAD_COLUMNS =
+        "&CLASS=1&COMMIT=1&HOME=1&WORK=1&CELL=1&EMAIL=1";
+
     private static String selectionQuery(List<String> listedClassifications, boolean fullRoster) {
         StringBuilder query = new StringBuilder();
         for (String classification : listedClassifications) {

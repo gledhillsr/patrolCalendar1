@@ -39,6 +39,36 @@ public final class StaticUtils {
     return matcher.matches();
   }
 
+  /**
+   * A stored phone number as an SMS provider wants it - {@code +15551234567} - or null.
+   *
+   * <p>The roster's CellPhone column is free text twenty years deep: {@code 847-372-5936},
+   * {@code (847) 372-5936}, {@code 8473725936}, {@code &nbsp;}, {@code none}, an extension, a note.
+   * Ten digits after the punctuation is the only shape that can be dialled, and a leading 1 is the
+   * country code rather than an eleventh digit. <b>Anything else is null rather than a guess</b>,
+   * the same rule NspRosterImport applies on the way in: a half-recognised number cannot be told
+   * from a real one later, and here it would mean a message going somewhere nobody chose.
+   *
+   * <p><b>This says nothing about whether the number is a mobile.</b> Nothing in the roster does -
+   * a landline typed into the Cell field looks exactly like this and only the provider will
+   * object. That is a reason to surface failures, not to guess here.
+   */
+  public static String toSmsNumber(String phone) {
+    if (phone == null) {
+      return null;
+    }
+    String digits = phone.replaceAll("\\D", "");
+    if (digits.length() == 11 && digits.startsWith("1")) {
+      digits = digits.substring(1);
+    }
+    return digits.length() == 10 ? "+1" + digits : null;
+  }
+
+  /** Whether this member could be sent a text at all. */
+  public static boolean isTextable(String phone) {
+    return toSmsNumber(phone) != null;
+  }
+
 
   //lowercase substrings found in crawler/scraper/scanner user agents but never in real browsers
   private static final String[] BOT_SIGNATURES = {

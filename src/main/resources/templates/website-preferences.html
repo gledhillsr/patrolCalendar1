@@ -9,9 +9,45 @@
          function is undefined, the onclick returns undefined, and the form submits with no
          confirmation at all - a silent failure rather than a visible one. -->
     <script th:src="@{/js/dialogs.js}"></script>
+    <script>
+        /*
+         * "How many days before the shift" only means anything while reminders are switched on,
+         * so it is greyed and disabled until they are.
+         *
+         * A disabled input is NOT POSTED, which would have quietly rewritten the stored number to
+         * zero on every save made with reminders off - so the server treats an absent value as
+         * "leave it alone" rather than as 0. See WebSitePreferencesForm.reminderDays.
+         */
+        function updateReminderDays() {
+            var box = document.getElementById('emailReminderBox');
+            var row = document.getElementById('reminderDaysRow');
+            var days = document.getElementById('reminderDays');
+            if (!box || !row || !days) {
+                return;
+            }
+            days.disabled = !box.checked;
+            row.className = box.checked ? 'dependent-setting' : 'dependent-setting inactive';
+        }
+
+        window.addEventListener('DOMContentLoaded', updateReminderDays);
+    </script>
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
     <style type="text/css">
+        /* A setting that only means something while the box above it is ticked: indented under
+           it, with the rule drawing the eye from one to the other, and visibly dead when it does
+           not apply. */
+        .dependent-setting {
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+            padding-left: 10px;
+            border-left: 3px solid #cfd8e3;
+            white-space: nowrap;
+        }
+        .dependent-setting.inactive {
+            opacity: 0.5;
+        }
         body {
             font-size: 10pt;
             color: #000000;
@@ -92,21 +128,28 @@
                         <input type="checkbox" th:field="*{emailPatrollers}" />
                     </td>
                 </tr>
+                <!-- The reminder switch and its "how many days" belong together: on two separate
+                     rows they read as two unrelated settings, and the number looked live even with
+                     reminders switched off. One row, with the number indented under the switch and
+                     greyed out until it means something. -->
                 <tr>
                     <td width="400" align="right">
                         <font size="3">Email reminders to patrollers:</font>
                     </td>
-                    <td width="300">
-                        <input type="checkbox" th:field="*{emailReminder}" />
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Number of days before shift to send reminder:</font>
-                    </td>
-                    <td width="300">
-                        <input type="number" th:field="*{reminderDays}" min="0" max="30" size="5" />
-                        <span th:if="${#fields.hasErrors('reminderDays')}" class="error-message" th:errors="*{reminderDays}">Reminder Days Error</span>
+                    <!-- No width here: the "Send N day(s) before the shift" that follows the box
+                         belongs on this line, and the 300px the other rows use cuts it off. -->
+                    <td nowrap>
+                        <input type="checkbox" id="emailReminderBox" th:field="*{emailReminder}"
+                               style="vertical-align:middle;"
+                               onchange="updateReminderDays()" />
+                        <span id="reminderDaysRow" class="dependent-setting">
+                            <label for="reminderDays"><font size="3">Send</font></label>
+                            <input type="number" id="reminderDays" th:field="*{reminderDays}"
+                                   min="0" max="30" style="width:4em; vertical-align:middle;" />
+                            <font size="3">day(s) before the shift</font>
+                        </span>
+                        <span th:if="${#fields.hasErrors('reminderDays')}" class="error-message"
+                              th:errors="*{reminderDays}">Reminder Days Error</span>
                     </td>
                 </tr>
                 <tr>
@@ -237,7 +280,7 @@
                                 <label>
                                     <input type="checkbox" th:field="*{syncEnabled}"
                                            th:disabled="${!maySwitchOnSync}"/>
-                                    <b>Enabled</b>
+                                    <b>Enable for your patrol members</b>
                                 </label>
                             </p>
                             <!-- Open to every real resort now. What is left greyed out is the

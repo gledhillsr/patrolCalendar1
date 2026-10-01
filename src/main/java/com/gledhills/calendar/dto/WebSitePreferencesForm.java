@@ -14,9 +14,19 @@ public class WebSitePreferencesForm {
     private Boolean emailPatrollers = false;
     private Boolean emailReminder = false;
 
+    /**
+     * How many days ahead a reminder goes out, or <b>null when the field did not arrive</b>.
+     *
+     * <p>Null rather than 0, and that is the whole point: the box is disabled on the page whenever
+     * reminders are switched off, and <b>a disabled input is not posted</b>. Defaulting to 0 meant
+     * every save made with reminders off silently rewrote the stored value to zero, so switching
+     * reminders back on later would have lost the number the director had chosen. The save leaves
+     * the stored value alone when this is null - the same rule the calendar sync switch follows,
+     * and for the same reason.
+     */
     @Min(value = 0, message = "Reminder days must be 0 or greater")
     @Max(value = 30, message = "Reminder days must be 30 or less")
-    private Integer reminderDays = 0;
+    private Integer reminderDays;
 
     private Boolean emailAll = false;
     /** The resort's own time zone, an IANA id. Blank means "use the built-in default". */

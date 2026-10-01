@@ -65,6 +65,17 @@
                    value="Download this table (.xlsx format)"
                    th:attr="data-url=${downloadRosterUrl}"
                    onclick="window.location=this.getAttribute('data-url')"/>
+
+            <!-- Site owner only while texting is being built. Its URL comes from the same
+                 buildRecipientUrl call as the e-mail button's, so the two cannot select
+                 different people. -->
+            <span th:if="${isSiteOwner}">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="button"
+                       value="Text Message THESE patrollers"
+                       th:attr="data-url=${textFormUrl}"
+                       onclick="window.location=this.getAttribute('data-url')"/>
+            </span>
         </bold></font></p>
     </div>
 

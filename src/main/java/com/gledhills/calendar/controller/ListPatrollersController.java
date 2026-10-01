@@ -105,11 +105,20 @@ public class ListPatrollersController {
     model.addAttribute("firstNameFirst", firstNameFirst);
     model.addAllAttributes(displayFlags);
 
-    String emailFormUrl = buildEmailFormUrl(resort, userId, displayFlags,
-                                            classificationsToDisplay, commitmentToDisplay, listAll,
-                                            listDirector, instructorFlags, dateRange);
-    model.addAttribute("emailFormUrl", emailFormUrl);
+    model.addAttribute("emailFormUrl",
+                       buildRecipientUrl("EmailForm", resort, userId, displayFlags,
+                                         classificationsToDisplay, commitmentToDisplay, listAll,
+                                         listDirector, instructorFlags, dateRange));
+    model.addAttribute("textFormUrl",
+                       buildRecipientUrl("TextForm", resort, userId, displayFlags,
+                                         classificationsToDisplay, commitmentToDisplay, listAll,
+                                         listDirector, instructorFlags, dateRange));
     model.addAttribute("downloadRosterUrl", buildDownloadRosterUrl(request, resort, userId));
+
+    //Brighton + 192443 while texting is being built - the same pair that gates Site Wide
+    //Configuration. Read off the session, never the ID parameter, or it is not a gate at all.
+    model.addAttribute("isSiteOwner",
+                       SiteWideConfigurationController.isSiteOwner(resort, userId));
 
     return "list-patrollers";
   }
@@ -259,13 +268,23 @@ public class ListPatrollersController {
     }
   }
 
-  private String buildEmailFormUrl(
-    String resort, String userId, Map<String, Boolean> flags,
+  /**
+   * The page's filters as a query string, aimed at whichever page is to receive the same people.
+   *
+   * <p><b>One builder, two buttons, on purpose.</b> "e-mail THESE patrollers" must mail exactly who
+   * the page listed, and three separate bugs have already been fixed where it did not - each one a
+   * filter this method forgot to re-emit. A second button with a second copy of these sixty lines
+   * would be a fourth. Everything after the "?" is identical; only the page name differs.
+   *
+   * @param page the receiving page, "EmailForm" or "TextForm"
+   */
+  private String buildRecipientUrl(
+    String page, String resort, String userId, Map<String, Boolean> flags,
     List<String> classifications, int commitment,
     boolean listAll, boolean listDirector, int instructorFlags,
     Map<String, Integer> dateRange) {
 
-    StringBuilder url = new StringBuilder("EmailForm?resort=" + resort + "&ID=" + userId);
+    StringBuilder url = new StringBuilder(page + "?resort=" + resort + "&ID=" + userId);
 
     for (String classification : classifications) {
       url.append("&").append(classification).append("=1");

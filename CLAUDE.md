@@ -439,7 +439,7 @@ Two things that bit while building it, both now pinned:
 (Google/Apple/Outlook)**, holding everything a shift needs before it can leave this site and land
 correctly in somebody's own calendar. `PersonalCalendarSyncPanelTest` covers it.
 
-- **Enabled** — `directorsettings.calendarSyncEnabled`, off by default and off for a resort whose
+- **Enable for your patrol members** — `directorsettings.calendarSyncEnabled`, off by default and off for a resort whose
   column the site-wide job has not reached. Switching a resort's patrollers on is its director's
   decision, not a side effect of a migration, so off is where the default falls.
 
@@ -579,6 +579,13 @@ mismatches have already been fixed, all of which mailed people the page never sh
 `MemberListController.selectionQuery` builds the query string once and both buttons append it, so
 the download and the email cannot select different people. Add a filter to one and you have added
 it to both.
+
+**But the download needs one thing the email does not: the columns.** `DownloadRoster` builds its
+sheet from the column parameters in the URL, so a URL carrying none produces a workbook of nothing
+but names — which is exactly what that button did, while selecting precisely the right people.
+`MemberListController.DOWNLOAD_COLUMNS` is appended to the download URL alone and **must stay in
+step with the table in member-list.html**. The people-match test passed throughout, which is why
+`theDownloadHoldsTheColumnsTheTabShows` now opens the actual workbook and checks the headings.
 
 **`DownloadRoster` is open to any signed-in member**, not just directors. The Patrollers tab already
 shows every member's cell number and email on screen and now offers the download beside them, so the
@@ -806,6 +813,54 @@ Two guards came out of that, both pinned by `SiteDirectorsSendTest`:
 Note the recipient count feeds straight into the Tomcat part limits described under **Email** — one
 multipart part per selected recipient, against `server.tomcat.max-part-count=2000`. A few hundred
 directors is comfortable; a list that ever approaches that number would come back as a bare 413.
+
+### Texting Patrollers (being built)
+
+`TextFormController` (`/TextForm`) is the "Text Message THESE patrollers" button beside the e-mail
+one on ListPatrollers. **It sends nothing**: there is no SMS provider wired to the application, and
+in the US application-sent SMS needs an account, a number and A2P 10DLC brand/campaign registration
+before it is deliverable at all. The page composes, picks the audience, and reports exactly what
+would go to whom. `TextFormController.wouldSend` is the single place that becomes a real send.
+
+**Visible to the site owner alone** — `SiteWideConfigurationController.isSiteOwner`, the same
+`Brighton` + `192443` pair, on the GET *and* the POST, read from the **session** and never the `ID`
+parameter. That is the one line to widen when it ships.
+
+**Both buttons come from one builder.** `ListPatrollersController.buildRecipientUrl(page, …)` was
+`buildEmailFormUrl`; it now takes the receiving page and everything after the `?` is shared.
+"e-mail THESE patrollers" mailing people the page never showed has been fixed three separate times,
+each a filter the builder forgot — a second copy would be a fourth.
+`TextFormTest.bothButtonsCarryTheSameFilters` compares the two query strings character for
+character.
+
+**`StaticUtils.toSmsNumber` is the one answer to "can this person be texted?"** — ten digits after
+the punctuation, a leading `1` treated as the country code, everything else **null rather than a
+guess** (the same rule `NspRosterImport.normalizePhone` applies on the way in). `EmailRecipient`
+carries `mobileNumber`/`hasValidMobile` alongside the email pair, set in
+`PatrolMemberFilterService.toRecipient` — the one place a roster row becomes a recipient, so
+neither channel has to remember to look one up. **Nothing in the roster says a number is a mobile**;
+a landline in the Cell field looks identical and only a provider will object.
+
+**The picker names who was dropped** — "38 of 51 can be texted, 13 have no usable number" — rather
+than quietly showing a shorter list, which is how somebody concludes the message went to everyone.
+The POST **re-derives** the audience and only narrows it by what came back, like the site-wide
+director mailing: numbers arriving in a request and being messaged as-is is an open relay.
+
+**One segment, guaranteed, because length alone does not do it.** `MAX_CHARACTERS` is **160** —
+exactly one GSM-7 segment — *and* `SIMPLE_TEXT_PATTERN` allows only letters, digits, spaces, line
+breaks and everyday punctuation. Both halves are needed: an emoji, a curly quote or an accented
+letter switches the whole message to UCS-2 where a segment is **70**, and `^ { } [ ] ~ | \` plus the
+euro sign are GSM-7 *extension* characters costing **two** septets each. Either would turn one
+message into two or three, and every segment is charged again *per recipient*. The compose box
+counts `(13 of 160)` and names any character it will not take; the server applies the same rule and
+`disallowedCharactersIn` tells the director which character to fix rather than leaving them to hunt
+for it. **The browser regex and `SIMPLE_TEXT_PATTERN` are two copies of one rule** — change one and
+you must change the other, like `shiftTime.js`.
+
+Still to do before it can send: the provider and its credentials, a `TextService` borrowing
+`EmailService`'s fatal-vs-per-recipient failure split and its failure summary, `isDemoResort` as a
+seventh caller, and **consent** — a cell number given for a roster is not agreement to be texted
+(TCPA), so an opt-in column and honouring STOP in our own roster come with it.
 
 ### Email
 

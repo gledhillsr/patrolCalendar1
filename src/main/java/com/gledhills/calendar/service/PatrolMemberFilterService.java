@@ -45,6 +45,11 @@ public class PatrolMemberFilterService {
         return recipients;
     }
 
+    /**
+     * The one place a roster row becomes a recipient, which is why the mobile number is worked out
+     * here rather than at either send: every audience this service builds gets both contact
+     * details, and neither channel has to remember to look one up.
+     */
     private EmailRecipient toRecipient(Roster member) {
         String email = member.getEmailAddress();
         return new EmailRecipient(
@@ -52,7 +57,9 @@ public class PatrolMemberFilterService {
             member.getFirst(),
             member.getLast(),
             email,
-            StaticUtils.isValidEmailAddress(email)
+            StaticUtils.isValidEmailAddress(email),
+            null,
+            StaticUtils.toSmsNumber(member.getCellPhone())
         );
     }
 }

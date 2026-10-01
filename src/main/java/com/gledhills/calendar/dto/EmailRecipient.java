@@ -16,22 +16,30 @@ public class EmailRecipient {
     private final String lastName;
     private final String emailAddress;
     private final boolean hasValidEmail;
+    /** The same person's mobile in +1XXXXXXXXXX form, or null when they have no usable number. */
+    private final String mobileNumber;
     /** The resort this person was read from, or null for the ordinary single-resort case. */
     private final String resort;
 
     public EmailRecipient(String id, String firstName, String lastName, String emailAddress,
                          boolean hasValidEmail) {
-        this(id, firstName, lastName, emailAddress, hasValidEmail, null);
+        this(id, firstName, lastName, emailAddress, hasValidEmail, null, null);
     }
 
     public EmailRecipient(String id, String firstName, String lastName, String emailAddress,
                          boolean hasValidEmail, String resort) {
+        this(id, firstName, lastName, emailAddress, hasValidEmail, resort, null);
+    }
+
+    public EmailRecipient(String id, String firstName, String lastName, String emailAddress,
+                         boolean hasValidEmail, String resort, String mobileNumber) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.emailAddress = emailAddress;
         this.hasValidEmail = hasValidEmail;
         this.resort = resort;
+        this.mobileNumber = mobileNumber;
     }
 
     public String getId() { return id; }
@@ -40,6 +48,11 @@ public class EmailRecipient {
     public String getEmailAddress() { return emailAddress; }
     public boolean hasValidEmail() { return hasValidEmail; }
     public String getResort() { return resort; }
+
+    public String getMobileNumber() { return mobileNumber; }
+
+    /** Whether this person can be sent a text at all - see StaticUtils.toSmsNumber. */
+    public boolean hasValidMobile() { return mobileNumber != null; }
 
     public String getFullNameLastFirst() {
         return lastName + ", " + firstName;

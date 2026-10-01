@@ -1,5 +1,13 @@
 package com.gledhills.calendar.controller;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -270,10 +278,64 @@ class EmailListMatchesPatrollerListTest {
       String emailUrl = urlFromButton(page, "EmailForm\\?[^\"]+");
       String downloadUrl = urlFromButton(page, "DownloadRoster\\?[^\"]+");
 
-      assertEquals(emailUrl.substring(emailUrl.indexOf('&')),
-                   downloadUrl.substring(downloadUrl.indexOf('&')),
-                   (fullRoster ? "full" : "trimmed")
-                     + " roster: the two buttons must select the same members");
+      //The download asks for the same people AND for columns, which the email has no use for -
+      //so this is "starts with" rather than "equals". Insisting they were identical is what left
+      //the download asking for no columns at all and producing a sheet of nothing but names.
+      String audience = emailUrl.substring(emailUrl.indexOf('&'));
+      String downloadQuery = downloadUrl.substring(downloadUrl.indexOf('&'));
+
+      assertTrue(downloadQuery.startsWith(audience),
+                 (fullRoster ? "full" : "trimmed")
+                   + " roster: the two buttons must select the same members"
+                   + "\n  email   =" + audience + "\n  download=" + downloadQuery);
+
+      for (String extra : downloadQuery.substring(audience.length()).split("&amp;")) {
+        assertTrue(extra.isEmpty() || COLUMN_PARAMETERS.contains(extra.split("=")[0]),
+                   "the download may add columns, nothing else: " + extra);
+      }
+    }
+  }
+
+  /** Column parameters DownloadRoster understands; anything else changes who is selected. */
+  private static final List<String> COLUMN_PARAMETERS =
+    List.of("CLASS", "COMMIT", "HOME", "WORK", "CELL", "EMAIL", "SHOW_ID", "SPOUSE", "ADDR",
+            "CITY", "STATE", "ZIP", "PAGER", "EMERGENCY", "SUBSTITUTE", "INSTRUCTOR", "DIRECTOR",
+            "LAST_UPDATED", "COMMENTS", "TEAM_LEAD", "MENTORING", "NAME");
+
+  /**
+   * The bug this file exists to catch, in its other half: the spreadsheet must hold the columns
+   * the page drew, not just the right people.
+   *
+   * <p>DownloadRoster builds its sheet from the column parameters in the URL, and MemberList's
+   * button sent none - so it selected exactly the right members and gave you a workbook of
+   * nothing but their names. The people-match test above passed throughout.
+   */
+  @Test
+  void theDownloadHoldsTheColumnsTheTabShows() throws Exception {
+    String page = memberListPage(false);
+    String downloadUrl = urlFromButton(page, "DownloadRoster\\?[^\"]+").replace("&amp;", "&");
+
+    MockHttpSession session = new MockHttpSession();
+    session.setAttribute("loggedInUserId", DIRECTOR_ID);
+    session.setAttribute("loggedInResort", "Sample");
+
+    byte[] xlsx = mockMvc.perform(get("/" + downloadUrl)
+                                    .header("User-Agent", BROWSER).session(session))
+      .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+
+    List<String> headings = new ArrayList<>();
+    try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(xlsx))) {
+      //row 0 is the workbook title, row 1 the headings
+      for (Cell cell : workbook.getSheetAt(0).getRow(1)) {
+        headings.add(cell.getStringCellValue());
+      }
+    }
+
+    //the Patrollers tab draws Name, Class, Commitment, Home, Work, Cell, Email - the exporter
+    //decides their order, so this checks they are all there rather than what order they are in
+    for (String heading : List.of("Name", "Class", "Commitment", "Home", "Work", "Cell", "Email")) {
+      assertTrue(headings.contains(heading),
+                 "the download is missing the " + heading + " column: " + headings);
     }
   }
 

@@ -13,6 +13,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -158,6 +159,136 @@ class WebSitePreferencesControllerTest {
   }
 
   /** Post the preferences form with everything as it is, changing only the zone. */
+  /**
+   * "How many days before the shift" is disabled on the page while reminders are off, and a
+   * disabled input is not posted - so the save has to read an absent value as "leave it alone".
+   *
+   * <p>It used to default to 0, which meant every save made with reminders switched off quietly
+   * rewrote the stored number to zero. Nobody would see it until they turned reminders back on
+   * and found their 3 days had become 0.
+   */
+  @Test
+  void theReminderDaysSurviveASaveMadeWithRemindersOff() throws Exception {
+    int before = storedReminderDays();
+    try {
+      submitPreferences("emailReminder", "true", "reminderDays", "4");
+      assertEquals(4, storedReminderDays(), "the choice should be stored");
+
+      //reminders off, so the browser disables the days box and posts no value at all
+      submitPreferences("reminderDays", null);
+      assertEquals(4, storedReminderDays(),
+                   "turning reminders off must not throw away how many days were chosen");
+
+      submitPreferences("emailReminder", "true", "reminderDays", "7");
+      assertEquals(7, storedReminderDays(), "and it is still changeable");
+    }
+    finally {
+      submitPreferences("emailReminder", "true", "reminderDays", String.valueOf(before));
+    }
+  }
+
+  /** Reminders on with the box emptied is not a saveable setting, and is said so rather than kept. */
+  @Test
+  void remindersOnWithNoNumberIsRefused() throws Exception {
+    int before = storedReminderDays();
+    try {
+      String page = postPreferences("emailReminder", "true", "reminderDays", "")
+        .andReturn().getResponse().getContentAsString();
+
+      assertTrue(page.contains("Say how many days before a shift the reminder should go out"),
+                 "the page should say what is missing: " + page);
+      assertEquals(before, storedReminderDays(), "and nothing should have been written");
+    }
+    finally {
+      submitPreferences("emailReminder", "true", "reminderDays", String.valueOf(before));
+    }
+  }
+
+  /** The two settings are one row now, with the number indented under the switch that governs it. */
+  @Test
+  void theReminderDaysAreGroupedUnderTheirSwitch() throws Exception {
+    String page = preferencesPage();
+
+    assertTrue(page.contains("id=\"reminderDaysRow\"") && page.contains("dependent-setting"),
+               "the days field should be drawn as a setting dependent on the checkbox");
+    //same <td> as the checkbox, so it sits on the one line rather than wrapping under it
+    int checkbox = page.indexOf("id=\"emailReminderBox\"");
+    int days = page.indexOf("id=\"reminderDaysRow\"");
+    assertTrue(checkbox > 0 && days > checkbox
+                 && page.indexOf("</td>", checkbox) > days,
+               "the days control belongs in the same cell as the checkbox, on the same line");
+    assertTrue(page.contains("onchange=\"updateReminderDays()\""),
+               "and the checkbox should enable and disable it");
+    assertFalse(page.contains("Number of days before shift to send reminder"),
+                "the old free-standing row should be gone");
+  }
+
+  /** The preferences form with everything valid, overriding the named fields. */
+  private void submitPreferences(String... overrides) throws Exception {
+    postPreferences(overrides).andExpect(status().is3xxRedirection());
+  }
+
+  private org.springframework.test.web.servlet.ResultActions postPreferences(String... overrides)
+    throws Exception {
+    session.setAttribute("loggedInUserId", "123456");
+    session.setAttribute("loggedInResort", "Sample");
+
+    java.util.Map<String, String> fields = new java.util.LinkedHashMap<>();
+    fields.put("emailPatrollers", "true");
+    fields.put("emailReminder", "false");
+    fields.put("reminderDays", "3");
+    fields.put("emailAll", "true");
+    fields.put("onlyDirectors", "false");
+    fields.put("removeAccess", "2");
+    fields.put("startDay", "1");
+    fields.put("startMonth", "11");
+    fields.put("endDay", "30");
+    fields.put("endMonth", "4");
+    fields.put("useBlackOut", "false");
+    fields.put("blackOutStartDay", "1");
+    fields.put("blackOutStartMonth", "1");
+    fields.put("blackOutStartYear", "2026");
+    fields.put("blackOutEndDay", "31");
+    fields.put("blackOutEndMonth", "12");
+    fields.put("blackOutEndYear", "2026");
+    for (int i = 0; i < overrides.length; i += 2) {
+      //a null value means the field is not posted at all, which is what a disabled input does
+      if (overrides[i + 1] == null) {
+        fields.remove(overrides[i]);
+      }
+      else {
+        fields.put(overrides[i], overrides[i + 1]);
+      }
+    }
+
+    var request = post("/WebSitePreferences").param("resort", "Sample").session(session);
+    for (var field : fields.entrySet()) {
+      request = request.param(field.getKey(), field.getValue());
+    }
+    return mockMvc.perform(request);
+  }
+
+  /** Read the column directly, so the assertion does not lean on the code that wrote it. */
+  private int storedReminderDays() {
+    org.springframework.mock.web.MockHttpServletRequest request =
+      new org.springframework.mock.web.MockHttpServletRequest();
+    request.setSession(session);
+    javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
+    com.gledhills.calendar.utils.Logger log =
+      new com.gledhills.calendar.utils.Logger(WebSitePreferencesControllerTest.class, javaxRequest,
+                                              "GET", "Sample",
+                                              com.gledhills.calendar.utils.Logger.INFO);
+    com.gledhills.calendar.utils.PatrolData patrolData =
+      new com.gledhills.calendar.utils.PatrolData(
+        "Sample", new com.gledhills.calendar.utils.SessionData(javaxRequest, null, log), log);
+    try {
+      return patrolData.readDirectorSettings().getReminderDays();
+    }
+    finally {
+      patrolData.close();
+    }
+  }
+
   private void submitTimeZone(String zone) throws Exception {
     session.setAttribute("loggedInUserId", "123456");
     session.setAttribute("loggedInResort", "Sample");
