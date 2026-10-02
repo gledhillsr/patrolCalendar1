@@ -26,18 +26,59 @@
     * - required fields to enable syncing with patrollers calendar.
 
     <!-- Two pictures of the same three shifts: what a director types, then what the calendar
-         draws from it. These carry the explanation now that the prose has gone - the middle row
-         has a time and no label, the others have both or a label only. -->
-    <div style="margin-top:8px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-        <b style="white-space:nowrap;">e.g.</b>
-        <img th:src="@{/images/labelSplitFields.png}" width="660" height="82"
-             style="max-width:100%; height:auto;"
-             alt="The shift editor: Label 'dir' starting 8:00, a row with only a start time of
-                  8:00, and Label 'mentee' with no start time, each with a patroller count">
-        <img th:src="@{/images/labelSplitExample.png}" width="233" height="83"
-             style="max-width:100%; height:auto;"
-             alt="The same three shifts on the calendar: dir, 8:00 and mentee">
+         draws from it. A bare "e.g." left the reader to work out that the two were the same three
+         shifts, which is the whole point of showing them - so each is captioned, an arrow runs
+         between them, and a line underneath reads the example out.
+
+         The middle row has a time and no label, the others have both or a label only. -->
+    <p style="margin:8px 0 6px 0;">
+        <b>For example</b> &mdash; these settings (left) are what the calendar shows (right):
+    </p>
+    <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
+        <figure style="margin:0; text-align:center;">
+            <!-- The file is 663px wide; drawn at 600 so it, the arrow and the calendar picture
+                 still sit side by side inside the notice. The flex row wraps rather than
+                 overflowing, so the cost of being a little too wide is the two pictures ending up
+                 one above the other, which is the one arrangement this example must not have.
+                 width/height stay the file's own size, so the browser reserves the right shape
+                 before the image loads. -->
+            <img th:src="@{/images/labelSplitFields.png}" width="663" height="81"
+                 style="width:600px; max-width:100%; height:auto; border:1px solid #d9d9d9;"
+                 alt="Sample shift editor rows: Label 'dir' from 8am to 4:30p; a row with no label,
+                      from 8:00 to 16:30; and Label 'mentee' with no start or end time - each with
+                      a patroller count">
+            <figcaption style="margin-top:4px; color:#666666; font-size:11pt;">
+                What you set on this page
+            </figcaption>
+        </figure>
+
+        <div aria-hidden="true"
+             style="font-size:20px; line-height:1; color:#cc0000; padding-bottom:22px;">&rarr;</div>
+
+        <figure style="margin:0; text-align:center;">
+            <img th:src="@{/images/labelSplitExample.png}" width="233" height="83"
+                 style="max-width:100%; height:auto; border:1px solid #d9d9d9;"
+                 alt="The same three sample shifts as the calendar draws them: dir, 8:00 and mentee">
+            <figcaption style="margin-top:4px; color:#666666; font-size:11pt;">
+                How that day looks on the calendar
+            </figcaption>
+        </figure>
     </div>
+    <p style="margin:6px 0 0 0; color:#555555;">
+        Reading the example: the first shift has a <b>Label</b> as well as its times, so the
+        calendar shows the label (<i>dir</i>). The second has times and no label, so it shows the
+        start time (<i>8:00</i>). The third has a label and no times at all, so it shows
+        <i>mentee</i>.
+        <br>
+        <!-- The point the picture cannot make on its own: the third row looks perfectly fine on
+             the calendar and is the one that silently drops out of the feed. The reassurance
+             matters too - a director's first worry is that adding times costs them their label,
+             and getDisplayStartString shows the label whenever there is one. -->
+        <b style="color:#cc0000;">That third shift will not sync to a personal calendar</b> &mdash;
+        a shift needs both a start and an end time before it can be sent, so it is simply left out.
+        Give it times and it syncs like the others: <b>the calendar still shows <i>mentee</i></b>,
+        because a label is always what appears when there is one.
+    </p>
 </div>
 
 </body>
