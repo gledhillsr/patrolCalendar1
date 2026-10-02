@@ -211,16 +211,38 @@ class WebSitePreferencesControllerTest {
 
     assertTrue(page.contains("id=\"reminderDaysRow\"") && page.contains("dependent-setting"),
                "the days field should be drawn as a setting dependent on the checkbox");
-    //same <td> as the checkbox, so it sits on the one line rather than wrapping under it
+    //In the same control cell as the checkbox, so it sits on one line rather than wrapping under
+    //it: nothing is closed between the two, which is what "same cell" means in the markup.
     int checkbox = page.indexOf("id=\"emailReminderBox\"");
     int days = page.indexOf("id=\"reminderDaysRow\"");
-    assertTrue(checkbox > 0 && days > checkbox
-                 && page.indexOf("</td>", checkbox) > days,
-               "the days control belongs in the same cell as the checkbox, on the same line");
+    assertTrue(checkbox > 0 && days > checkbox, "both controls should be on the page");
+
+    String between = page.substring(checkbox, days);
+    assertFalse(between.contains("</span>") || between.contains("</div>"),
+                "the days control belongs beside the checkbox, not in a row of its own: " + between);
     assertTrue(page.contains("onchange=\"updateReminderDays()\""),
                "and the checkbox should enable and disable it");
     assertFalse(page.contains("Number of days before shift to send reminder"),
                 "the old free-standing row should be gone");
+  }
+
+  /**
+   * The four month dropdowns are generated from StaticUtils.szMonthsFull now rather than written
+   * out four times, so this checks the generated list is actually month names - a wrong index
+   * would quietly offer "February" where January belongs and still render a perfectly good page.
+   */
+  @Test
+  void theMonthDropdownsListTheMonthsInOrder() throws Exception {
+    String page = preferencesPage();
+
+    assertTrue(page.contains("<option value=\"1\">January</option>")
+                 || page.contains("value=\"1\" selected=\"selected\">January</option>"),
+               "month 1 should be January: " + page.substring(0, Math.min(400, page.length())));
+    assertTrue(page.contains(">December</option>"), "and the list should run to December");
+
+    //four of them: season start and end, blackout start and end
+    assertEquals(4, page.split(">January</option>", -1).length - 1,
+                 "there should be four month dropdowns on the page");
   }
 
   /** The preferences form with everything valid, overriding the named fields. */

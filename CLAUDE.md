@@ -952,8 +952,12 @@ beside `isPatrolCalendarHost()`, and a host that is neither — `localhost` abov
 **nothing**. That is what keeps this out of every other render test and out of the goldens, and it
 is right anyway: telling a developer on localhost to change their URL is noise.
 
-It is deliberately **not** a second identity: nothing is sent *from* it and no link is built with it,
-so `DOMAIN` and every address on it are untouched — this is one greeting, not a rename.
+It is deliberately **not** a second identity: nothing is sent *from* it, so `DOMAIN` and every
+address on it are untouched — this is a greeting, not a rename. **One link is built on it**: the
+"try the Sample resort" link in the New Features entry, by way of showing the new name to somebody
+being introduced to the site. It uses `${@site.patrolCalendarDomain}` rather than the name typed
+into the template, because `SiteIdentityTest` scans `src/main/resources/templates` as well as the
+Java and fails anybody who writes either domain out by hand.
 `isPatrolCalendarHost()` reads the host off the request in flight via `RequestContextHolder` rather
 than taking a parameter, because **Thymeleaf 3.1 removed `#request` from the expression context** and
 because every page draws this header — threading a flag through twenty controllers means the

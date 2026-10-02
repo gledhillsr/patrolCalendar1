@@ -73,6 +73,17 @@ public class SiteIdentity {
   public String getPatrolCalendarDisplay() { return PATROL_CALENDAR_DISPLAY; }
 
   /**
+   * The second domain, for the one link that is deliberately built on it: the "try the Sample
+   * resort" link on New Features, which is handed to people who are being shown the site.
+   *
+   * <p>Everything else still points at {@link #DOMAIN} - this is not a rename, and nothing is sent
+   * from this name. It is a getter rather than a literal in the template because
+   * SiteIdentityTest scans the templates for the domain written out by hand, which is how a
+   * rename leaves half a site pointing at the old name.
+   */
+  public String getPatrolCalendarDomain() { return PATROL_CALENDAR_DOMAIN; }
+
+  /**
    * Whether the request being served came in on {@link #PATROL_CALENDAR_DOMAIN}.
    *
    * Read off the request in flight rather than passed in, because every page draws the header and

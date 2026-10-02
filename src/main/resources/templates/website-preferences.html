@@ -1,5 +1,21 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+<!--
+  Web Site Preferences.
+
+  One card per group of settings, and inside a card one ".setting" row per setting: label on the
+  left, control on the right, help text under the control it belongs to. It was a single 700px
+  table with right-aligned labels in a 400px column, which wrapped the longer ones mid-sentence and
+  left every control floating in the middle of the page - and the calendar sync group was a styled
+  panel while everything around it was bare table rows.
+
+  The month dropdowns come from StaticUtils.szMonthsFull rather than being written out four times;
+  they were 48 lines of identical <option> markup, and a list edited in one copy and not the others
+  is the sort of thing nobody notices.
+
+  Every th:field binding is unchanged from the table version - this is a layout, not a rewrite of
+  what the page does.
+-->
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
@@ -34,9 +50,94 @@
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
     <style type="text/css">
-        /* A setting that only means something while the box above it is ticked: indented under
-           it, with the rule drawing the eye from one to the other, and visibly dead when it does
-           not apply. */
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #1f2937;
+        }
+
+        .wrap {
+            max-width: 880px;
+            margin: 0 auto 50px auto;
+            padding: 0 16px;
+        }
+        .page-title {
+            color: #003366;
+            font-size: 1.5em;
+            margin: 18px 0 4px 0;
+        }
+        .page-intro {
+            color: #555;
+            margin: 0 0 18px 0;
+        }
+
+        /* ---- one card per group of settings ---- */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e3e8ee;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,20,50,0.06);
+            padding: 18px 24px 20px 24px;
+            margin-bottom: 20px;
+        }
+        .card > h3 {
+            color: #003366;
+            font-size: 1.12em;
+            margin: 0 0 4px 0;
+        }
+        .card > .card-note {
+            color: #555;
+            font-size: 0.9em;
+            margin: 0 0 12px 0;
+            max-width: 52em;
+        }
+        .card > h3 + .setting,
+        .card > .card-note + .setting {
+            border-top: 1px solid #eef1f5;
+        }
+
+        /* ---- one row per setting: label left, control right ---- */
+        .setting {
+            display: grid;
+            grid-template-columns: 19em 1fr;
+            gap: 4px 18px;
+            align-items: baseline;
+            padding: 11px 0;
+            border-bottom: 1px solid #eef1f5;
+        }
+        .setting:last-child { border-bottom: none; }
+        .setting > .setting-label {
+            color: #374151;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+        .setting-control input[type="checkbox"] { vertical-align: middle; }
+        .setting-control select,
+        .setting-control input[type="number"],
+        .setting-control input[type="text"] {
+            font-family: inherit;
+            font-size: 1em;
+            padding: 3px 6px;
+            border: 1px solid #c6cdd4;
+            border-radius: 4px;
+            vertical-align: middle;
+        }
+        .setting-control input[type="number"] { width: 4.5em; }
+        /* help text sits under the control it explains, in the control column */
+        .setting > .hint {
+            grid-column: 2;
+            color: #555;
+            font-size: 0.86em;
+            max-width: 46em;
+        }
+        @media (max-width: 640px) {
+            .setting { grid-template-columns: 1fr; }
+            .setting > .hint { grid-column: 1; }
+        }
+
+        /* A setting that only means something while the box beside it is ticked: tied to it by the
+           rule, and visibly dead when it does not apply. */
         .dependent-setting {
             display: inline-block;
             vertical-align: middle;
@@ -45,207 +146,226 @@
             border-left: 3px solid #cfd8e3;
             white-space: nowrap;
         }
-        .dependent-setting.inactive {
-            opacity: 0.5;
+        .dependent-setting.inactive { opacity: 0.5; }
+
+        /* ---- notices, all in one place instead of a dozen inline styles ---- */
+        .notice {
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin: 0 0 12px 0;
+            max-width: 52em;
+            font-size: 0.9em;
         }
-        body {
-            font-size: 10pt;
-            color: #000000;
-            background-color: #ffffff;
+        .notice-warn {
+            background: #fffaf3;
+            border-left: 4px solid #cc7000;
+            color: #5a3d00;
+        }
+        .notice-ok {
+            background: #eef7ee;
+            border: 1px solid #b7d7b7;
+            color: #2d662d;
+            font-weight: bold;
+        }
+        .notice-info {
+            background: #eef3f8;
+            border-left: 4px solid #2f6f9f;
+            color: #1d4f75;
         }
         .success-message {
-            color: green;
+            color: #2d662d;
             font-weight: bold;
             margin: 10px 0;
         }
         .error-message {
-            color: red;
+            color: #c0392b;
             font-weight: bold;
-            margin: 10px 0;
+            margin: 0;
         }
-        table {
-            border-collapse: collapse;
+
+        /* ---- buttons ---- */
+        .btn {
+            font-family: inherit;
+            font-size: 0.95em;
+            background: #003366;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 16px;
+            cursor: pointer;
         }
-        td {
-            padding: 5px;
+        .btn:hover { background: #1e5eb8; }
+        .btn-secondary {
+            background: #ffffff;
+            color: #003366;
+            border: 1px solid #a8b7c6;
         }
-        h3 {
-            margin-top: 20px;
-            margin-bottom: 10px;
+        .btn-secondary:hover { background: #f0f5fa; }
+        .tool-row { margin: 10px 0 0 0; }
+
+        /* The save bar: one action, at the end, where a long form expects it. */
+        .actions {
+            text-align: center;
+            margin: 24px 0 10px 0;
         }
+        .actions .btn { padding: 10px 28px; font-size: 1.02em; }
+        .back-link { text-align: center; margin: 0; }
+        .back-link a { color: #1e6091; }
     </style>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
-    <h2 th:text="'Website Preferences for: ' + ${resortFullName}">Website Preferences</h2>
+    <div class="wrap">
 
-    <!-- Success message -->
-    <div th:if="${param.success}" class="success-message">
-        Your preferences have been updated successfully.
-    </div>
+        <h2 class="page-title" th:text="'Website Preferences for: ' + ${resortFullName}">Website Preferences</h2>
+        <p class="page-intro">
+            How this patrol&rsquo;s calendar behaves for everybody. These settings apply to the
+            whole resort, not just to you.
+        </p>
 
-    <!-- Non-director message -->
-    <div th:if="${!isDirector}">
-        <p>Sorry, you are -not- authorized for this menu</p>
-        <p><a th:href="@{/Directors(resort=${resort}, ID=${patrollerId})}">Back to Directors Menu</a></p>
-    </div>
-
-    <!-- Director preferences form -->
-    <div th:if="${isDirector}">
-        <!-- Error message -->
-        <div th:if="${errorMessage}" class="error-message">
-            <span th:text="${errorMessage}">Error message</span>
+        <!-- Success message -->
+        <div th:if="${param.success}" class="success-message">
+            Your preferences have been updated successfully.
         </div>
 
-        <!-- Main form -->
-        <form th:action="@{/WebSitePreferences}"
-              th:object="${preferencesForm}"
-              method="post">
+        <!-- Non-director message -->
+        <div th:if="${!isDirector}" class="card">
+            <p>Sorry, you are -not- authorized for this menu</p>
+            <p><a th:href="@{/Directors(resort=${resort}, ID=${patrollerId})}">Back to Directors Menu</a></p>
+        </div>
 
-            <!-- Validation errors -->
-            <div th:if="${#fields.hasAnyErrors()}" class="error-message">
-                <ul>
-                    <li th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</li>
-                </ul>
+        <!-- Director preferences form -->
+        <div th:if="${isDirector}">
+            <!-- Error message -->
+            <div th:if="${errorMessage}" class="card error-message">
+                <span th:text="${errorMessage}">Error message</span>
             </div>
 
-            <!-- Hidden fields -->
-            <input type="hidden" th:field="*{resort}" />
+            <form th:action="@{/WebSitePreferences}"
+                  th:object="${preferencesForm}"
+                  method="post">
 
-            <table border="0" width="700">
-                <!-- Email Settings Section -->
-                <tr>
-                    <td colspan="2">
-                        <h3>Email Settings</h3>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Email patrollers when changes are made to their assignments:</font>
-                    </td>
-                    <td width="300">
-                        <input type="checkbox" th:field="*{emailPatrollers}" />
-                    </td>
-                </tr>
-                <!-- The reminder switch and its "how many days" belong together: on two separate
-                     rows they read as two unrelated settings, and the number looked live even with
-                     reminders switched off. One row, with the number indented under the switch and
-                     greyed out until it means something. -->
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Email reminders to patrollers:</font>
-                    </td>
-                    <!-- No width here: the "Send N day(s) before the shift" that follows the box
-                         belongs on this line, and the 300px the other rows use cuts it off. -->
-                    <td nowrap>
-                        <input type="checkbox" id="emailReminderBox" th:field="*{emailReminder}"
-                               style="vertical-align:middle;"
-                               onchange="updateReminderDays()" />
-                        <span id="reminderDaysRow" class="dependent-setting">
-                            <label for="reminderDays"><font size="3">Send</font></label>
-                            <input type="number" id="reminderDays" th:field="*{reminderDays}"
-                                   min="0" max="30" style="width:4em; vertical-align:middle;" />
-                            <font size="3">day(s) before the shift</font>
+                <!-- Validation errors -->
+                <div th:if="${#fields.hasAnyErrors()}" class="card error-message">
+                    <ul>
+                        <li th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</li>
+                    </ul>
+                </div>
+
+                <input type="hidden" th:field="*{resort}" />
+
+                <!-- ============ Email Settings ============ -->
+                <div class="card">
+                    <h3>Email Settings</h3>
+                    <p class="card-note">What this site sends on your behalf, and who may send it.</p>
+
+                    <div class="setting">
+                        <span class="setting-label">Email patrollers when their assignments change</span>
+                        <span class="setting-control">
+                            <input type="checkbox" th:field="*{emailPatrollers}" />
                         </span>
-                        <span th:if="${#fields.hasErrors('reminderDays')}" class="error-message"
-                              th:errors="*{reminderDays}">Reminder Days Error</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Allow all patrollers to send email to roster:</font>
-                    </td>
-                    <td width="300">
-                        <input type="checkbox" th:field="*{emailAll}" />
-                    </td>
-                </tr>
+                    </div>
 
-                <!-- Calendar Permissions Section -->
-                <tr>
-                    <td colspan="2">
-                        <h3>Calendar Permissions</h3>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Only directors can make calendar changes:</font>
-                    </td>
-                    <td width="300">
-                        <input type="checkbox" th:field="*{onlyDirectors}" />
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Days before shift when patrollers lose remove access:</font>
-                    </td>
-                    <td width="300">
-                        <select th:field="*{removeAccess}">
-                            <option value="0">0 days (immediate)</option>
-                            <option value="1">1 day</option>
-                            <option value="2">2 days</option>
-                            <option value="7">7 days (1 week)</option>
-                            <option value="14">14 days (2 weeks)</option>
-                            <option value="127">127 days (never)</option>
-                        </select>
-                        <span th:if="${#fields.hasErrors('removeAccess')}" class="error-message" th:errors="*{removeAccess}">Remove Access Error</span>
-                    </td>
-                </tr>
+                    <!-- The reminder switch and its "how many days" are one setting, so they are on
+                         one row: apart they read as two unrelated ones, and the number looked live
+                         even with reminders switched off. -->
+                    <div class="setting">
+                        <span class="setting-label">Email reminders before a shift</span>
+                        <span class="setting-control">
+                            <input type="checkbox" id="emailReminderBox" th:field="*{emailReminder}"
+                                   onchange="updateReminderDays()" />
+                            <span id="reminderDaysRow" class="dependent-setting">
+                                <label for="reminderDays">Send</label>
+                                <input type="number" id="reminderDays" th:field="*{reminderDays}"
+                                       min="0" max="30" />
+                                day(s) before the shift
+                            </span>
+                            <span th:if="${#fields.hasErrors('reminderDays')}" class="error-message"
+                                  th:errors="*{reminderDays}">Reminder Days Error</span>
+                        </span>
+                    </div>
 
-                <!-- Season Dates Section -->
-                <tr>
-                    <td colspan="2">
-                        <h3>Season Dates</h3>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Season start date:</font>
-                    </td>
-                    <td width="300">
-                        <select th:field="*{startMonth}">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                        <input type="number" th:field="*{startDay}" min="1" max="31" size="3" />
-                        <span th:if="${#fields.hasErrors('startDay')}" class="error-message" th:errors="*{startDay}">Start Day Error</span>
-                        <span th:if="${#fields.hasErrors('startMonth')}" class="error-message" th:errors="*{startMonth}">Start Month Error</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Season end date:</font>
-                    </td>
-                    <td width="300">
-                        <select th:field="*{endMonth}">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                        <input type="number" th:field="*{endDay}" min="1" max="31" size="3" />
-                        <span th:if="${#fields.hasErrors('endDay')}" class="error-message" th:errors="*{endDay}">End Day Error</span>
-                        <span th:if="${#fields.hasErrors('endMonth')}" class="error-message" th:errors="*{endMonth}">End Month Error</span>
-                    </td>
-                </tr>
+                    <div class="setting">
+                        <span class="setting-label">Allow all patrollers to email the roster</span>
+                        <span class="setting-control">
+                            <input type="checkbox" th:field="*{emailAll}" />
+                        </span>
+                        <span class="hint">
+                            Off means only directors see the &ldquo;email THESE patrollers&rdquo;
+                            button.
+                        </span>
+                    </div>
+                </div>
+
+                <!-- ============ Calendar Permissions ============ -->
+                <div class="card">
+                    <h3>Calendar Permissions</h3>
+                    <p class="card-note">Who may change the schedule, and how late they may change it.</p>
+
+                    <div class="setting">
+                        <span class="setting-label">Only directors can make calendar changes</span>
+                        <span class="setting-control">
+                            <input type="checkbox" th:field="*{onlyDirectors}" />
+                        </span>
+                        <span class="hint">
+                            Patrollers can always see the calendar; this decides whether they can
+                            sign themselves up and take themselves off.
+                        </span>
+                    </div>
+
+                    <div class="setting">
+                        <span class="setting-label">Patrollers stop being able to remove themselves</span>
+                        <span class="setting-control">
+                            <select th:field="*{removeAccess}">
+                                <option value="0">0 days (immediate)</option>
+                                <option value="1">1 day</option>
+                                <option value="2">2 days</option>
+                                <option value="7">7 days (1 week)</option>
+                                <option value="14">14 days (2 weeks)</option>
+                                <option value="127">127 days (never)</option>
+                            </select>
+                            before the shift
+                            <span th:if="${#fields.hasErrors('removeAccess')}" class="error-message"
+                                  th:errors="*{removeAccess}">Remove Access Error</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- ============ Season Dates ============ -->
+                <div class="card">
+                    <h3>Season Dates</h3>
+                    <p class="card-note">
+                        Days outside this range are closed on the calendar, so nobody signs up for a
+                        shift in July.
+                    </p>
+
+                    <div class="setting">
+                        <span class="setting-label">Season start date</span>
+                        <span class="setting-control">
+                            <select th:field="*{startMonth}">
+                                <option th:each="m : ${#numbers.sequence(1, 12)}" th:value="${m}"
+                                        th:text="${T(com.gledhills.calendar.utils.StaticUtils).szMonthsFull[m - 1]}">January</option>
+                            </select>
+                            <input type="number" th:field="*{startDay}" min="1" max="31" />
+                            <span th:if="${#fields.hasErrors('startDay')}" class="error-message" th:errors="*{startDay}">Start Day Error</span>
+                            <span th:if="${#fields.hasErrors('startMonth')}" class="error-message" th:errors="*{startMonth}">Start Month Error</span>
+                        </span>
+                    </div>
+
+                    <div class="setting">
+                        <span class="setting-label">Season end date</span>
+                        <span class="setting-control">
+                            <select th:field="*{endMonth}">
+                                <option th:each="m : ${#numbers.sequence(1, 12)}" th:value="${m}"
+                                        th:text="${T(com.gledhills.calendar.utils.StaticUtils).szMonthsFull[m - 1]}">January</option>
+                            </select>
+                            <input type="number" th:field="*{endDay}" min="1" max="31" />
+                            <span th:if="${#fields.hasErrors('endDay')}" class="error-message" th:errors="*{endDay}">End Day Error</span>
+                            <span th:if="${#fields.hasErrors('endMonth')}" class="error-message" th:errors="*{endMonth}">End Month Error</span>
+                        </span>
+                    </div>
+                </div>
 
                 <!--
                   Personal calendar sync.
@@ -253,242 +373,205 @@
                   Everything a shift needs before it can leave this site and land correctly in
                   somebody's own calendar, in one place: which clock the times are on, and whether
                   the times can be read at all. Sits below the season dates, above the blackout
-                  ones - the settings above it are what a director comes to this page to change,
-                  and this is a bordered panel of its own that pushed them down the window.
+                  ones - the settings above it are what a director comes to this page to change.
                 -->
-                <tr>
-                    <td colspan="2">
-                        <div id="calendarSyncPanel"
-                             style="border:2px solid #2f6f9f; border-radius:6px; padding:12px 16px;
-                                    background:#f5f9fc; margin:6px 0 14px 0;">
-                            <h3 style="margin-top:0; color:#1d4f75;">
-                                Enable PatrolCalendar sync to personal calendars
-                                (Google&nbsp;/&nbsp;Apple&nbsp;/&nbsp;Outlook)
-                            </h3>
+                <div class="card" id="calendarSyncPanel">
+                    <h3>Enable PatrolCalendar sync to personal calendars
+                        (Google&nbsp;/&nbsp;Apple&nbsp;/&nbsp;Outlook)</h3>
+                    <p class="card-note">
+                        Lets a patroller subscribe to their own shifts, so the ones they are signed
+                        up for appear in the calendar they already use and update themselves when
+                        the schedule changes.
+                    </p>
 
-                            <p style="font-size:0.9em; color:#444; margin:0 0 10px 0; max-width:46em">
-                                Lets a patroller subscribe to their own shifts, so the ones they are
-                                signed up for appear in the calendar they already use and update
-                                themselves when the schedule changes.
-                            </p>
+                    <!-- The master switch. Off by default and off for any resort whose column the
+                         site-wide job has not reached: switching a resort's patrollers on is its
+                         director's decision, not a side effect of a migration. -->
+                    <div class="setting">
+                        <span class="setting-label">Enable for your patrol members</span>
+                        <span class="setting-control">
+                            <input type="checkbox" th:field="*{syncEnabled}"
+                                   th:disabled="${!maySwitchOnSync}"/>
+                        </span>
+                        <!-- Open to every real resort now. What is left greyed out is the demo
+                             resorts, and that is permanent: their members are invented, the same
+                             reason they are never emailed. -->
+                        <span class="hint" th:unless="${maySwitchOnSync}">
+                            This switch is not available on the demonstration resort. Its patrollers
+                            are made up, so their shifts are never sent anywhere &mdash; not to a
+                            personal calendar and not by email.
+                            <b>Everything below still works</b>, so this is the place to try it.
+                        </span>
+                    </div>
 
-                            <!-- The master switch. Off by default and off for any resort whose
-                                 column the site-wide job has not reached: switching a resort's
-                                 patrollers on is its director's decision, not a side effect of a
-                                 migration. -->
-                            <p style="margin:0 0 12px 0;">
-                                <label>
-                                    <input type="checkbox" th:field="*{syncEnabled}"
-                                           th:disabled="${!maySwitchOnSync}"/>
-                                    <b>Enable for your patrol members</b>
-                                </label>
-                            </p>
-                            <!-- Open to every real resort now. What is left greyed out is the
-                                 demo resorts, and that is permanent: their members are invented,
-                                 the same reason they are never emailed. -->
-                            <p th:unless="${maySwitchOnSync}"
-                               style="font-size:0.85em; margin:-8px 0 12px 22px; max-width:46em;
-                                      color:#666;">
-                                This switch is not available on the demonstration resort. Its
-                                patrollers are made up, so their shifts are never sent anywhere
-                                &mdash; not to a personal calendar and not by email.
-                                <b>Everything below still works</b>, so this is the place to try it.
-                            </p>
+                    <!-- (1) which clock the times are on -->
+                    <div class="setting">
+                        <span class="setting-label">Resort time zone</span>
+                        <span class="setting-control">
+                            <select id="timeZoneSelect" th:field="*{timeZone}">
+                                <option th:each="zone : ${T(com.gledhills.calendar.utils.ResortTimeZones).CHOICES}"
+                                        th:value="${zone}"
+                                        th:text="${T(com.gledhills.calendar.utils.ResortTimeZones).label(zone)}">
+                                    Mountain
+                                </option>
+                            </select>
+                            <span th:if="${#fields.hasErrors('timeZone')}" class="error-message"
+                                  th:errors="*{timeZone}">Time Zone Error</span>
+                        </span>
+                        <span class="hint">
+                            The clock your mountain runs on. This changes nothing you see on this
+                            site &mdash; every time here is read by somebody standing at the resort
+                            &mdash; but without it a shift sent to a phone elsewhere lands at the
+                            wrong hour. Saved with <b>Save Preferences</b> below.
+                        </span>
+                    </div>
 
-                            <p style="font-size:0.9em; margin:0 0 12px 0; max-width:46em;
-                                      padding:6px 10px; border-left:4px solid #cc7000;
-                                      background:#fffaf3; color:#5a3d00;">
-                                <b>Please note:</b> ANY shift with no valid start <i>and</i> end time
-                                cannot be synced to a personal calendar, and will be left out. The
-                                rest of the shift&rsquo;s day is unaffected &mdash; it still appears
-                                on this site exactly as it does now.
-                            </p>
+                    <p class="notice notice-warn">
+                        <b>Please note:</b> ANY shift with no valid start <i>and</i> end time cannot
+                        be synced to a personal calendar, and will be left out. The rest of the
+                        shift&rsquo;s day is unaffected &mdash; it still appears on this site exactly
+                        as it does now.
+                    </p>
 
-                            <!-- (1) which clock the times are on -->
-                            <p style="margin:0 0 4px 0;">
-                                <label for="timeZoneSelect"><b>Resort time zone:</b></label>
-                                <select id="timeZoneSelect" th:field="*{timeZone}">
-                                    <option th:each="zone : ${T(com.gledhills.calendar.utils.ResortTimeZones).CHOICES}"
-                                            th:value="${zone}"
-                                            th:text="${T(com.gledhills.calendar.utils.ResortTimeZones).label(zone)}">
-                                        Mountain
-                                    </option>
-                                </select>
-                                <span th:if="${#fields.hasErrors('timeZone')}" class="error-message"
-                                      th:errors="*{timeZone}">Time Zone Error</span>
-                            </p>
-                            <p style="font-size:0.85em; color:#555; margin:0 0 14px 0; max-width:46em">
-                                The clock your mountain runs on. This changes nothing you see on
-                                this site &mdash; every time here is read by somebody standing at
-                                the resort &mdash; but without it a shift sent to a phone elsewhere
-                                lands at the wrong hour. Saved with <b>Save Preferences</b> below.
-                            </p>
+                    <!-- (2) whether the times can be read. What the tidy button just did. -->
+                    <p th:if="${tidied}" class="notice notice-ok">
+                        Shift template times: <span th:text="${tidied}">nothing to do</span>
+                    </p>
+                    <p th:if="${scheduledTidied}" class="notice notice-ok">
+                        Scheduled shifts from today on:
+                        <span th:text="${scheduledTidied}">nothing to do</span>
+                    </p>
 
-                            <!-- (2) whether the times can be read. What the tidy button just did. -->
-                            <p th:if="${tidied}" class="success-message"
-                               style="margin:0 0 10px 0; padding:6px 10px; border-radius:4px;
-                                      background:#eef7ee; border:1px solid #b7d7b7; color:#2d662d;">
-                                Shift template times: <span th:text="${tidied}">nothing to do</span>
-                            </p>
-                            <p th:if="${scheduledTidied}" class="success-message"
-                               style="margin:0 0 10px 0; padding:6px 10px; border-radius:4px;
-                                      background:#eef7ee; border:1px solid #b7d7b7; color:#2d662d;">
-                                Scheduled shifts from today on:
-                                <span th:text="${scheduledTidied}">nothing to do</span>
-                            </p>
+                    <p class="notice notice-info"
+                       th:if="${syncReadiness != null and syncReadiness.isClean()}">
+                        &#10003;
+                        <b th:text="${syncReadiness.ready()}">0</b> of
+                        <b th:text="${syncReadiness.total()}">0</b>
+                        shift template rows can be synced. Nothing needs your attention.
+                    </p>
+                    <p class="notice notice-warn"
+                       th:if="${syncReadiness != null and !syncReadiness.isClean()}">
+                        <b th:text="${syncReadiness.ready()}">0</b> of
+                        <b th:text="${syncReadiness.total()}">0</b>
+                        shift template rows can be synced &mdash;
+                        <b th:text="${syncReadiness.needsAttention()}">0</b>
+                        still need a start or end time you can read.
+                        <a th:href="@{/EditShiftTemplates(resort=${resort}, ID=${patrollerId})}">
+                            See which ones on Edit Shift Templates</a>.
+                    </p>
 
-                            <p style="margin:0 0 6px 0;"
-                               th:if="${syncReadiness != null and syncReadiness.isClean()}">
-                                &#10003;
-                                <b th:text="${syncReadiness.ready()}">0</b> of
-                                <b th:text="${syncReadiness.total()}">0</b>
-                                shift template rows can be synced. Nothing needs your attention.
-                            </p>
-                            <p style="margin:0 0 6px 0; color:#994f00;"
-                               th:if="${syncReadiness != null and !syncReadiness.isClean()}">
-                                <b th:text="${syncReadiness.ready()}">0</b> of
-                                <b th:text="${syncReadiness.total()}">0</b>
-                                shift template rows can be synced &mdash;
-                                <b th:text="${syncReadiness.needsAttention()}">0</b>
-                                still need a start or end time you can read.
-                                <a th:href="@{/EditShiftTemplates(resort=${resort}, ID=${patrollerId})}">
-                                    See which ones on Edit Shift Templates</a>.
-                            </p>
+                    <p class="hint" style="max-width:52em;">
+                        The button below rewrites times that are already readable into one form
+                        &mdash; <code>1600</code> and <code>4:30pm</code> both become
+                        <code>16:00</code> &mdash; and fills in a missing start time from a Label
+                        that holds one &mdash; <code>4:00P</code>, <code>Vol 10:00AM</code> and
+                        <code>8:30 Paid</code> all give a start time. <b>Your labels are not
+                        changed</b>, so the calendar still reads as it does today, and a bare number
+                        is never read as a clock time (<code>Train 2</code> stays a course number).
+                        <b>It only touches shift templates, never a day that has already been
+                        scheduled</b>, and it leaves alone anything it cannot read rather than
+                        guessing. Safe to press more than once.
+                    </p>
 
-                            <p style="font-size:0.85em; color:#555; margin:6px 0 8px 0; max-width:46em">
-                                The button below rewrites times that are already readable into one
-                                form &mdash; <code>1600</code> and <code>4:30pm</code> both become
-                                <code>16:00</code> &mdash; and fills in a missing start time
-                                from a Label that holds one &mdash; <code>4:00P</code>,
-                                <code>Vol 10:00AM</code> and <code>8:30 Paid</code> all give a start
-                                time. <b>Your labels are not changed</b>, so the calendar still reads
-                                as it does today, and a bare number is never read as a clock time
-                                (<code>Train 2</code> stays a course number). <b>It only touches shift templates, never a day
-                                that has already been scheduled</b>, and it leaves alone anything it
-                                cannot read rather than guessing. Safe to press more than once.
-                            </p>
+                    <!-- formaction, because these buttons live inside the preferences form: HTML
+                         has no nested forms, and the panel has to sit here beside the time zone it
+                         belongs with. The handlers ignore the form's fields - neither of them saves
+                         a preference. -->
+                    <p class="tool-row">
+                        <input type="submit" class="btn btn-secondary"
+                               value="Tidy my shift template start and end times"
+                               th:formaction="@{/WebSitePreferences/tidyShiftTimes}"
+                               formmethod="post"
+                               onclick="return confirmActionDialog(this,
+                                   'Rewrite this resort\'s shift TEMPLATE start and end times into one standard form, and fill in a missing start time from a Label that holds one. Your labels are not changed.\n\nScheduled days are not touched, and anything that cannot be read is left alone. Safe to run more than once. Continue?',
+                                   'Tidy shift template times?')"/>
+                    </p>
 
-                            <!-- formaction, because these buttons live inside the preferences
-                                 form: HTML has no nested forms, and the panel has to sit here
-                                 beside the time zone it belongs with. The handlers ignore the
-                                 form's fields - neither of them saves a preference. -->
-                            <input type="submit" value="Tidy my shift template start and end times"
-                                   th:formaction="@{/WebSitePreferences/tidyShiftTimes}"
-                                   formmethod="post"
-                                   onclick="return confirmActionDialog(this,
-                                       'Rewrite this resort\'s shift TEMPLATE start and end times into one standard form, and fill in a missing start time from a Label that holds one. Your labels are not changed.\n\nScheduled days are not touched, and anything that cannot be read is left alone. Safe to run more than once. Continue?',
-                                       'Tidy shift template times?')"/>
+                    <!-- The templates are what build a season; these are the days already built.
+                         A resort that has laid its season out needs both. -->
+                    <p class="hint" style="max-width:52em; margin-top:14px;">
+                        Templates are what future days are built from. If your season is already
+                        laid out on the calendar, those days need the same tidy-up &mdash; and they
+                        are what a patroller&rsquo;s calendar actually reads. <b>Only days from
+                        today onwards are touched;</b> a shift somebody has already worked is a
+                        record and is left alone.
+                    </p>
+                    <p class="tool-row">
+                        <input type="submit" class="btn btn-secondary"
+                               value="Tidy this season's scheduled shifts"
+                               th:formaction="@{/WebSitePreferences/tidyScheduledShifts}"
+                               formmethod="post"
+                               onclick="return confirmActionDialog(this,
+                                   'Rewrite the start and end times on days already scheduled on your calendar, from today onwards, into one standard form.\n\nNothing before today is touched, and anything that cannot be read is left alone. Safe to run more than once. Continue?',
+                                   'Tidy this season\'s scheduled shifts?')"/>
+                    </p>
+                </div>
 
-                            <!-- The templates are what build a season; these are the days already
-                                 built. A resort that has laid its season out needs both. -->
-                            <p style="font-size:0.85em; color:#555; margin:14px 0 8px 0; max-width:46em">
-                                Templates are what future days are built from. If your season is
-                                already laid out on the calendar, those days need the same tidy-up
-                                &mdash; and they are what a patroller&rsquo;s calendar actually
-                                reads. <b>Only days from today onwards are touched;</b> a shift
-                                somebody has already worked is a record and is left alone.
-                            </p>
-                            <input type="submit" value="Tidy this season's scheduled shifts"
-                                   th:formaction="@{/WebSitePreferences/tidyScheduledShifts}"
-                                   formmethod="post"
-                                   onclick="return confirmActionDialog(this,
-                                       'Rewrite the start and end times on days already scheduled on your calendar, from today onwards, into one standard form.\n\nNothing before today is touched, and anything that cannot be read is left alone. Safe to run more than once. Continue?',
-                                       'Tidy this season\'s scheduled shifts?')"/>
-                        </div>
-                    </td>
-                </tr>
-
-                <!-- Blackout Dates Section.
+                <!-- ============ Blackout Dates ============
                      Worth spelling out: "blackout" says nothing about what it does, and the two
                      things people get wrong are that it touches weekends only, and that it hides
                      rather than closes. -->
-                <tr>
-                    <td colspan="2">
-                        <h3>Blackout Dates &mdash; hold weekend sign-ups back until you are ready</h3>
-                        <p style="font-size: 0.9em; color: #444; margin: 0 0 10px 0; max-width: 46em">
-                            <b>Weekends only.</b> Saturdays and Sundays inside the range below show
-                            <i>Not Yet Available</i> on the calendar instead of their shifts, so
-                            nobody can sign up for them yet. Weekdays are never affected, and days
-                            that already have shifts saved on them are left alone.
-                            <br>
-                            Use this when weekend days are released a block at a time &mdash; a
-                            trimester, say &mdash; while weekdays stay open for the whole season.
-                            Clear the tick box, or move the range on, to release them.
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Use blackout dates:</font>
-                    </td>
-                    <td width="300">
-                        <input type="checkbox" th:field="*{useBlackOut}" />
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Blackout start date:</font>
-                    </td>
-                    <td width="300">
-                        <select th:field="*{blackOutStartMonth}">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                        <input type="number" th:field="*{blackOutStartDay}" min="1" max="31" size="3" />
-                        <input type="number" th:field="*{blackOutStartYear}" min="2000" max="2100" size="5" />
-                        <span th:if="${#fields.hasErrors('blackOutStartDay')}" class="error-message" th:errors="*{blackOutStartDay}">Start Day Error</span>
-                        <span th:if="${#fields.hasErrors('blackOutStartMonth')}" class="error-message" th:errors="*{blackOutStartMonth}">Start Month Error</span>
-                        <span th:if="${#fields.hasErrors('blackOutStartYear')}" class="error-message" th:errors="*{blackOutStartYear}">Start Year Error</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="400" align="right">
-                        <font size="3">Blackout end date:</font>
-                    </td>
-                    <td width="300">
-                        <select th:field="*{blackOutEndMonth}">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                        <input type="number" th:field="*{blackOutEndDay}" min="1" max="31" size="3" />
-                        <input type="number" th:field="*{blackOutEndYear}" min="2000" max="2100" size="5" />
-                        <span th:if="${#fields.hasErrors('blackOutEndDay')}" class="error-message" th:errors="*{blackOutEndDay}">End Day Error</span>
-                        <span th:if="${#fields.hasErrors('blackOutEndMonth')}" class="error-message" th:errors="*{blackOutEndMonth}">End Month Error</span>
-                        <span th:if="${#fields.hasErrors('blackOutEndYear')}" class="error-message" th:errors="*{blackOutEndYear}">End Year Error</span>
-                    </td>
-                </tr>
-
-                <!-- Submit button -->
-                <tr>
-                    <td colspan="2" align="center">
+                <div class="card" id="blackoutSection">
+                    <h3>Blackout Dates &mdash; hold weekend sign-ups back until you are ready</h3>
+                    <p class="card-note">
+                        <b>Weekends only.</b> Saturdays and Sundays inside the range below show
+                        <i>Not Yet Available</i> on the calendar instead of their shifts, so nobody
+                        can sign up for them yet. Weekdays are never affected, and days that already
+                        have shifts saved on them are left alone.
                         <br>
-                        <input type="submit" value="Save Preferences" />
-                    </td>
-                </tr>
-            </table>
-        </form>
+                        Use this when weekend days are released a block at a time &mdash; a
+                        trimester, say &mdash; while weekdays stay open for the whole season. Clear
+                        the tick box, or move the range on, to release them.
+                    </p>
 
-        <p><a th:href="@{/Directors(resort=${resort}, ID=${patrollerId})}">Back to Directors Menu</a></p>
+                    <div class="setting">
+                        <span class="setting-label">Use blackout dates</span>
+                        <span class="setting-control">
+                            <input type="checkbox" th:field="*{useBlackOut}" />
+                        </span>
+                    </div>
+
+                    <div class="setting">
+                        <span class="setting-label">Blackout start date</span>
+                        <span class="setting-control">
+                            <select th:field="*{blackOutStartMonth}">
+                                <option th:each="m : ${#numbers.sequence(1, 12)}" th:value="${m}"
+                                        th:text="${T(com.gledhills.calendar.utils.StaticUtils).szMonthsFull[m - 1]}">January</option>
+                            </select>
+                            <input type="number" th:field="*{blackOutStartDay}" min="1" max="31" />
+                            <input type="number" th:field="*{blackOutStartYear}" min="2000" max="2100" style="width:5.5em;" />
+                            <span th:if="${#fields.hasErrors('blackOutStartDay')}" class="error-message" th:errors="*{blackOutStartDay}">Start Day Error</span>
+                            <span th:if="${#fields.hasErrors('blackOutStartMonth')}" class="error-message" th:errors="*{blackOutStartMonth}">Start Month Error</span>
+                            <span th:if="${#fields.hasErrors('blackOutStartYear')}" class="error-message" th:errors="*{blackOutStartYear}">Start Year Error</span>
+                        </span>
+                    </div>
+
+                    <div class="setting">
+                        <span class="setting-label">Blackout end date</span>
+                        <span class="setting-control">
+                            <select th:field="*{blackOutEndMonth}">
+                                <option th:each="m : ${#numbers.sequence(1, 12)}" th:value="${m}"
+                                        th:text="${T(com.gledhills.calendar.utils.StaticUtils).szMonthsFull[m - 1]}">January</option>
+                            </select>
+                            <input type="number" th:field="*{blackOutEndDay}" min="1" max="31" />
+                            <input type="number" th:field="*{blackOutEndYear}" min="2000" max="2100" style="width:5.5em;" />
+                            <span th:if="${#fields.hasErrors('blackOutEndDay')}" class="error-message" th:errors="*{blackOutEndDay}">End Day Error</span>
+                            <span th:if="${#fields.hasErrors('blackOutEndMonth')}" class="error-message" th:errors="*{blackOutEndMonth}">End Month Error</span>
+                            <span th:if="${#fields.hasErrors('blackOutEndYear')}" class="error-message" th:errors="*{blackOutEndYear}">End Year Error</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <input type="submit" class="btn" value="Save Preferences" />
+                </div>
+            </form>
+
+            <p class="back-link">
+                <a th:href="@{/Directors(resort=${resort}, ID=${patrollerId})}">Back to Directors Menu</a>
+            </p>
+        </div>
+
     </div>
 
     <div th:replace="~{fragments/footer :: footer}"></div>

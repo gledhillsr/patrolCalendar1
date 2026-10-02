@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -145,6 +146,17 @@ class UpdateInfoRendersOnEveryPathTest {
     assertTrue(page.contains("Personal Information"), "the form should come back: " + page);
   }
 
+  /** A member's own My Info page, which is the one this layout is for. */
+  private String myInfoPage() throws Exception {
+    MockHttpSession session = new MockHttpSession();
+    session.setAttribute("loggedInUserId", MEMBER_ID);
+    session.setAttribute("loggedInResort", "Sample");
+
+    return mockMvc.perform(get("/UpdateInfo").param("resort", "Sample").param("ID", MEMBER_ID)
+                             .header("User-Agent", BROWSER).session(session))
+      .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+  }
+
   private String addPatroller(String id, String first, String last, String phone) throws Exception {
     MockHttpSession session = new MockHttpSession();
     session.setAttribute("loggedInUserId", DIRECTOR_ID);
@@ -184,5 +196,39 @@ class UpdateInfoRendersOnEveryPathTest {
                              .session(session))
       .andExpect(status().isOk())
       .andReturn().getResponse().getContentAsString();
+  }
+
+  /**
+   * The layout promise: a member's own details fit in a few rows of fields rather than one page-
+   * width table row each, so the page can be read without scrolling through it.
+   *
+   * <p>Checked structurally rather than by eye - the grid is what makes it compact, and a future
+   * edit that drops back to one field per line would pass every other assertion here.
+   */
+  @Test
+  void theFieldsAreLaidOutInAGridRatherThanOnePerRow() throws Exception {
+    String page = myInfoPage();
+
+    assertTrue(page.contains("class=\"fields\""), "fields should sit in the grid: " + page);
+    assertFalse(page.contains("<table border=\"0\" width=\"900\">"),
+                "the 900px one-field-per-row table should be gone");
+    assertFalse(page.contains("host resort"),
+                "the host resort line is the header's job, not this page's");
+
+    //Every input in the grid is width:100%, so without border-box each is 18px wider than its
+    //column - the padding and border are added on top. The inner columns hide that in the gap
+    //beside them; the right-hand column has no gap, so its boxes ate the card's right padding and
+    //the page looked lopsided. Nothing else here would notice.
+    assertTrue(page.contains("box-sizing: border-box"),
+               "inputs must be sized border-box or the right-hand column overflows its card");
+  }
+
+  /** The phone format is the placeholder now, said once per box instead of beside all three. */
+  @Test
+  void thePhoneFormatIsShownInTheBoxes() throws Exception {
+    String page = myInfoPage();
+
+    assertEquals(3, page.split("placeholder=\"999-999-9999\"", -1).length - 1,
+                 "home, work and cell should each carry the format as their placeholder");
   }
 }

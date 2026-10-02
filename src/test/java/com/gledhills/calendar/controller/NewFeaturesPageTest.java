@@ -1,6 +1,7 @@
 package com.gledhills.calendar.controller;
 
 import org.junit.jupiter.api.BeforeEach;
+import com.gledhills.calendar.utils.SiteIdentity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -209,4 +210,26 @@ class NewFeaturesPageTest {
         session.setAttribute("loggedInResort", "Sample");
         return session;
     }
+
+  /**
+   * The Sample resort entry links straight into the demo, on the second domain and in a new tab.
+   *
+   * <p>The host is asserted through SiteIdentity rather than as a literal, for the same reason the
+   * template builds it that way: SiteIdentityTest fails anybody who writes the domain out by hand,
+   * because that is how a rename leaves half a site pointing at the old name.
+   */
+  @Test
+  void theSampleResortEntryLinksStraightIntoTheDemo() throws Exception {
+        String page = pageAs(DIRECTOR_ID);
+
+    String expected = "https://" + SiteIdentity.PATROL_CALENDAR_DOMAIN
+                        + "/calendar-1/MemberLogin?resort=Sample&amp;NSPgoto=MonthCalendar";
+    assertTrue(page.contains(expected), "the link should go to the Sample login: " + expected);
+    assertTrue(page.contains("Click this link"), "and say so in the Where line");
+
+    int at = page.indexOf(expected);
+    String tag = page.substring(page.lastIndexOf("<a", at), page.indexOf(">", at) + 1);
+    assertTrue(tag.contains("target=\"_blank\""),
+               "it opens in a new window, so a reader does not lose this page: " + tag);
+  }
 }

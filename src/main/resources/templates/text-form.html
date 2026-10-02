@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  Text Message composition.
+
+  Laid out like email-form.html on purpose - the same two-column picker, the same chrome - because
+  it is reached from the button beside the e-mail one and does the same job for the other channel.
+
+  NOTHING IS SENT. There is no SMS provider wired to this application yet, so the page composes,
+  picks the audience and reports exactly what would go to whom. The banner says so at the top, and
+  the button says "Preview" rather than "Send" so nobody presses it expecting a message to arrive.
+-->
+<head>
+    <th:block th:replace="~{fragments/head :: pageHead('Text Message - ' + ${resortFullName})}"></th:block>
+    <style type="text/css">
+        #main { max-width: 1100px; }
+        .recipient-table { width: 100%; margin: 10px 0; }
+        .recipient-table td {
+            border: 1px solid #e2e2e2;
+            padding: 10px;
+            vertical-align: top;
+        }
+        .recipient-column { width: 50%; }
+        .recipient-column select { width: 95%; }
+        textarea { width: 100%; font-family: inherit; font-size: 1em; }
+
+        /* The page's most important sentence: this does not send anything yet. */
+        .not-wired {
+            background: #fff3cd;
+            border: 2px solid #f0c74a;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin: 0 0 18px 0;
+            color: #6b5200;
+            line-height: 1.5;
+        }
+        .owner-note {
+            font-size: 0.85em;
+            color: #666;
+            margin: -10px 0 16px 0;
+        }
+        .counter { font-weight: bold; }
+        .counter.over { color: #c0392b; }
+        .segments { color: #666; }
+        .preview {
+            background: #ffffff;
+            border: 1px solid #ccc;
+            border-left: 4px solid #003366;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin: 12px 0;
+        }
+        .preview .bubble {
+            background: #eef3f8;
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin: 8px 0;
+            max-width: 26em;
+            white-space: pre-wrap;
+        }
+    </style>
+
+    <script th:src="@{/js/dialogs.js}"></script>
+    <script>
+        /*
+         * The same rule as TextCompositionForm.SIMPLE_TEXT_PATTERN, and it has to stay the same:
+         * letters, digits, spaces, line breaks and everyday punctuation. Every one of those is a
+         * single GSM-7 septet, so 160 of them is exactly one segment - which is the whole point.
+         *
+         * Two ways a message stops being one segment, and this rule shuts both:
+         *   - an emoji, a curly quote or an accented letter switches the encoding to UCS-2, where
+         *     a segment is only 70 characters;
+         *   - ^ { } [ ] ~ | \ and the euro sign are GSM-7 "extension table" characters and cost
+         *     TWO septets each, so one of them in a 160 character message makes it two segments.
+         * Either way the cost is multiplied by the number of recipients.
+         *
+         * This is a courtesy; the server applies the same rule again and has the last word.
+         */
+        var SIMPLE_TEXT = /^[A-Za-z0-9 \r\n.,?!:;'"()\-_\/@#$%&*+=<>]*$/;
+
+        function disallowedIn(text) {
+            var found = '';
+            Array.from(text).forEach(function (character) {
+                if (!SIMPLE_TEXT.test(character) && found.indexOf(character) < 0) {
+                    found += character;
+                }
+            });
+            return found;
+        }
+
+        function updateTextCount() {
+            var box = document.getElementById('messageBox');
+            var counter = document.getElementById('charCount');
+            var warning = document.getElementById('charWarning');
+            if (!box || !counter) {
+                return;
+            }
+            var text = box.value;
+            var max = parseInt(box.getAttribute('maxlength'), 10);
+            counter.textContent = '(' + text.length + ' of ' + max + ')';
+            counter.className = text.length > max ? 'counter over' : 'counter';
+
+            var bad = disallowedIn(text);
+            warning.textContent = bad === '' ? ''
+                : 'Not allowed in a text message: ' + bad
+                  + '   Please use plain letters, numbers and simple punctuation.';
+            warning.style.display = bad === '' ? 'none' : 'block';
+        }
+
+        function updateRecipientCount() {
+            var select = document.getElementById('recipientSelect');
+            var count = 0;
+            for (var i = 0; i < select.options.length; i++) {
+                if (select.options[i].selected) {
+                    count++;
+                }
+            }
+            document.getElementById('textCount').textContent = count;
+        }
+
+        window.onload = function () {
+            updateTextCount();
+            updateRecipientCount();
+        };
+    </script>
+</head>
+<body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
+
+    <div id="main">
+
+        <h2 th:text="'Text Message - ' + ${resortFullName} + ' Ski Patrol'">Text Message</h2>
+
+        <div class="not-wired">
+            <b>Nothing is sent from this page yet.</b> Text messaging is not connected to a carrier,
+            so pressing the button below shows you exactly who would be texted and what they would
+            receive &mdash; and sends nothing. Everything you choose here is real: the audience is
+            the list you came from, and the numbers are the ones on the roster.
+        </div>
+        <p class="owner-note">
+            This page is being built, so it is visible only to the site owner on
+            <span th:text="${resortFullName}">this resort</span>.
+        </p>
+
+        <!-- What would have happened, after a Preview -->
+        <div th:if="${notSentYet}" class="preview">
+            <p style="margin:0 0 6px 0;">
+                <b th:text="${wouldSendCount}">0</b> patroller(s) would receive this:
+            </p>
+            <div class="bubble" th:text="${sentMessage}">message</div>
+            <p style="margin:6px 0 0 0;" class="hint">
+                <span th:each="recipient, stat : ${wouldSendTo}">
+                    <span th:text="${recipient.fullNameLastFirst}">Name</span><span
+                        th:text="${stat.last} ? '' : ', '"></span>
+                </span>
+            </p>
+            <p style="margin:8px 0 0 0;"><b>No messages were sent.</b></p>
+        </div>
+
+        <form th:action="@{/TextForm(resort=${resort}, ID=${patrollerId})}" method="post"
+              th:object="${compositionForm}">
+
+            <input type="hidden" th:field="*{resort}"/>
+            <input type="hidden" th:field="*{fromPatrollerId}"/>
+
+            <div class="form-section">
+                <p>
+                    <b>From:</b> <span th:text="${fromName}">Name</span>
+                    &nbsp;&nbsp;
+                    <span class="hint">
+                        A reply would come back to the patrol's number, not to you personally.
+                    </span>
+                </p>
+            </div>
+
+            <div class="form-section">
+                <table class="recipient-table">
+                    <tr>
+                        <td class="recipient-column">
+                            <b>To:</b><br/>
+                            <span class="hint">
+                                PC: Hold Ctrl and click to select or deselect individual members; hold Shift+Click to select a range.<br/>
+                                Mac: Hold &#8984; (Cmd) and click to select or deselect individual members; hold Shift+Click to select a range.
+                            </span>
+                            <br/><br/>
+                            <select id="recipientSelect" th:field="*{patrollerIds}" multiple="multiple"
+                                    size="8" onchange="updateRecipientCount()">
+                                <option th:each="recipient : ${textable}"
+                                        th:value="${recipient.selectionKey}"
+                                        th:text="${recipient.displayName}">
+                                </option>
+                            </select>
+                            <br/>
+                            <span class="hint"><span id="textCount"></span> text(s) to send</span>
+                        </td>
+                        <td class="recipient-column">
+                            <!-- Named rather than merely absent: a shorter list with no explanation
+                                 is how somebody concludes the message went to everyone. -->
+                            <b>No mobile number on the roster</b>
+                            <br/>
+                            <select readonly="readonly" size="8">
+                                <option th:each="recipient : ${noNumber}"
+                                        th:text="${recipient.displayName}">
+                                </option>
+                            </select>
+                            <br/>
+                            <span class="hint"
+                                  th:text="|${#lists.size(textable)} of ${listedCount} can be texted - ${#lists.size(noNumber)} have no usable number|"></span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="form-section">
+                <p><b>Message:</b></p>
+                <textarea id="messageBox" th:field="*{message}" rows="4"
+                          th:maxlength="${maxCharacters}"
+                          oninput="updateTextCount()"
+                          placeholder="Keep it short - this arrives as a text message."></textarea>
+                <p class="hint">
+                    Plain text only: letters, numbers, spaces and simple punctuation. Accented
+                    letters, curly quotes and emoji are not accepted &mdash; any one of them would
+                    split this into three messages, each charged to every recipient.
+                </p>
+                <p>
+                    <span id="charCount" class="counter"></span>
+                    <span class="segments">&nbsp;&mdash; one text message</span>
+                </p>
+                <p id="charWarning" class="error-message" style="display:none;"></p>
+                <p th:if="${badCharacters}" class="error-message"
+                   th:text="|Not allowed in a text message: ${badCharacters}   Please use plain letters, numbers and simple punctuation.|">bad characters</p>
+                <p th:if="${#fields.hasErrors('message')}" class="error-message" th:errors="*{message}">Message error</p>
+                <p th:if="${#fields.hasErrors('patrollerIds')}" class="error-message" th:errors="*{patrollerIds}">Recipient error</p>
+            </div>
+
+            <div class="form-section">
+                <!-- "Preview" rather than "Send", because that is what it does. -->
+                <input type="submit" value="Preview - nothing is sent"/>
+                &nbsp;&nbsp;&nbsp;
+                <input type="button" value="Cancel" onclick="history.back()"/>
+            </div>
+        </form>
+
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

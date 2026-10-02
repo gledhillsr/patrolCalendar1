@@ -300,7 +300,13 @@
         <div class="feature">
             <h3 id="sample-resort">A sample resort to experiment in</h3>
             <div class="where">
-                <b>Where:</b> the front page of the site &rarr; the <b>Sample Resort</b> card
+                <!-- The one link built on the second domain, by way of showing it off to somebody
+                     being introduced to the site. The host comes from SiteIdentity rather than
+                     being typed here, so a rename moves it. -->
+                <b>Where:</b> Click this link
+                <a th:href="'https://' + ${@site.patrolCalendarDomain}
+                            + '/calendar-1/MemberLogin?resort=Sample&amp;NSPgoto=MonthCalendar'"
+                   target="_blank" rel="noopener noreferrer"><b>Sample Resort</b></a>
             </div>
             <p>
                 A complete patrol with invented people, for trying anything you are unsure of

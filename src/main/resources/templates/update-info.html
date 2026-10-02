@@ -1,5 +1,19 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+<!--
+  My Info.
+
+  Same cards as website-preferences.html, but laid out to be READ rather than worked through: the
+  fields sit in a grid that fits three or four across, label above control, so a member sees all
+  their own details without scrolling instead of one 900px table row per field. Five headings with
+  one or two rows under each became three cards.
+
+  The phone format used to be spelled out beside all three phone boxes; it is the placeholder in
+  the box now, which says the same thing where somebody is already looking.
+
+  The calendar sync panel stays at the foot of the page, after everything a member came here to
+  read. Every th:field binding, every hidden field and every th:if condition is unchanged.
+-->
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
@@ -8,20 +22,203 @@
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
     <style type="text/css">
+        /*
+         * Without this, every input in the grid is 18px wider than its column: width:100% sets the
+         * CONTENT box, and the 8px of padding each side plus the 1px border are added on top. The
+         * inner columns hide the overflow in the 18px gap beside them, but the right-hand column
+         * has no gap to spill into - so its boxes ran into the card's right padding and the page
+         * looked lopsided, tight on the right and roomy on the left.
+         */
+        * { box-sizing: border-box; }
+
         body {
-            font-size: 10pt;
-            color: #000000;
-            background-color: #ffffff;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.45;
+            color: #1f2937;
         }
+
+        .wrap {
+            max-width: 940px;
+            margin: 0 auto 40px auto;
+            padding: 0 16px;
+        }
+        .page-title {
+            color: #003366;
+            font-size: 1.4em;
+            margin: 14px 0 12px 0;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e3e8ee;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,20,50,0.06);
+            padding: 14px 20px 16px 20px;
+            margin-bottom: 14px;
+        }
+        .card > h3 {
+            color: #003366;
+            font-size: 1.05em;
+            margin: 0 0 10px 0;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #eef1f5;
+        }
+
+        /* The whole point of this page's layout: fields across, not down. */
+        .fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 10px 18px;
+        }
+        .fields .wide { grid-column: 1 / -1; }
+        /* A set of fields that belong on one row together, whatever the window does to the
+           columns around them - the three phone numbers above all. */
+        .field-row {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px 18px;
+        }
+        /* Its own row, but not a page-wide input: a password box that stretches to 900px looks
+           like somewhere to write a sentence. */
+        .own-row { grid-column: 1 / -1; }
+        .own-row input { max-width: 22em; }
+        .own-row.narrow input { max-width: 12em; }
+        .field label,
+        .field > .field-label {
+            display: block;
+            font-size: 0.82em;
+            font-weight: bold;
+            color: #4b5563;
+            margin-bottom: 2px;
+        }
+        .field input[type="text"],
+        .field input[type="email"],
+        .field input[type="password"],
+        .field select,
+        .field textarea {
+            width: 100%;
+            font-family: inherit;
+            font-size: 1em;
+            padding: 5px 8px;
+            border: 1px solid #c6cdd4;
+            border-radius: 4px;
+            background: #ffffff;
+        }
+        .field textarea { resize: vertical; }
+        /* a value this member may look at but not change */
+        .field .readonly-value {
+            display: block;
+            padding: 5px 0;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .field .hint {
+            display: block;
+            font-size: 0.78em;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+        .checkbox-row { padding-top: 3px; }
+        .checkbox-row label {
+            display: inline-block;
+            font-weight: normal;
+            font-size: 0.95em;
+            margin-right: 14px;
+            white-space: nowrap;
+        }
+        .checkbox-row input { vertical-align: middle; }
+
         .success-message {
-            color: green;
+            color: #2d662d;
             font-weight: bold;
             margin: 10px 0;
         }
         .error-message {
-            color: red;
+            color: #c0392b;
             font-weight: bold;
-            margin: 10px 0;
+            margin: 0;
+        }
+        .field .error-message { font-size: 0.82em; display: block; }
+
+        .btn {
+            font-family: inherit;
+            font-size: 0.95em;
+            background: #003366;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 18px;
+            cursor: pointer;
+        }
+        .btn:hover { background: #1e5eb8; }
+        .btn-secondary {
+            background: #ffffff;
+            color: #003366;
+            border: 1px solid #a8b7c6;
+        }
+        .btn-secondary:hover { background: #f0f5fa; }
+        .actions { text-align: center; margin: 16px 0 4px 0; }
+        .actions .btn { padding: 9px 26px; font-size: 1em; }
+
+        /* ---- calendar sync, at the foot of the page ---- */
+        .sync-card {
+            border: 1px solid #bcd3e4;
+            background: #f5f9fc;
+        }
+        .sync-card > h3 { color: #1d4f75; border-bottom-color: #d6e4ee; }
+
+        /* Shown rather than hidden, but plainly not in service: the colour drains out of it and a
+           badge says so, so nobody waits for a link that is never coming. */
+        .sync-unavailable {
+            border-color: #d8dde3;
+            background: #f6f7f9;
+        }
+        .sync-unavailable > h3 { color: #5b6670; border-bottom-color: #e3e6ea; }
+        .sync-unavailable p { color: #5b6670; }
+        .sync-unavailable .badge {
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 8px;
+            padding: 2px 9px;
+            border-radius: 10px;
+            background: #5b6670;
+            color: #ffffff;
+            font-size: 0.72em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .unavailable-why {
+            margin: 0;
+            padding: 9px 13px;
+            max-width: 52em;
+            border-left: 4px solid #cc7000;
+            background: #fffaf3;
+            color: #5a3d00 !important;
+            font-size: 0.93em;
+        }
+        .sync-card ul { margin: 8px 0; line-height: 1.5; max-width: 52em; }
+        .caveats {
+            margin: 12px 0 10px 0;
+            padding: 8px 12px;
+            max-width: 52em;
+            border-left: 4px solid #cc7000;
+            background: #fffaf3;
+            color: #5a3d00;
+            font-size: 0.92em;
+        }
+        .caveats p { margin: 0 0 6px 0; }
+        .caveats p:last-child { margin-bottom: 0; }
+        #feedUrl {
+            width: 100%;
+            max-width: 44em;
+            font-family: monospace;
+            font-size: 0.88em;
+            padding: 5px;
+            border: 1px solid #c6cdd4;
+            border-radius: 4px;
         }
     </style>
     <script type="text/javascript">
@@ -48,466 +245,442 @@
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
-    <h2 th:text="'Personal Information for: ' + ${memberName}">Personal Information</h2>
+    <div class="wrap">
 
-    <p>
-        <b>host resort:</b> <span th:text="${resortFullName}">Resort Name</span>
-    </p>
+        <h2 class="page-title" th:text="'Personal Information for: ' + ${memberName}">Personal Information</h2>
 
-    <!-- Backdoor user message -->
-    <div th:if="${isBackdoorUser}">
-        Have a great day<br>
-    </div>
-
-    <!-- Main form content -->
-    <div th:unless="${isBackdoorUser}">
-        <!-- Success message -->
-        <div th:if="${updateSuccess}" class="success-message">
-            Your information has been updated successfully.
+        <!-- Backdoor user message -->
+        <div th:if="${isBackdoorUser}" class="card">
+            Have a great day<br>
         </div>
 
-        <!-- Error message -->
-        <div th:if="${errorMessage}" class="error-message">
-            <span th:text="${errorMessage}">Error message</span>
-        </div>
-
-        <!-- Main form -->
-        <form th:action="@{/UpdateInfo(resort=${resort}, ID=${editingPatrollerId ?: patrollerId})}"
-              th:object="${memberForm}"
-              method="post"
-              onsubmit="return validate()">
-
-            <!-- Validation errors -->
-            <div th:if="${#fields.hasAnyErrors()}" class="error-message">
-                <ul>
-                    <li th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</li>
-                </ul>
+        <!-- Main form content -->
+        <div th:unless="${isBackdoorUser}">
+            <!-- Success message -->
+            <div th:if="${updateSuccess}" class="success-message">
+                Your information has been updated successfully.
             </div>
 
-            <table border="0" width="900">
-                <!-- ID Number row - always at the top -->
-                <tr>
-                    <td width="351" align="right"><font size="3">ID Number:</font></td>
-                    <td width="600">
-                        <span th:if="${!isSetNewID and !isAddPatroller}" th:text="${idNumber}">ID</span>
-                        <input th:if="${isSetNewID or isAddPatroller}" type="text" th:field="*{idNumber}" size="10" maxlength="10" required="required" />
-                        <span th:if="${isSetNewID}" style="color: #666; font-size: 10pt;"> (Old ID: <span th:text="${oldMemberID}">Old ID</span>)</span>
-                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 10pt;"> Required.  (Number between 100000 and 999999)</span>
-                    </td>
-                </tr>
+            <!-- Error message -->
+            <div th:if="${errorMessage}" class="card error-message">
+                <span th:text="${errorMessage}">Error message</span>
+            </div>
 
-                <!-- Personal Information Section -->
-                <tr>
-                    <td colspan="2">
-                        <h3>Personal Information</h3>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">First Name:</td>
-                    <td>
-                        <input type="text" th:field="*{firstName}" id="firstName" size="30" />
-                        <span th:if="${#fields.hasErrors('firstName')}" class="error-message" th:errors="*{firstName}">First Name Error</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">Last Name:</td>
-                    <td>
-                        <input type="text" th:field="*{lastName}" id="lastName" size="30" />
-                        <span th:if="${#fields.hasErrors('lastName')}" class="error-message" th:errors="*{lastName}">Last Name Error</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">Spouse:</td>
-                    <td>
-                        <input type="text" th:field="*{spouse}" size="30" />
-                    </td>
-                </tr>
+            <!-- Main form -->
+            <form th:action="@{/UpdateInfo(resort=${resort}, ID=${editingPatrollerId ?: patrollerId})}"
+                  th:object="${memberForm}"
+                  method="post"
+                  onsubmit="return validate()">
 
-                <!-- Contact Information Section -->
-                <tr>
-                    <td colspan="2">
-                        <h3>Contact Information</h3>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Address:</font></td>
-                    <td width="600">
-                        <input type="text" th:field="*{address}" size="30" />
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">City:</font></td>
-                    <td width="600">
-                        <input type="text" th:field="*{city}" size="30" />
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">State:</font></td>
-                    <td width="600">
-                        <input type="text" th:field="*{state}" size="30" />
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Zip Code:</font></td>
-                    <td width="600">
-                        <input type="text" th:field="*{zipCode}" size="30" />
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Home Phone:</font></td>
-                    <td width="600">
-                        <input type="text" th:field="*{homePhone}" size="30"
-                               th:pattern="${isAddPatroller} ? '\d{3}-\d{3}-\d{4}' : null"
-                               th:title="${isAddPatroller} ? 'Format: 999-999-9999 (may be left blank)' : null" />
-                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;Format: 999-999-9999 (may be left blank)</span>
-                        <span th:unless="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;(desired format: 999-999-9999)</span>
-                        <span th:if="${#fields.hasErrors('homePhone')}" class="error-message" th:errors="*{homePhone}">Home Phone Error</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Work Phone:</font></td>
-                    <td width="600">
-                        <input type="text" th:field="*{workPhone}" size="30"
-                               th:pattern="${isAddPatroller} ? '\d{3}-\d{3}-\d{4}' : null"
-                               th:title="${isAddPatroller} ? 'Format: 999-999-9999 (may be left blank)' : null" />
-                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;Format: 999-999-9999 (may be left blank)</span>
-                        <span th:unless="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;(desired format: 999-999-9999)</span>
-                        <span th:if="${#fields.hasErrors('workPhone')}" class="error-message" th:errors="*{workPhone}">Work Phone Error</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Cell Phone:</font></td>
-                    <td width="600">
-                        <input type="text" th:field="*{cellPhone}" size="30"
-                               th:pattern="${isAddPatroller} ? '\d{3}-\d{3}-\d{4}' : null"
-                               th:title="${isAddPatroller} ? 'Format: 999-999-9999 (may be left blank)' : null" />
-                        <span th:if="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;Format: 999-999-9999 (may be left blank)</span>
-                        <span th:unless="${isAddPatroller}" style="color: #666; font-size: 9pt;">&nbsp;(desired format: 999-999-9999)</span>
-                        <span th:if="${#fields.hasErrors('cellPhone')}" class="error-message" th:errors="*{cellPhone}">Cell Phone Error</span>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td width="351" align="right"><font size="3">Email:</font></td>
-                    <td width="600">
-                        <input type="email" th:field="*{email}" size="30" />
-                        <span th:if="${#fields.hasErrors('email')}" class="error-message" th:errors="*{email}">Email Error</span>
-                    </td>
-                </tr>
-
-                <!-- Patrol Preferences Section -->
-                <tr>
-                    <td colspan="2">
-                        <h3>Patrol Preferences</h3>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Emergency Call Up:</font></td>
-                    <td width="600">
-                        <select th:field="*{emergencyCallUp}">
-                            <option value="Y">Yes</option>
-                            <option value="N">No</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Substitute List:</font></td>
-                    <td width="600">
-                        <select th:field="*{substituteList}">
-                            <option value="Y">Yes</option>
-                            <option value="N">No</option>
-                        </select>
-                    </td>
-                </tr>
-
-                <!-- Security Section -->
-                <tr>
-                    <td colspan="2">
-                        <h3>Security</h3>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Password:</font></td>
-                    <td width="600">
-                        <input type="password" th:field="*{password}" size="30"
-                               th:placeholder="${isAddPatroller} ? 'Leave blank to default to Last Name' : 'Leave blank to keep current password'" />
-                    </td>
-                </tr>
-
-                <!-- Patrol Information Section -->
-                <tr>
-                    <td colspan="2">
-                        <h3>Patrol Information</h3>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Classification:</font></td>
-                    <td width="600">
-                        <span th:unless="${isDirector or isAddPatroller}" th:text="${classification}">Classification</span>
-                        <select th:if="${isDirector or isAddPatroller}" th:field="*{classification}">
-                            <option value="BAS">Alpine</option>
-                            <option value="SR">Senior Alpine</option>
-                            <option value="SRA">Senior Patroller</option>
-                            <option value="ALM">Alumni</option>
-                            <option value="PRO">Paid</option>
-                            <option value="AUX">Patroller</option>
-                            <option value="TRA">Transfer</option>
-                            <option value="CAN">Candidate</option>
-                            <option value="NSK">Not Skiing</option>
-                            <option value="OTH">Other</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Commitment:</font></td>
-                    <td width="600">
-                        <span th:unless="${isDirector or isAddPatroller}" th:text="${commitment}">Commitment</span>
-                        <select th:if="${isDirector or isAddPatroller}" th:field="*{commitment}">
-                            <option value="0">Inactive</option>
-                            <option value="1">Part Time</option>
-                            <option value="2">Full Time</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td width="351" align="right"><font size="3">Instructor:</font></td>
-                    <td width="600">
-                        <span th:unless="${isDirector or isAddPatroller}" th:text="${instructor}">Instructor</span>
-                        <span th:if="${isDirector or isAddPatroller}">
-                            <input type="checkbox" th:field="*{instructorOEC}" />OEC&nbsp;&nbsp;
-                            <input type="checkbox" th:field="*{instructorCPR}" />CPR&nbsp;&nbsp;
-                            <input type="checkbox" th:field="*{instructorSki}" />Ski&nbsp;&nbsp;
-                            <input type="checkbox" th:field="*{instructorToboggan}" />Toboggan&nbsp;&nbsp;
-                            <input type="checkbox" th:field="*{instructorSnowboard}" />Snowboard
-                        </span>
-                    </td>
-                </tr>
-                <tr th:if="${isDirector or isAddPatroller}">
-                    <td width="351" align="right"><font size="3">Director:</font></td>
-                    <td width="600">
-                        <select th:field="*{director}">
-                            <option value="">No</option>
-                            <option value="yes">Yes</option>
-                            <option value="yesEmail">Yes &amp; email me ALL schedule changes</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr th:if="${isDirector or isAddPatroller}">
-                    <td width="351" align="right"><font size="3">Team Lead Trained:</font></td>
-                    <td width="600">
-                        <select th:field="*{teamLead}">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr th:if="${isDirector or isAddPatroller}">
-                    <td width="351" align="right"><font size="3">Currently Being Mentored:</font></td>
-                    <td width="600">
-                        <select th:field="*{mentoring}">
-                            <option value="0">No</option>
-                            <option value="1">Yes</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr th:unless="${isAddPatroller}">
-                    <td width="351" align="right"><font size="3">Last Updated:</font></td>
-                    <td width="600">
-                        <span th:text="${lastUpdated}">Last Updated</span>
-                    </td>
-                </tr>
-                <tr th:if="${isDirector or isAddPatroller}">
-                    <td width="351" align="right" valign="top">
-                        <font size="3">Private Comments<br><b>(Only</b> visible to directors)</font>
-                    </td>
-                    <td width="600">
-                        <textarea th:field="*{comments}" rows="4" cols="60"></textarea>
-                    </td>
-                </tr>
-
-                <!-- Hidden fields to preserve director-controlled values (non-director, non-addPatroller only) -->
-                <tr th:unless="${isDirector or isAddPatroller}" style="display: none;">
-                    <td colspan="2">
-                        <input type="hidden" name="hiddenDirector" th:value="${hiddenDirector}" />
-                        <input type="hidden" name="hiddenTeamLead" th:value="${hiddenTeamLead}" />
-                        <input type="hidden" name="hiddenMentoring" th:value="${hiddenMentoring}" />
-                        <input type="hidden" name="hiddenComments" th:value="${hiddenComments}" />
-                    </td>
-                </tr>
-                <!-- SetNewID / AddPatroller hidden fields -->
-                <tr style="display: none;">
-                    <td colspan="2">
-                        <input th:if="${isSetNewID}" type="hidden" name="Purpose" value="setNewID" />
-                        <input th:if="${isSetNewID}" type="hidden" name="removeOldID" th:value="${oldMemberID}" />
-                        <input th:if="${isAddPatroller}" type="hidden" name="Purpose" value="Add_Patroller" />
-                        <input th:if="${isEditPatroller}" type="hidden" name="Purpose" value="Edit_Patroller" />
-                    </td>
-                </tr>
-
-                <!-- Submit button -->
-                <tr>
-                    <td colspan="2" align="center">
-                        <br>
-                        <input type="submit"
-                               th:value="${isSetNewID ? 'Set New ID'
-                                          : (isAddPatroller ? 'Create New Patroller'
-                                                            : 'Update Information')}" />
-                        <!-- Only when a director got here from the Directors page, which is where
-                             this returns to - Edit Patroller Info, Change ID Number or Add New
-                             Patroller. A member editing their own info from the My Info tab has the
-                             site nav to leave by, and no Directors page to go back to. -->
-                        <!-- "== true" rather than a bare or: this controller renders the form from
-                             a dozen places and several leave one of these flags out of the model
-                             entirely, which SpEL's `or` throws on rather than treating as false. -->
-                        <span th:if="${isEditPatroller == true or isSetNewID == true
-                                       or isAddPatroller == true}">
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                            <input type="button" value="Cancel"
-                                   th:data-url="@{/Directors(resort=${resort}, ID=${patrollerId})}"
-                                   onclick="window.location=this.dataset.url">
-                        </span>
-                    </td>
-                </tr>
-            </table>
-        </form>
-
-        <!--
-          Personal calendar subscription.
-
-          Outside the form above on purpose: this is not a preference that gets saved with the rest
-          of My Info, it is a link that exists or does not, and HTML has no nested forms.
-        -->
-        <div th:if="${showCalendarSync}" id="calendarSyncPanel"
-             style="border:2px solid #2f6f9f; border-radius:6px; padding:12px 18px;
-                    background:#f5f9fc; margin:18px 0; font-size:10pt; color:#222;">
-            <h3 style="margin-top:0; color:#1d4f75;">
-                Automatically sync my PatrolCalendar shifts to my personal calendar
-                (one-time setup)
-            </h3>
-
-            <p style="margin:0 0 10px 0; max-width:52em;">
-                Your shifts can appear in the calendar you already use &mdash; Google, Apple or
-                Outlook &mdash; and keep themselves up to date as the schedule changes. You only
-                set this up once.
-            </p>
-
-            <!-- Nothing yet: one button, and no instructions until there is a link to use. -->
-            <form th:if="${calendarFeedUrl == null}" th:action="@{/UpdateInfo/calendarLink}"
-                  method="post">
-                <input type="hidden" name="resort" th:value="${resort}"/>
-                <input type="submit" value="Create my calendar link"/>
-            </form>
-
-            <div th:if="${calendarFeedUrl != null}">
-                <p style="margin:0 0 6px 0;"><b>Step 1 &mdash; copy your personal link:</b></p>
-                <p style="margin:0 0 10px 0;">
-                    <input type="text" id="feedUrl" readonly th:value="${calendarFeedUrl}"
-                           onclick="this.select();"
-                           style="width:100%; max-width:44em; font-family:monospace; font-size:9pt;
-                                  padding:4px;"/>
-                    <br>
-                    <input type="button" value="Copy link" style="margin-top:6px;"
-                           onclick="copyFeedUrl(this);"/>
-                    <span id="feedCopied" style="color:#2d662d; font-weight:bold; display:none;">
-                        Copied
-                    </span>
-                </p>
-
-                <p style="margin:10px 0 6px 0;">
-                    <b>Step 2 &mdash; add it to your calendar.</b> Pick whichever you use:
-                </p>
-                <ul style="margin:0 0 10px 0; max-width:52em; line-height:1.5;">
-                    <li>
-                        <b>Google Calendar</b> &mdash; on a computer, not the phone app. In the left
-                        column find <i>Other calendars</i>, click <b>+</b>, choose
-                        <i>From URL</i>, paste the link, then <i>Add calendar</i>.
-                    </li>
-                    <li>
-                        <b>Apple &mdash; iPhone or iPad.</b> Settings &rarr; Apps &rarr; Calendar
-                        &rarr; Accounts &rarr; <i>Add Account</i> &rarr; <i>Other</i> &rarr;
-                        <i>Add Subscribed Calendar</i>, paste the link, then <i>Next</i> and
-                        <i>Save</i>.
-                    </li>
-                    <li>
-                        <b>Apple &mdash; Mac.</b> Calendar &rarr; File menu &rarr;
-                        <i>New Calendar Subscription</i>, paste the link, then <i>Subscribe</i>.
-                        You can set it to refresh every 5 minutes here.
-                    </li>
-                    <li>
-                        <b>Outlook</b> (outlook.com or Microsoft 365) &mdash; go to Calendar,
-                        <i>Add calendar</i> &rarr; <i>Subscribe from web</i>, paste the link, give
-                        it a name, then <i>Import</i>.
-                    </li>
-                </ul>
-
-                <!-- The three things that otherwise arrive as complaints. -->
-                <div style="margin:12px 0 10px 0; padding:8px 12px; max-width:52em;
-                            border-left:4px solid #cc7000; background:#fffaf3; color:#5a3d00;">
-                    <p style="margin:0 0 6px 0;">
-                        <b>It is not instant.</b> How often your calendar checks for changes is up
-                        to your calendar, not to us. Apple can check every few minutes; Outlook is
-                        usually a few hours; <b>Google can take up to a day</b> and gives you no way
-                        to hurry it. If you sign up for a shift and it is not on your phone
-                        straight away, nothing is broken.
-                    </p>
-                    <p style="margin:0 0 6px 0;">
-                        <b>It only reads.</b> Deleting a shift in your own calendar does not drop
-                        the shift &mdash; it will simply reappear. Sign up and swap here, as always.
-                    </p>
-                    <p style="margin:0;">
-                        <b>Shifts with no start and end time will not appear.</b> If one of yours is
-                        missing, that shift has no times recorded on it; ask a director to add them.
-                    </p>
+                <!-- Validation errors -->
+                <div th:if="${#fields.hasAnyErrors()}" class="card error-message">
+                    <ul>
+                        <li th:each="err : ${#fields.allErrors()}" th:text="${err}">Error</li>
+                    </ul>
                 </div>
 
-                <p style="margin:10px 0 6px 0; max-width:52em;">
-                    <b>Keep this link private.</b> It needs no password, so anyone you send it to
-                    can see when you are working. If it goes astray, replace it &mdash; the old one
-                    stops working at once, and you paste the new one into your calendar again.
+                <!-- ============ Who you are ============ -->
+                <div class="card">
+                    <h3>Personal Information</h3>
+                    <div class="fields">
+                        <!-- On its own line: it is the one value here that identifies the member,
+                             and on the add and change-ID forms it carries a note under it that
+                             would push the names out of line. -->
+                        <div class="field own-row narrow">
+                            <span class="field-label">ID Number</span>
+                            <span th:if="${!isSetNewID and !isAddPatroller}" class="readonly-value"
+                                  th:text="${idNumber}">ID</span>
+                            <input th:if="${isSetNewID or isAddPatroller}" type="text"
+                                   th:field="*{idNumber}" maxlength="10" required="required" />
+                            <span th:if="${isSetNewID}" class="hint">
+                                Old ID: <span th:text="${oldMemberID}">Old ID</span>
+                            </span>
+                            <span th:if="${isAddPatroller}" class="hint">
+                                Required &mdash; a number between 100000 and 999999
+                            </span>
+                        </div>
+
+                        <!-- The three names read as one line, so they stay on one. -->
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="firstName">First Name</label>
+                                <input type="text" th:field="*{firstName}" id="firstName" />
+                                <span th:if="${#fields.hasErrors('firstName')}" class="error-message" th:errors="*{firstName}">First Name Error</span>
+                            </div>
+                            <div class="field">
+                                <label for="lastName">Last Name</label>
+                                <input type="text" th:field="*{lastName}" id="lastName" />
+                                <span th:if="${#fields.hasErrors('lastName')}" class="error-message" th:errors="*{lastName}">Last Name Error</span>
+                            </div>
+                            <div class="field">
+                                <label for="spouse">Spouse</label>
+                                <input type="text" th:field="*{spouse}" id="spouse" />
+                            </div>
+                        </div>
+
+                        <!-- Last, and on its own row: a password is the one thing on this page
+                             somebody changes deliberately, and sharing a line with a name invites
+                             it being filled in by accident. -->
+                        <div class="field own-row">
+                            <label for="password">Password</label>
+                            <input type="password" th:field="*{password}" id="password"
+                                   th:placeholder="${isAddPatroller} ? 'Leave blank to default to Last Name' : 'Leave blank to keep current'" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ Contact Information ============ -->
+                <div class="card">
+                    <h3>Contact Information</h3>
+                    <div class="fields">
+                        <div class="field wide">
+                            <label for="address">Address</label>
+                            <input type="text" th:field="*{address}" id="address" />
+                        </div>
+                        <!-- Email rides up with the address rather than trailing after the
+                             phones: it is the contact detail this site actually uses. -->
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="city">City</label>
+                                <input type="text" th:field="*{city}" id="city" />
+                            </div>
+                            <div class="field">
+                                <label for="state">State</label>
+                                <input type="text" th:field="*{state}" id="state" />
+                            </div>
+                            <div class="field">
+                                <label for="zipCode">Zip Code</label>
+                                <input type="text" th:field="*{zipCode}" id="zipCode" />
+                            </div>
+                            <div class="field">
+                                <label for="email">Email</label>
+                                <input type="email" th:field="*{email}" id="email" />
+                                <span th:if="${#fields.hasErrors('email')}" class="error-message" th:errors="*{email}">Email Error</span>
+                            </div>
+                        </div>
+
+                        <!-- All three phones together, cell first: it is the one most people
+                             carry, and the one a text message would go to.
+
+                             The format was spelled out beside all three of these; it is the
+                             placeholder now, which says it where somebody is already looking. -->
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="cellPhone">Cell Phone</label>
+                                <input type="text" th:field="*{cellPhone}" id="cellPhone"
+                                       placeholder="999-999-9999" />
+                                <span th:if="${#fields.hasErrors('cellPhone')}" class="error-message" th:errors="*{cellPhone}">Cell Phone Error</span>
+                            </div>
+                            <div class="field">
+                                <label for="homePhone">Home Phone</label>
+                                <input type="text" th:field="*{homePhone}" id="homePhone"
+                                       placeholder="999-999-9999" />
+                                <span th:if="${#fields.hasErrors('homePhone')}" class="error-message" th:errors="*{homePhone}">Home Phone Error</span>
+                            </div>
+                            <div class="field">
+                                <label for="workPhone">Work Phone</label>
+                                <input type="text" th:field="*{workPhone}" id="workPhone"
+                                       placeholder="999-999-9999" />
+                                <span th:if="${#fields.hasErrors('workPhone')}" class="error-message" th:errors="*{workPhone}">Work Phone Error</span>
+                            </div>
+                        </div>
+                        <p class="wide" style="margin:2px 0 0 0; font-size:0.8em; color:#6b7280;">
+                            Phone numbers are stored as 999-999-9999. Any of these may be left blank.
+                        </p>
+
+                    </div>
+                </div>
+
+                <!-- ============ Patrol ============
+                     Patrol preferences, the password and the director-set fields in one card: they
+                     were four headings with one or two rows under each, which is a lot of page for
+                     very little. -->
+                <div class="card">
+                    <h3>Patrol Information</h3>
+                    <div class="fields">
+                        <!-- Classification first, in the left-hand column: it is what a director
+                             looks for, and what the rest of this card is qualified by. -->
+                        <div class="field">
+                            <span class="field-label">Classification</span>
+                            <span th:unless="${isDirector or isAddPatroller}" class="readonly-value"
+                                  th:text="${classification}">Classification</span>
+                            <select th:if="${isDirector or isAddPatroller}" th:field="*{classification}">
+                                <option value="BAS">Alpine</option>
+                                <option value="SR">Senior Alpine</option>
+                                <option value="SRA">Senior Patroller</option>
+                                <option value="ALM">Alumni</option>
+                                <option value="PRO">Paid</option>
+                                <option value="AUX">Patroller</option>
+                                <option value="TRA">Transfer</option>
+                                <option value="CAN">Candidate</option>
+                                <option value="NSK">Not Skiing</option>
+                                <option value="OTH">Other</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <span class="field-label">Commitment</span>
+                            <span th:unless="${isDirector or isAddPatroller}" class="readonly-value"
+                                  th:text="${commitment}">Commitment</span>
+                            <select th:if="${isDirector or isAddPatroller}" th:field="*{commitment}">
+                                <option value="0">Inactive</option>
+                                <option value="1">Part Time</option>
+                                <option value="2">Full Time</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="emergencyCallUp">Emergency Call Up</label>
+                            <select th:field="*{emergencyCallUp}" id="emergencyCallUp">
+                                <option value="Y">Yes</option>
+                                <option value="N">No</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="substituteList">Substitute List</label>
+                            <select th:field="*{substituteList}" id="substituteList">
+                                <option value="Y">Yes</option>
+                                <option value="N">No</option>
+                            </select>
+                        </div>
+                        <div class="field" th:unless="${isAddPatroller}">
+                            <span class="field-label">Last Updated</span>
+                            <span class="readonly-value" th:text="${lastUpdated}">Last Updated</span>
+                        </div>
+
+                        <div class="field wide">
+                            <span class="field-label">Instructor</span>
+                            <span th:unless="${isDirector or isAddPatroller}" class="readonly-value"
+                                  th:text="${instructor}">Instructor</span>
+                            <span th:if="${isDirector or isAddPatroller}" class="checkbox-row">
+                                <label><input type="checkbox" th:field="*{instructorOEC}" /> OEC</label>
+                                <label><input type="checkbox" th:field="*{instructorCPR}" /> CPR</label>
+                                <label><input type="checkbox" th:field="*{instructorSki}" /> Ski</label>
+                                <label><input type="checkbox" th:field="*{instructorToboggan}" /> Toboggan</label>
+                                <label><input type="checkbox" th:field="*{instructorSnowboard}" /> Snowboard</label>
+                            </span>
+                        </div>
+
+                        <div class="field" th:if="${isDirector or isAddPatroller}">
+                            <label for="director">Director</label>
+                            <select th:field="*{director}" id="director">
+                                <option value="">No</option>
+                                <option value="yes">Yes</option>
+                                <option value="yesEmail">Yes &amp; email me ALL schedule changes</option>
+                            </select>
+                        </div>
+                        <div class="field" th:if="${isDirector or isAddPatroller}">
+                            <label for="teamLead">Team Lead Trained</label>
+                            <select th:field="*{teamLead}" id="teamLead">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="field" th:if="${isDirector or isAddPatroller}">
+                            <label for="mentoring">Currently Being Mentored</label>
+                            <select th:field="*{mentoring}" id="mentoring">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+
+                        <div class="field wide" th:if="${isDirector or isAddPatroller}">
+                            <label for="comments">Private Comments <b>(only</b> visible to directors)</label>
+                            <textarea th:field="*{comments}" id="comments" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden fields to preserve director-controlled values (non-director, non-addPatroller only) -->
+                <span th:unless="${isDirector or isAddPatroller}">
+                    <input type="hidden" name="hiddenDirector" th:value="${hiddenDirector}" />
+                    <input type="hidden" name="hiddenTeamLead" th:value="${hiddenTeamLead}" />
+                    <input type="hidden" name="hiddenMentoring" th:value="${hiddenMentoring}" />
+                    <input type="hidden" name="hiddenComments" th:value="${hiddenComments}" />
+                </span>
+                <!-- SetNewID / AddPatroller hidden fields -->
+                <span>
+                    <input th:if="${isSetNewID}" type="hidden" name="Purpose" value="setNewID" />
+                    <input th:if="${isSetNewID}" type="hidden" name="removeOldID" th:value="${oldMemberID}" />
+                    <input th:if="${isAddPatroller}" type="hidden" name="Purpose" value="Add_Patroller" />
+                    <input th:if="${isEditPatroller}" type="hidden" name="Purpose" value="Edit_Patroller" />
+                </span>
+
+                <div class="actions">
+                    <input type="submit" class="btn"
+                           th:value="${isSetNewID ? 'Set New ID'
+                                      : (isAddPatroller ? 'Create New Patroller'
+                                                        : 'Update Information')}" />
+                    <!-- Only when a director got here from the Directors page, which is where
+                         this returns to - Edit Patroller Info, Change ID Number or Add New
+                         Patroller. A member editing their own info from the My Info tab has the
+                         site nav to leave by, and no Directors page to go back to. -->
+                    <!-- "== true" rather than a bare or: this controller renders the form from
+                         a dozen places and several leave one of these flags out of the model
+                         entirely, which SpEL's `or` throws on rather than treating as false. -->
+                    <span th:if="${isEditPatroller == true or isSetNewID == true
+                                   or isAddPatroller == true}">
+                        &nbsp;&nbsp;&nbsp;
+                        <input type="button" class="btn btn-secondary" value="Cancel"
+                               th:data-url="@{/Directors(resort=${resort}, ID=${patrollerId})}"
+                               onclick="window.location=this.dataset.url">
+                    </span>
+                </div>
+            </form>
+
+            <!--
+              Personal calendar subscription.
+
+              Outside the form above on purpose: this is not a preference that gets saved with the
+              rest of My Info, it is a link that exists or does not, and HTML has no nested forms.
+              Last on the page, after everything a member came here to read.
+            -->
+            <!--
+              The same card, greyed out, when a member cannot use it: it was hidden outright, so
+              somebody who had heard about calendar syncing found nothing on the page and no reason
+              why. The heading is the live panel's, word for word, so what they are reading about
+              is unmistakable - the box underneath says why it is not available here.
+            -->
+            <div th:if="${calendarSyncUnavailable}" class="card sync-card sync-unavailable">
+                <h3>Automatically sync my PatrolCalendar shifts to my personal calendar
+                    (one-time setup)
+                    <span class="badge">Not available here</span></h3>
+
+                <p style="margin:0 0 10px 0; max-width:52em;">
+                    Your shifts can appear in the calendar you already use &mdash; Google, Apple or
+                    Outlook &mdash; and keep themselves up to date as the schedule changes.
                 </p>
-                <form th:action="@{/UpdateInfo/calendarLink}" method="post"
-                      style="display:inline;">
-                    <input type="hidden" name="resort" th:value="${resort}"/>
-                    <input type="submit" value="Replace my link"
-                           onclick="return confirmActionDialog(this,
-                               'Your current calendar link will stop working immediately. You will need to paste the new one into your calendar again.\n\nReplace it?',
-                               'Replace your calendar link?')"/>
-                </form>
-                <form th:action="@{/UpdateInfo/calendarLink}" method="post"
-                      style="display:inline;">
-                    <input type="hidden" name="resort" th:value="${resort}"/>
-                    <input type="hidden" name="remove" value="yes"/>
-                    <input type="submit" value="Turn off syncing"
-                           onclick="return confirmActionDialog(this,
-                               'Your calendar link will stop working and your shifts will no longer update in your personal calendar.\n\nTurn it off?',
-                               'Turn off calendar syncing?')"/>
-                </form>
+
+                <p class="unavailable-why">
+                    <b th:text="|Not available on ${resortFullName}.|">Not available here.</b>
+                    <span th:text="${calendarSyncUnavailable}">why</span>
+                </p>
             </div>
 
-            <script>
-                // Clipboard access needs a secure context; falling back to selecting the text means
-                // the button still does something useful on plain http or an old browser.
-                function copyFeedUrl(button) {
-                    var field = document.getElementById("feedUrl");
-                    var done = document.getElementById("feedCopied");
-                    field.select();
-                    field.setSelectionRange(0, 99999);
-                    var show = function () {
-                        done.style.display = "inline";
-                        setTimeout(function () { done.style.display = "none"; }, 2500);
-                    };
-                    if (navigator.clipboard && window.isSecureContext) {
-                        navigator.clipboard.writeText(field.value).then(show, function () {
+            <div th:if="${showCalendarSync}" id="calendarSyncPanel" class="card sync-card">
+                <h3>Automatically sync my PatrolCalendar shifts to my personal calendar
+                    (one-time setup)</h3>
+
+                <p style="margin:0 0 10px 0; max-width:52em;">
+                    Your shifts can appear in the calendar you already use &mdash; Google, Apple or
+                    Outlook &mdash; and keep themselves up to date as the schedule changes. You only
+                    set this up once.
+                </p>
+
+                <!-- Nothing yet: one button, and no instructions until there is a link to use. -->
+                <form th:if="${calendarFeedUrl == null}" th:action="@{/UpdateInfo/calendarLink}"
+                      method="post">
+                    <input type="hidden" name="resort" th:value="${resort}"/>
+                    <input type="submit" class="btn" value="Create my calendar link"/>
+                </form>
+
+                <div th:if="${calendarFeedUrl != null}">
+                    <p style="margin:0 0 6px 0;"><b>Step 1 &mdash; copy your personal link:</b></p>
+                    <p style="margin:0 0 10px 0;">
+                        <input type="text" id="feedUrl" readonly th:value="${calendarFeedUrl}"
+                               onclick="this.select();"/>
+                        <br>
+                        <input type="button" class="btn btn-secondary" value="Copy link"
+                               style="margin-top:6px;" onclick="copyFeedUrl(this);"/>
+                        <span id="feedCopied" style="color:#2d662d; font-weight:bold; display:none;">
+                            Copied
+                        </span>
+                    </p>
+
+                    <p style="margin:10px 0 6px 0;">
+                        <b>Step 2 &mdash; add it to your calendar.</b> Pick whichever you use:
+                    </p>
+                    <ul>
+                        <li>
+                            <b>Google Calendar</b> &mdash; on a computer, not the phone app. In the left
+                            column find <i>Other calendars</i>, click <b>+</b>, choose
+                            <i>From URL</i>, paste the link, then <i>Add calendar</i>.
+                        </li>
+                        <li>
+                            <b>Apple &mdash; iPhone or iPad.</b> Settings &rarr; Apps &rarr; Calendar
+                            &rarr; Accounts &rarr; <i>Add Account</i> &rarr; <i>Other</i> &rarr;
+                            <i>Add Subscribed Calendar</i>, paste the link, then <i>Next</i> and
+                            <i>Save</i>.
+                        </li>
+                        <li>
+                            <b>Apple &mdash; Mac.</b> Calendar &rarr; File menu &rarr;
+                            <i>New Calendar Subscription</i>, paste the link, then <i>Subscribe</i>.
+                            You can set it to refresh every 5 minutes here.
+                        </li>
+                        <li>
+                            <b>Outlook</b> (outlook.com or Microsoft 365) &mdash; go to Calendar,
+                            <i>Add calendar</i> &rarr; <i>Subscribe from web</i>, paste the link, give
+                            it a name, then <i>Import</i>.
+                        </li>
+                    </ul>
+
+                    <!-- The three things that otherwise arrive as complaints. -->
+                    <div class="caveats">
+                        <p>
+                            <b>It is not instant.</b> How often your calendar checks for changes is up
+                            to your calendar, not to us. Apple can check every few minutes; Outlook is
+                            usually a few hours; <b>Google can take up to a day</b> and gives you no way
+                            to hurry it. If you sign up for a shift and it is not on your phone
+                            straight away, nothing is broken.
+                        </p>
+                        <p>
+                            <b>It only reads.</b> Deleting a shift in your own calendar does not drop
+                            the shift &mdash; it will simply reappear. Sign up and swap here, as always.
+                        </p>
+                        <p>
+                            <b>Shifts with no start and end time will not appear.</b> If one of yours is
+                            missing, that shift has no times recorded on it; ask a director to add them.
+                        </p>
+                    </div>
+
+                    <p style="margin:10px 0 8px 0; max-width:52em;">
+                        <b>Keep this link private.</b> It needs no password, so anyone you send it to
+                        can see when you are working. If it goes astray, replace it &mdash; the old one
+                        stops working at once, and you paste the new one into your calendar again.
+                    </p>
+                    <form th:action="@{/UpdateInfo/calendarLink}" method="post"
+                          style="display:inline;">
+                        <input type="hidden" name="resort" th:value="${resort}"/>
+                        <input type="submit" class="btn btn-secondary" value="Replace my link"
+                               onclick="return confirmActionDialog(this,
+                                   'Your current calendar link will stop working immediately. You will need to paste the new one into your calendar again.\n\nReplace it?',
+                                   'Replace your calendar link?')"/>
+                    </form>
+                    <form th:action="@{/UpdateInfo/calendarLink}" method="post"
+                          style="display:inline;">
+                        <input type="hidden" name="resort" th:value="${resort}"/>
+                        <input type="hidden" name="remove" value="yes"/>
+                        <input type="submit" class="btn btn-secondary" value="Turn off syncing"
+                               onclick="return confirmActionDialog(this,
+                                   'Your calendar link will stop working and your shifts will no longer update in your personal calendar.\n\nTurn it off?',
+                                   'Turn off calendar syncing?')"/>
+                    </form>
+                </div>
+
+                <script>
+                    // Clipboard access needs a secure context; falling back to selecting the text means
+                    // the button still does something useful on plain http or an old browser.
+                    function copyFeedUrl(button) {
+                        var field = document.getElementById("feedUrl");
+                        var done = document.getElementById("feedCopied");
+                        field.select();
+                        field.setSelectionRange(0, 99999);
+                        var show = function () {
+                            done.style.display = "inline";
+                            setTimeout(function () { done.style.display = "none"; }, 2500);
+                        };
+                        if (navigator.clipboard && window.isSecureContext) {
+                            navigator.clipboard.writeText(field.value).then(show, function () {
+                                document.execCommand("copy");
+                                show();
+                            });
+                        } else {
                             document.execCommand("copy");
                             show();
-                        });
-                    } else {
-                        document.execCommand("copy");
-                        show();
+                        }
                     }
-                }
-            </script>
+                </script>
+            </div>
         </div>
+
     </div>
 
     <div th:replace="~{fragments/footer :: footer}"></div>

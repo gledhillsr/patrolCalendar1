@@ -403,14 +403,94 @@ class PersonalCalendarSyncPanelTest {
   }
 
   /** Just the sync group, so an assertion cannot pass on something elsewhere on the page. */
+  /**
+   * The sync card, with its whitespace flattened.
+   *
+   * <p>Sliced to the Blackout card that follows it rather than to a heading's wording, and
+   * <b>normalised</b> because HTML line wrapping is not content: a sentence rewrapped by an editor
+   * would otherwise fail an assertion about what the page says, which is the kind of test failure
+   * that teaches people to loosen assertions.
+   */
+  // ----- My Info, when a member cannot use it ------------------------------------------------
+
+  /**
+   * On a demo resort the card is <b>shown, greyed out and explained</b> rather than hidden.
+   *
+   * <p>It used to be left off the page entirely, so a member who had heard about calendar syncing
+   * found nothing at all and no reason why - which is a support question rather than an answer.
+   */
+  @Test
+  void aDemoResortIsToldWhyItCannotSync() throws Exception {
+    String page = myInfoPage();
+
+    assertTrue(page.contains("card sync-card sync-unavailable"),
+               "the greyed card should be drawn - the bare class name is in the"
+                 + " stylesheet too, so matching that alone proves nothing: " + page);
+    assertTrue(page.contains("Not available here"), "with a badge saying so");
+    assertTrue(page.contains("Automatically sync my PatrolCalendar shifts"),
+               "under the same heading as the live panel, so it is recognisable");
+    assertTrue(page.contains("demonstration resort"), "and the reason, which is permanent here");
+  }
+
+  /** It is a notice, not the feature: none of the live controls come with it. */
+  @Test
+  void theUnavailableCardOffersNothingToPress() throws Exception {
+    String page = myInfoPage();
+
+    assertFalse(page.contains("Create my calendar link"),
+                "there is no link to create on a resort that cannot sync");
+    assertFalse(page.contains("id=\"calendarSyncPanel\""),
+                "and the live panel is still absent, not merely restyled");
+  }
+
+  /**
+   * A director looking at somebody else's My Info gets neither card. A calendar link is personal,
+   * so a notice about one would be a sentence about a feature that is not theirs to use here.
+   */
+  @Test
+  void anotherMembersPageCarriesNoSyncCardAtAll() throws Exception {
+    String page = mockMvc.perform(get("/UpdateInfo")
+                                    .param("resort", "Sample").param("ID", DIRECTOR_ID)
+                                    .param("Purpose", "Edit_Patroller")
+                                    .param("EditID", REAL_MEMBER_ID)
+                                    .header("User-Agent", BROWSER).session(directorSession()))
+      .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+    assertFalse(page.contains("card sync-card sync-unavailable"),
+                "no notice on somebody else's page");
+    assertFalse(page.contains("id=\"calendarSyncPanel\""), "and no live panel either");
+  }
+
+  /**
+   * MEMBER_ID in this class is a scratch id rather than somebody on the Sample roster, and the
+   * controller only reaches the sync panel for a member it can actually load.
+   */
+  private static final String REAL_MEMBER_ID = "200401";
+
+  /** A member's own My Info on the demo resort these tests run against. */
+  private String myInfoPage() throws Exception {
+    org.springframework.mock.web.MockHttpSession session =
+      new org.springframework.mock.web.MockHttpSession();
+    session.setAttribute("loggedInUserId", REAL_MEMBER_ID);
+    session.setAttribute("loggedInResort", "Sample");
+
+    return mockMvc.perform(get("/UpdateInfo").param("resort", "Sample").param("ID", REAL_MEMBER_ID)
+                             .header("User-Agent", BROWSER).session(session))
+      .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+  }
+
   private String panel(String page) {
     int start = page.indexOf("id=\"calendarSyncPanel\"");
     if (start < 0) {
       return "";
     }
-    //to the start of the next section, which is the Season Dates heading
-    int end = page.indexOf("Season Dates", start);
-    return end < 0 ? page.substring(start) : page.substring(start, end);
+    int end = page.indexOf("id=\"blackoutSection\"", start);
+    return flatten(end < 0 ? page.substring(start) : page.substring(start, end));
+  }
+
+  /** Runs of whitespace to a single space, so an assertion survives a reflow. */
+  private String flatten(String html) {
+    return html.replaceAll("\\s+", " ");
   }
 
   private String preferencesPage() throws Exception {

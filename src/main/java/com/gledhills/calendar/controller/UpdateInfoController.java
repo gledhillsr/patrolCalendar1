@@ -1475,13 +1475,33 @@ public class UpdateInfoController {
                                       String loggedInUserId, String viewingPatrollerId,
                                       PatrolData patrolData, Logger LOG) {
         model.addAttribute("showCalendarSync", false);
+        model.addAttribute("calendarSyncUnavailable", null);
         try {
-            if (!PatrolData.maySwitchOnCalendarSync(resort)
-                  || loggedInUserId == null || !loggedInUserId.equals(viewingPatrollerId)) {
+            //Somebody else's My Info. A calendar link is personal, so there is nothing here for a
+            //director looking at another member - not even a notice saying so, which would only be
+            //a sentence about a feature that is not theirs to use from this page.
+            if (loggedInUserId == null || !loggedInUserId.equals(viewingPatrollerId)) {
                 return;
             }
+
+            //The two ways it can be unavailable are told apart on purpose: one of them the member
+            //can do something about. Saying nothing at all - which is what this page used to do -
+            //leaves somebody who has heard about the feature with no idea why they cannot see it.
+            if (!PatrolData.maySwitchOnCalendarSync(resort)) {
+                model.addAttribute("calendarSyncUnavailable",
+                                   "This is a demonstration resort, so its patrollers are made up "
+                                     + "and their shifts are never sent anywhere - not to a "
+                                     + "personal calendar and not by email. Everything else on "
+                                     + "this page works normally.");
+                return;
+            }
+
             DirectorSettings settings = patrolData.readDirectorSettings();
             if (settings == null || !settings.getSyncEnabled()) {
+                model.addAttribute("calendarSyncUnavailable",
+                                   "Your patrol has not switched this on yet. A director can turn "
+                                     + "it on under Web Site Preferences, and it will appear here "
+                                     + "for everybody once they do.");
                 return;
             }
             model.addAttribute("showCalendarSync", true);
@@ -1494,6 +1514,7 @@ public class UpdateInfoController {
         catch (Exception e) {
             LOG.logException("could not build the calendar sync panel", e);
             model.addAttribute("showCalendarSync", false);
+            model.addAttribute("calendarSyncUnavailable", null);
         }
     }
 
