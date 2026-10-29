@@ -22,17 +22,16 @@
                + ' text-align:left;'">
     <b style="color:#cc0000;">New Feature. Allow patroller to sync this calendar
     to their personal (Google, Apple, Outlook) calendar.</b>
-    <br>
-    * - required fields to enable syncing with patrollers calendar.
 
     <!-- Two pictures of the same three shifts: what a director types, then what the calendar
          draws from it. A bare "e.g." left the reader to work out that the two were the same three
          shifts, which is the whole point of showing them - so each is captioned, an arrow runs
-         between them, and a line underneath reads the example out.
+         between them, and a line underneath reads the example out. The captions carry the
+         left-and-right explanation now, which is why this heading is only a word.
 
          The middle row has a time and no label, the others have both or a label only. -->
-    <p style="margin:8px 0 6px 0;">
-        <b>For example</b> &mdash; these settings (left) are what the calendar shows (right):
+    <p style="margin:8px 0 6px 0; text-align:center; font-size:11pt;">
+        <b>Example</b>
     </p>
     <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
         <figure style="margin:0; text-align:center;">
@@ -76,6 +75,14 @@
         a shift needs both a start and an end time before it can be sent, so it is simply left out.
     </p>
 </div>
+
+<!-- What the asterisks on the grid's column headings mean. Lifted out of the red notice above so
+     each page can put it beside the grid it describes rather than at the top of the page, but kept
+     here rather than written out twice: the two editors label the same columns, and two copies is
+     how the wording drifts. Delete this with the notice above when the Label split ships. -->
+<p th:fragment="requiredFieldsNote" style="margin:4px 0;">
+    * - required fields to enable syncing with patrollers calendar.
+</p>
 
 </body>
 </html>

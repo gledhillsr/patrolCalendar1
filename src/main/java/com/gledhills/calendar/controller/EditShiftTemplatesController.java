@@ -477,11 +477,15 @@ public class EditShiftTemplatesController {
         ShiftDefinitions fromRow = rows.get(from);
         ShiftDefinitions toRow = rows.get(to);
 
+        //The label travels with the row it belongs to. Both of these used to call the
+        //constructor that leaves it blank, so reordering a template emptied the Labels of the two
+        //rows it touched - the same bug DayShifts had, in the other shift editor.
         ShiftDefinitions movedToFrom = new ShiftDefinitions(fromRow.getEventName(),
-            toRow.getStartString(), toRow.getEndString(), toRow.getCount(), toRow.getType(), LOG);
+            toRow.getStartString(), toRow.getEndString(), toRow.getCount(), toRow.getType(),
+            toRow.getLabel(), LOG);
         ShiftDefinitions movedToTo = new ShiftDefinitions(toRow.getEventName(),
             fromRow.getStartString(), fromRow.getEndString(), fromRow.getCount(),
-            fromRow.getType(), LOG);
+            fromRow.getType(), fromRow.getLabel(), LOG);
 
         patrolData.deleteShift(fromRow);
         patrolData.deleteShift(toRow);

@@ -151,6 +151,63 @@ class EditShiftTemplatesControllerTest {
                  "the template should be restored to its original order");
   }
 
+  /**
+   * Reordering a template must carry each row's Label with it.
+   *
+   * <p>It did not: the swap rebuilt both rows through the ShiftDefinitions constructor that leaves
+   * the label blank, so the arrows emptied the Label of the two rows they touched - the same bug
+   * DayShifts had, in the other shift editor. The swap test above could not see it, because the
+   * row summary it compares did not include the label; it does now.
+   */
+  @Test
+  void movingARowCarriesItsLabelWithIt() throws Exception {
+    List<String> before = templateRows(MULTI_ROW_TEMPLATE);
+    assertTrue(before.size() >= 2, "need at least two rows: " + before);
+    String originalLabel = labelOfRow(0);
+
+    try {
+      setLabelOnRow(0, "TL");
+      clickArrow("moveDown_0", before.size());
+
+      assertEquals("TL", labelOfRow(1),
+                   "the Label must travel with the row: " + templateRows(MULTI_ROW_TEMPLATE));
+
+      clickArrow("moveUp_1", before.size()); //put the order back
+      setLabelOnRow(0, originalLabel);
+    }
+    finally {
+      setLabelOnRow(0, originalLabel);
+    }
+
+    assertEquals(before, templateRows(MULTI_ROW_TEMPLATE),
+                 "the template should be restored to its original order and labels");
+  }
+
+  private String labelOfRow(int row) {
+    String summary = templateRows(MULTI_ROW_TEMPLATE).get(row);
+    return summary.substring(summary.indexOf("label=") + "label=".length());
+  }
+
+  /** Put a label on one row of the template, the way a director typing one would leave it. */
+  private void setLabelOnRow(int row, String label) {
+    withPatrolData(patrolData -> {
+      int seen = 0;
+      for (ShiftDefinitions shift : patrolData.readShiftDefinitions()) {
+        if (shift.parsedEventName().equals(MULTI_ROW_TEMPLATE)) {
+          if (seen == row) {
+            //readShiftDefinitions hands back rows that exist, so writeShift updates rather
+            //than inserting - setExists is the flag it reads
+            shift.setLabel(label);
+            shift.setExists(true);
+            patrolData.writeShift(shift);
+            return;
+          }
+          seen++;
+        }
+      }
+    });
+  }
+
   /** The button is top-left and submits the template form, so pending row edits save first. */
   @Test
   void theAssignPatrollersButtonSubmitsTheTemplateForm() throws Exception {
@@ -379,6 +436,9 @@ class EditShiftTemplatesControllerTest {
 
     for (int row = 0; row < rows; row++) {
       request = request
+        //a browser posts the Label with every row; leaving it out blanks every label on the way
+        //in, which looks exactly like the bug this file is here to catch
+        .param("label_" + row, namedValue(page, "label_" + row))
         .param("startTime_" + row, namedValue(page, "startTime_" + row))
         .param("endTime_" + row, namedValue(page, "endTime_" + row))
         .param("count_" + row, selectedOption(page, "count_" + row))
@@ -401,7 +461,8 @@ class EditShiftTemplatesControllerTest {
       for (ShiftDefinitions shift : patrolData.readShiftDefinitions()) {
         if (shift.parsedEventName().equals(template)) {
           rows.add(shift.getEventName() + " " + shift.getStartString() + " " + shift.getEndString()
-                     + " " + shift.getCount() + " " + shift.getType());
+                     + " " + shift.getCount() + " " + shift.getType()
+                     + " label=" + shift.getLabel());
         }
       }
     }

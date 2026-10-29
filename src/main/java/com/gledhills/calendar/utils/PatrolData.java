@@ -514,6 +514,65 @@ public class PatrolData {
     return null; //failed
   } //end getMemberByID
 
+  /**
+   * Work out which member a sign-in attempt is for, accepting an email address as well as the
+   * member number the Member ID box asks for.
+   * <p>
+   * A fifth of every failed sign-in on this site is somebody typing their email address into that
+   * box, so an address naming exactly one member is accepted as that member.  Everything else is
+   * returned <em>unchanged</em> for the credential check to reject as it always has - in
+   * particular the back door account, which {@link #isValidLogin} matches before it looks at any
+   * database and which must therefore reach it as typed.
+   * <p>
+   * An address shared by more than one member is refused rather than guessed at; see
+   * {@link LoginIdentifier.Resolution#AMBIGUOUS_EMAIL}.  Note this is deliberately stricter than
+   * {@link #getMemberByEmail}, which takes the first row it is given - for a password reset that
+   * merely mails the wrong one of two people a link to their own account, but for a login it would
+   * hand somebody their spouse's session.
+   * <p>
+   * The address is untrusted and arrives before any authentication, so it is bound as a parameter
+   * and never concatenated into the statement.
+   */
+  public LoginIdentifier resolveLoginIdentifier(String supplied, SessionData sessionData) {
+    if (supplied == null || !supplied.contains("@")) {
+      return LoginIdentifier.notAnEmail(supplied);
+    }
+    if (sessionData != null && supplied.equalsIgnoreCase(sessionData.getBackDoorUser())) {
+      return LoginIdentifier.notAnEmail(supplied);
+    }
+
+    //LOWER/TRIM on both sides: rosters hold addresses with stray case and trailing spaces, and a
+    //member typing their own address should not have to reproduce either
+    String str = "SELECT IDNumber FROM roster WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))";
+    LOG.logSqlStatement(str);
+    try {
+      PreparedStatement rosterStatement = connection.prepareStatement(str);
+      rosterStatement.setString(1, supplied);
+      ResultSet rosterResults = rosterStatement.executeQuery();
+
+      String firstId = null;
+      while (rosterResults.next()) {
+        if (firstId != null) {
+          //a second row is all it takes - do not read the rest
+          LOG.warn("login by email refused, address is shared by more than one member");
+          return LoginIdentifier.ambiguousEmail(supplied);
+        }
+        firstId = rosterResults.getString("IDNumber");
+      }
+
+      if (firstId == null) {
+        return LoginIdentifier.unknownEmail(supplied);
+      }
+      LOG.info("login by email resolved to member " + firstId);
+      return LoginIdentifier.resolved(supplied, firstId);
+    }
+    catch (Exception e) {
+      //never the reason a login fails: fall back to the typed value and let the password decide
+      LOG.logException("Error in resolveLoginIdentifier: ", e);
+      return LoginIdentifier.notAnEmail(supplied);
+    }
+  }
+
   public Roster getMemberByEmail(String szEmail) {
     Roster member;
     //reachable from the unauthenticated password reset form, so the address is bound, never concatenated

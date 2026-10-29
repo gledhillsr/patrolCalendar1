@@ -439,6 +439,8 @@
                             </table>
                         </div>
 
+                        <p th:replace="~{fragments/notices :: requiredFieldsNote}"></p>
+
                         <p>NOTE: Pressing 'New' or 'Delete' will do a <b>Save Changes</b> first.</p>
 
                         <p align="center">
@@ -479,8 +481,8 @@
                             font-size:9pt; color:#333;">
                 <summary style="padding:6px 12px; cursor:pointer; font-weight:bold; color:#994f00;">
                     <span th:text="${#lists.size(timeProblems)}">0</span>
-                    shift row(s) have a start or end time that cannot be read &mdash; click to see
-                    them
+                    shift row(s) have a start or end time that cannot be synced to personal
+                    calendars &mdash; click to see them
                 </summary>
                 <div style="padding:0 12px 10px 12px;">
                     <p style="margin:4px 0 8px 0;">

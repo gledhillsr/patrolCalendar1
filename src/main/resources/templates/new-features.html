@@ -133,6 +133,7 @@
 
             <h3 class="contents-group">Available to everyone</h3>
             <ol>
+                    <li><a href="#sign-in-email">Sign in with your email address</a></li>
                     <li><a href="#calendar-sync">Your shifts in your own calendar &mdash; Google, Apple or Outlook</a></li>
                     <li><a href="#patrolcalendar">The site now answers at <span th:text="${@site.patrolCalendarDisplay}">the new domain</span></a></li>
                     <li><a href="#password-reset">Members can reset their own password</a></li>
@@ -171,6 +172,35 @@
 
         <h2 class="category">Available to everyone</h2>
         <p class="category-note">Every patroller sees these, whether or not they hold a director role.</p>
+        <!-- ================================================================= -->
+        <div class="feature">
+            <h3 id="sign-in-email">Sign in with your email address</h3>
+            <div class="where">
+                <b>Where:</b> the <i>Member ID Number</i> box on the login page
+            </div>
+            <p>
+                That box now takes <b>either</b> your patrol member number <b>or</b> the email
+                address on your roster record. Whichever you type, you end up in the same place.
+            </p>
+            <p>
+                This is the single most common reason a member cannot get in. People reach for
+                their email address, the box wants a number, and the only thing the page said back
+                was &ldquo;invalid member ID or password&rdquo; &mdash; which sends them off to
+                reset a password that was never the problem. Members have reset three and four
+                times over, each reset working perfectly, and still not got in.
+            </p>
+            <p>
+                <b>If the address is not recognised, the page now says so</b>, rather than blaming
+                your password. And if you share an email address with another patroller &mdash;
+                a couple using one address between them &mdash; it cannot tell which of you is
+                signing in, so it will say that too and ask for your member number instead.
+            </p>
+            <p>
+                <b>Your member number is in your password reset email</b>, if you need to look it
+                up.
+            </p>
+        </div>
+
         <!-- ================================================================= -->
         <div class="feature">
             <h3 id="calendar-sync">Your shifts in your own calendar &mdash; Google, Apple or Outlook</h3>

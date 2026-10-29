@@ -96,6 +96,46 @@ PatrolData patrolData = new PatrolData(resort, sessionData, LOG);
 - Controllers gate access by constructing `ValidateCredentialsRedirectIfNeeded`, which redirects to
   `MemberLogin?resort=<name>&NSPgoto=<parent>` when credentials do not check out
 - Director-only pages check `Roster.isDirector` after loading the logged-in user's record
+
+**The Member ID box also takes an email address.** A fifth of every failed sign-in the site has
+logged — 48 attempts from 24 distinct people — is somebody typing their address into it.
+`PatrolData.resolveLoginIdentifier` turns what was typed into a `LoginIdentifier`, and the login
+handler uses `memberId()` from then on.
+
+- Anything without an `@` is passed straight through, so the numeric path — every working login on
+  the site — is untouched. So is the back door account, which `isValidLogin` matches *before* it
+  reads any database and must therefore reach it as typed.
+- An address naming exactly one member resolves to that member's number. Matched on
+  `LOWER(TRIM(...))` at both ends: rosters hold addresses with stray case and trailing spaces.
+- **An address shared by more than one member is refused rather than guessed.** 39 members across
+  14 resorts share one with somebody — couples, almost always — and picking either would hand a
+  person their spouse's session whenever the two also share a password. Those members keep using
+  their number. Note this is deliberately stricter than `getMemberByEmail`, which takes the first
+  row it is given; for a password reset that merely mails the wrong one of two people a link to
+  their own account, which is why that one has not been changed.
+- **An unresolvable address is returned unchanged**, so it reaches the credential check and fails
+  there exactly as it always has. Resolution never decides a login — a SQL error in it falls back
+  to the typed value and lets the password decide.
+
+**The resolved number is what goes onward, not the address.** `sessionData.setLoggedInUserId` and
+the redirect's `&ID=` both take `memberId()`. Everything after login is keyed on the member number,
+so getting this wrong would sign somebody in to a broken site rather than refusing them honestly —
+`signingInByAddressCarriesTheNumberOnwardsNotTheAddress` is the test that matters here.
+
+**The rate limiter still keys on what was typed**, before resolution, so a blocked request costs no
+database query. That means an email attempt and a number attempt for the same member count against
+separate keys; the per-IP half of the limiter is what covers the gap.
+
+**A failed login says which of the four cases it was** (`loginFailureMessage`). "Invalid member ID
+or password" is right for a wrong password and useless for an identifier the site cannot place —
+it is what three members were told, over and over, while they requested password reset after
+password reset and every single reset succeeded. The unknown-address wording names the resort and
+so admits the address is not on this roster; that is the posture the reset form on the same page
+already takes, behind the same rate limiter, so it discloses nothing that was not already
+obtainable — and a login hint vaguer than the reset message six inches below it would help nobody.
+
+**The field label says `or email address`**, because accepting it silently helps only the people
+who already guessed. `LoginWithEmailAddressTest` pins all of it, including that label.
 - `BotBlockingFilter` rejects crawler/scanner user agents with 403 before any controller runs — note
   a request with **no** User-Agent counts as a bot, which matters when writing MockMvc tests
 
@@ -328,6 +368,13 @@ Things worth knowing:
   `getDisplayStartString()`. Change one and not the other and the same calendar shows labels on
   empty days and times on filled ones. The goldens will not tell you: their fixture dates carry no
   labels, which is why `ShiftLabelOnCalendarTest` pins both paths directly.
+- **Copying a shift row must carry its Label.** `ShiftDefinitions` has two constructors and the
+  shorter one leaves the label blank — it is for creating a *new* row. Both editors' up/down arrows
+  rebuilt their two rows through it, so reordering silently emptied the Label of every row the
+  arrows touched; on a row whose Label was its only caption the calendar then drew nothing at all
+  for that shift. Neither test caught it because both row summaries omitted the label, which is
+  worth knowing in itself: **a summary used for a before/after comparison is blind to whatever it
+  leaves out.** Both now include it, and `movingARowCarriesItsLabelWithIt` exists on each editor.
 - **`shiftKey` keys on the time, never the label.** A shift needing more than 10 patrollers is
   several rows sharing a time, and those rows need not share a label — keying on the label would
   split one real shift into two and let somebody be booked twice on it.
@@ -865,6 +912,23 @@ seventh caller, and **consent** — a cell number given for a roster is not agre
 ### Email
 
 `EmailService` sends via Spring's `JavaMailSender` (configured in `AsyncConfig` using `smtp.host` from `application.properties`). Director-triggered bulk emails are `@Async` on the `emailTaskExecutor` thread pool. Password reset emails use one-time tokens stored in `{resort}_password_reset_tokens` (24-byte random, 15-minute expiry, single-use). The lifetime lives in `PasswordResetToken.LIFETIME_MINUTES` and is quoted to the member in the email — change it in that one place.
+
+**The expiry is quoted as a clock time as well as a duration** — "This link will expire in 15
+minutes. (at 4:19pm MST)". "In 15 minutes" is true when the mail is composed and decreasingly true
+afterwards; somebody reading it twenty minutes later cannot tell the link is already dead.
+`MemberLoginController.expiryWording` builds it from the **token's own `expiresAt`**, never from
+now + `LIFETIME_MINUTES`, so a mail delayed in a queue still names the moment the server will
+enforce.
+
+**The zone comes from `directorsettings.timeZone` and nowhere else** (`resortZoneOrNull`), and a
+resort without one gets the bare sentence. This is deliberately **not** `ResortTimeZones.inForce`,
+which is right everywhere else and wrong here: it falls back to `America/Denver`, so a resort that
+had not answered would send a confident Mountain time to a member three zones away. A missing zone
+has to produce no time rather than a plausible wrong one. All 44 resorts in `resortMap` have a
+stored zone (verified on production), so the fallback is a safety net rather than a common path —
+the 10 databases without the column belong to resorts commented out of the map, which no page can
+reach. `PasswordResetExpiryTimeTest` pins the formatting, both DST halves, Arizona, noon/midnight,
+and every fallback.
 
 **The footer no longer apologises for the From address.** A branch used to tell any resort without
 a verified address *"Please Don't respond to this email... I am working on setting this 'From'

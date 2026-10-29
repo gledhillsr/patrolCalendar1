@@ -89,6 +89,12 @@
             color: #374151;
             margin-bottom: 5px;
         }
+        /* the box takes either, and a member who does not know that types their address, fails,
+           and reaches for the password reset that was never going to help */
+        .field label .field-hint {
+            font-weight: normal;
+            color: #6b7280;
+        }
         .field input[type="text"],
         .field input[type="password"] {
             width: 100%;
@@ -187,7 +193,7 @@
                     <input type="hidden" name="resort" th:value="${resort}"/>
 
                     <div class="field">
-                        <label for="ID">Member ID Number</label>
+                        <label for="ID">Member ID Number <span class="field-hint">or email address</span></label>
                         <input id="ID" name="ID" type="text" autocomplete="username"/>
                     </div>
                     <div class="field">

@@ -332,6 +332,10 @@ class DayShiftsControllerTest {
 
     for (int row = 0; row < shiftCount; row++) {
       request = request
+        //a browser posts the Label with every row; without it the save blanks every label before
+        //anything else happens, which is a test artifact that looks exactly like a product bug
+        .param("label_" + row, overrides.getOrDefault("label_" + row,
+                                                      namedValue(page, "label_" + row)))
         .param("startTime_" + row, overrides.getOrDefault("startTime_" + row,
                                                           namedValue(page, "startTime_" + row)))
         .param("endTime_" + row, overrides.getOrDefault("endTime_" + row,
@@ -348,6 +352,43 @@ class DayShiftsControllerTest {
   private void saveRowsAsTyped(String page, int shiftCount) throws Exception {
     mockMvc.perform(rowRequest(page, shiftCount).param("saveShiftBtn", "Save Shift Changes"))
       .andExpect(status().is3xxRedirection());
+  }
+
+  /**
+   * Moving a row must carry its Label, not just its times and patrollers.
+   *
+   * <p>It did not: the swap rebuilt each row through the ShiftDefinitions constructor that leaves
+   * the label blank, so the arrows emptied the Label of both rows they touched. On a row whose
+   * Label was its only caption - no start time - the calendar then drew nothing at all for that
+   * shift. The existing swap test could not see it, because the row summary it compares did not
+   * include the label; it does now.
+   */
+  @Test
+  void movingARowCarriesItsLabelWithIt() throws Exception {
+    String page = editPage();
+    int shiftCount = hiddenInt(page, "shiftCount");
+    assertTrue(shiftCount >= 2, "need at least two rows to reorder");
+    saveRowsAsTyped(page, shiftCount);
+    setLabelOnRow(0, "TL");
+
+    mockMvc.perform(rowRequest(editPage(), shiftCount).param("moveDown_0", "\u25BC"))
+      .andExpect(status().is3xxRedirection());
+
+    withPatrolData(patrolData -> {
+      List<Assignments> rows = scratchRows(patrolData);
+      assertEquals("TL", rows.get(1).getLabel(),
+                   "the Label must travel with the row: " + rowSummaries());
+    });
+  }
+
+  /** Put a label on the given saved row, the way a director typing one would leave it. */
+  private void setLabelOnRow(int row, String label) {
+    withPatrolData(patrolData -> {
+      Assignments target = scratchRows(patrolData).get(row);
+      target.setLabel(label);
+      target.setExisted(true);
+      patrolData.writeAssignment(target);
+    });
   }
 
   /** Put a known member on slot 0 of the given saved row. */
@@ -371,6 +412,7 @@ class DayShiftsControllerTest {
                         + " end=" + row.getEndingTimeString()
                         + " count=" + row.getCount()
                         + " type=" + row.getType()
+                        + " label=" + row.getLabel()
                         + " p0=" + row.getPosID(0));
       }
     });

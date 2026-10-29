@@ -57,6 +57,14 @@ public class ShiftDefinitions {
     existed = false;
   }
 
+  /**
+   * A row with <b>no label</b>, for creating a new one.
+   *
+   * <p><b>Never use this to copy an existing row.</b> It silently blanks the Label, which is what
+   * the calendar draws when a shift has one - both shift editors reordered rows through it and
+   * emptied the Label of every row the arrows touched. Pass {@code getLabel()} to the constructor
+   * below instead.
+   */
   public ShiftDefinitions(String name, String start, String end, int cnt, int typ, Logger parentLogger) {
     this(name, start, end, cnt, typ, "", parentLogger);
   }

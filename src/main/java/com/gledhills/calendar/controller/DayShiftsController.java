@@ -833,9 +833,12 @@ public class DayShiftsController {
 
     /** A row at {@code date} holding {@code source}'s definition and assigned patrollers. */
     private Assignments buildSwappedRow(String date, Assignments source, String eventName, Logger LOG) {
+        //getLabel() included deliberately: this used to call the constructor that leaves the
+        //label blank, so moving a row up or down silently emptied its Label - and on a row whose
+        //Label was its only caption, the calendar then drew nothing at all for that shift.
         ShiftDefinitions definition = new ShiftDefinitions(eventName,
                 source.getStartingTimeString(), source.getEndingTimeString(),
-                source.getCount(), source.getType(), LOG);
+                source.getCount(), source.getType(), source.getLabel(), LOG);
 
         Assignments row = new Assignments(date, definition, LOG);
         row.setEventName(eventName);

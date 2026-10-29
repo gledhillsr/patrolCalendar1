@@ -15,6 +15,10 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 @Controller
 public class MemberLoginController {
@@ -47,6 +51,33 @@ public class MemberLoginController {
       model.addAttribute("resortImgHeight", resortData.getImageHeight());
     }
     return "member-login";
+  }
+
+  /**
+   * What to tell somebody whose sign-in just failed.
+   * <p>
+   * The generic wording is right when a member number or a recognised address was given with the
+   * wrong password.  It is useless when the Member ID box holds an email address the site cannot
+   * place - the member has no way to tell that the box wanted something else, which is exactly how
+   * three of them ended up requesting reset after reset while every reset succeeded.
+   * <p>
+   * The unknown-address wording names the resort, and so admits that the address is not on this
+   * roster.  That is the posture the password reset form on this same page already takes, with the
+   * same rate limiter in front of it, so it discloses nothing that was not already obtainable -
+   * and a login hint vaguer than the reset message six inches below it would help nobody.
+   */
+  private String loginFailureMessage(LoginIdentifier identifier, String resort, Logger LOG) {
+    return switch (identifier.resolution()) {
+      case NOT_AN_EMAIL, RESOLVED -> "Invalid member ID or password. Please try again.";
+
+      case UNKNOWN_EMAIL -> "The email address \"" + identifier.typed() + "\" is not on the " +
+        PatrolData.getResortFullName(resort, LOG) + " roster." +
+        "\nYou can also sign in with your patrol member number - it is in your password reset email.";
+
+      case AMBIGUOUS_EMAIL -> "That email address belongs to more than one member here, so it cannot " +
+        "say which of you is signing in." +
+        "\nPlease sign in with your patrol member number - it is in your password reset email.";
+    };
   }
 
   @GetMapping("/MemberLogin")
@@ -296,15 +327,24 @@ public class MemberLoginController {
         return renderLoginFormWithError(model, resort, gotoPage, LOG);
       }
 
+      // 3c. Accept an email address as well as a member number.  A fifth of every failed sign-in
+      //     here is somebody typing their address into the Member ID box, and a password reset
+      //     cannot fix an identifier that was never wrong - three members reset repeatedly,
+      //     successfully every time, and still could not get in.
+      LoginIdentifier identifier = patrolData.resolveLoginIdentifier(id, sessionData);
+      String memberId = identifier.memberId();
+
       // 4. Validate credentials
-      if (patrolData.isValidLogin(null, resort, id, password, sessionData)) {
-        // Success - set session and redirect
+      if (patrolData.isValidLogin(null, resort, memberId, password, sessionData)) {
+        // Success - set session and redirect.  Note the *resolved* id throughout: the rest of the
+        // site is keyed on the member number, so signing in by email must not put an address into
+        // the session or onto the next page's query string.
         RATE_LIMITER.recordSuccess(resort, id);
-        sessionData.setLoggedInUserId(id);
+        sessionData.setLoggedInUserId(memberId);
         sessionData.setLoggedInResort(resort);
 
         String redirectUrl = PatrolData.SERVLET_URL + gotoPage +
-          "?resort=" + resort + "&ID=" + id;
+          "?resort=" + resort + "&ID=" + memberId;
         //303, not sendRedirect's 302: gotoPage only answers GET, and a client that repeats the
         //POST - which 302 permits - is shown a 405 just as it thinks it has signed in
         PostRedirect.sendTo(response, redirectUrl);
@@ -316,7 +356,7 @@ public class MemberLoginController {
         // Failure - show error on login form, and offer the password reset section
         model.addAttribute("showPasswordReset", true);
         model.addAttribute("errorMessage",
-                           "Invalid member ID or password. Please try again.");
+                           loginFailureMessage(identifier, resort, LOG));
         model.addAttribute("resort", resort);
         model.addAttribute("resortFullName",
                            PatrolData.getResortFullName(resort, LOG));
@@ -341,12 +381,60 @@ public class MemberLoginController {
     }
   }
 
-  private String buildPasswordResetEmail(String memberName, String resetUrl, String resortName) {
+  /**
+   * The resort's own time zone, or null when it has not set one.
+   *
+   * <p>Deliberately <em>not</em> {@link ResortTimeZones#inForce} - that falls back to
+   * {@code America/Denver} for a resort with no answer, which would put a confident Mountain
+   * clock time in front of a member three zones away. For this one purpose a missing zone has to
+   * produce no time at all: "expires in 15 minutes" is always true, and a wrong wall-clock time
+   * is worse than none.
+   */
+  private static ZoneId resortZoneOrNull(DirectorSettings settings) {
+    if (settings == null) {
+      return null;
+    }
+    String chosen = settings.getTimeZone();
+    if (chosen == null || chosen.isEmpty()) {
+      return null;
+    }
+    try {
+      return ZoneId.of(chosen);
+    }
+    catch (Exception e) {
+      //a stored value that is not a zone must not cost the member their reset email
+      return null;
+    }
+  }
+
+  /**
+   * "This link will expire in 15 minutes. (at 4:19pm MST)", or the sentence by itself when the
+   * resort has no time zone set.
+   *
+   * <p>The clock time comes from the token's own {@code expiresAt}, never from
+   * now + {@link PasswordResetToken#LIFETIME_MINUTES} - what the member is told is then the
+   * moment the server will actually enforce, however long the mail sat in a queue.
+   */
+  static String expiryWording(PasswordResetToken token, ZoneId zone) {
+    String sentence = "This link will expire in " + PasswordResetToken.LIFETIME_MINUTES + " minutes.";
+    if (zone == null || token == null || token.getExpiresAt() == null) {
+      return sentence;
+    }
+    ZonedDateTime at = token.getExpiresAt().toInstant().atZone(zone);
+    //lower-case meridiem is not something a DateTimeFormatter pattern gives you
+    String clock = at.format(DateTimeFormatter.ofPattern("h:mm", Locale.US))
+      + (at.getHour() < 12 ? "am" : "pm")
+      + " " + at.format(DateTimeFormatter.ofPattern("zzz", Locale.US));
+    return sentence + " (at " + clock + ")";
+  }
+
+  private String buildPasswordResetEmail(String memberName, String resetUrl, String resortName,
+                                         String expiryWording) {
     return "Hello " + memberName + ",\n\n" +
       "You requested a password reset for your " + resortName + " patrol account.\n\n" +
       "Click the link below to reset your password:\n" +
       resetUrl + "\n\n" +
-      "This link will expire in " + PasswordResetToken.LIFETIME_MINUTES + " minutes.\n\n" +
+      expiryWording + "\n\n" +
       "If you didn't request this reset, please ignore this email. " +
       "Your password will remain unchanged.\n\n" +
       "For assistance, contact your patrol director.\n\n" +
@@ -485,8 +573,11 @@ public class MemberLoginController {
 
       // 8. Send email
       String subject = "Password Reset Request for " + PatrolData.getResortFullName(resort, LOG);
+      //the resort's own zone, from directorsettings; no zone means no clock time in the email
+      ZoneId resortZone = resortZoneOrNull(patrolData.readDirectorSettings());
       String message = buildPasswordResetEmail(member.getFullName(), resetUrl,
-                                               PatrolData.getResortFullName(resort, LOG));
+                                               PatrolData.getResortFullName(resort, LOG),
+                                               expiryWording(resetToken, resortZone));
 
       MailMan mailMan = new MailMan(memberEmail, sessionData, LOG);
       boolean emailSent = mailMan.sendMessage(subject, message, memberEmail);
