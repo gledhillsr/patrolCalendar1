@@ -275,6 +275,22 @@ reduction would cry wolf on the case that loses nobody, and a director told "you
 every time stops reading it. The check is on the button, not the form's `onsubmit`, because
 `confirmActionDialog` replays the click and `saveShiftBtn` is dispatched on its name.
 
+**A new row goes at the end of the day, and the end is not `assignments.size()`.** That list is
+what was read from disk *before* the request and `saveShiftInfo` does not grow it — its own
+parameter is called `assignmentsFromDisk`. The rows just written occupy `1..parameterShifts.size()`
+and any disk rows past that are still there, since this path deletes no leftovers, so
+`processAddNewShift` takes the larger of the two. Using the disk count alone put a director's new
+row straight on top of an existing one: a SnowCreek day with one saved row and three on screen
+wrote `_1 _2 _3` and then numbered the new row `_2`, which MySQL refused as a duplicate key — twice
+in one evening. `ensureDisplayedRowsAreSaved` covers the day that is *entirely* empty on disk and
+re-reads the list afterwards; this is the partial case it returns early on.
+
+**And the write is checked.** `PatrolData.writeAssignment` answers **true for failure**, which
+`processAddNewShift` discarded — so the collision above returned a page that looked like it had
+added the row. It now reports it and the director gets an error instead of silent loss, the same
+rule `MenuButton.writeAll` is under. `pressingNewWhenTheScreenHasMoreRowsThanTheDiskAddsARowRatherThanCollidingWithOne`
+pins it.
+
 Replacing a day wholesale is the other destructive path: the shift-format dropdown on DayShifts
 confirms how many patrollers will be removed, then POSTs `replaceShiftFormat` (a POST, not a URL, so
 a refresh cannot repeat it). `processReplaceShiftFormat` deletes the day's rows — patrollers live on

@@ -270,8 +270,13 @@ public class DayShiftsController {
             ensureDisplayedRowsAreSaved(resort, dayOfWeek, date, month, year, patrolData,
                     sessionData, javaxRequest, assignmentsFromDisk, parameterShifts, newName,
                     selectedShift, LOG);
-            processAddNewShift(patrolData, assignmentsFromDisk, parameterShifts, newName,
-                    date, month, year, LOG);
+            if (!processAddNewShift(patrolData, assignmentsFromDisk, parameterShifts, newName,
+                    date, month, year, LOG)) {
+                model.addAttribute("errorMessage",
+                        "The new shift row could not be added. Please reload the day and try again.");
+                return showEditShiftView(resort, dayOfWeek, date, month, year, patrollerId,
+                        null, null, false, patrolData, sessionData, model, LOG);
+            }
         } else if (saveShiftBtn != null) {
             processSaveShiftChanges(patrolData, assignmentsFromDisk, parameterShifts,
                     newName, date, month, year, resort,
@@ -663,13 +668,31 @@ public class DayShiftsController {
         }
     }
 
-    private void processAddNewShift(PatrolData patrolData, ArrayList<Assignments> assignments,
+    /**
+     * Add one row to the end of the day.
+     *
+     * @return false when the row could not be written, so the caller can say so instead of
+     *         returning a page that looks like it worked
+     */
+    private boolean processAddNewShift(PatrolData patrolData, ArrayList<Assignments> assignments,
             ArrayList<ShiftDefinitions> parameterShifts, String newName,
             int date, int month, int year, Logger LOG) {
 
         saveShiftInfo(patrolData, assignments, parameterShifts, newName, date, month, year, LOG);
 
-        int assignmentSize = assignments.size();
+        //Where the day now ends, which is NOT assignments.size(): that list is what was read from
+        //disk before this request and saveShiftInfo does not grow it (its own parameter is called
+        //assignmentsFromDisk). The rows just written occupy 1..parameterShifts.size(), and any
+        //disk rows past that are still there because this path deletes no leftovers - so the end
+        //of the day is the larger of the two.
+        //
+        //Taking the disk count alone put a director's new row straight onto an existing one:
+        //a day with 1 saved row and 3 rows on screen wrote _1 _2 _3 and then numbered the new row
+        //_2, which MySQL rejected as a duplicate key. ensureDisplayedRowsAreSaved covers the day
+        //that is *entirely* empty on disk and re-reads the list; this is the partial case it
+        //returns early on, where disk has fewer rows than the screen.
+        int endOfDay = Math.max(parameterShifts.size(), assignments.size());
+
         //A real time rather than the old words "start time"/"end time", which are not times and
         //would fail their own validation. It cannot be blank either: a row needs a Label or a
         //Start Time to be saved, and a new row that could not be saved would be a trap.
@@ -677,13 +700,20 @@ public class DayShiftsController {
         ShiftDefinitions sData = new ShiftDefinitions(newName, "8:00", "16:00",
                 1, Assignments.DAY_TYPE, LOG);
 
-        String szAssignmentDate = getTodaysAssignmentString(date, month, year, assignmentSize + 1);
+        String szAssignmentDate = getTodaysAssignmentString(date, month, year, endOfDay + 1);
         Assignments assignment = new Assignments(szAssignmentDate, sData, LOG);
 
         String name = (newName != null && newName.length() > 1) ? newName : "";
         assignment.setEventName(name);
+
+        //writeAssignment answers true for FAILURE. Ignoring it is how a collision became a page
+        //that looked like it had added the row.
+        if (patrolData.writeAssignment(assignment)) {
+            LOG.error("could not add a new shift row at " + szAssignmentDate);
+            return false;
+        }
         assignments.add(assignment);
-        patrolData.writeAssignment(assignment);
+        return true;
     }
 
     /**

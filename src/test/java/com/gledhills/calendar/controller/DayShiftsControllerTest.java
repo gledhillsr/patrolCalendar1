@@ -534,4 +534,69 @@ class DayShiftsControllerTest {
       .matcher(select.group());
     return option.find() ? option.group(1) : "";
   }
+
+  /**
+   * Pressing New when the screen shows more rows than the day has saved must add a row, not
+   * collide with one.
+   *
+   * <p>This is a real failure, twice in one evening at SnowCreek: a day with one saved row and
+   * three on screen wrote those three as _1 _2 _3 and then numbered the new row _2, which MySQL
+   * rejected as a duplicate key. The row was lost and the director was handed a page that looked
+   * like it had worked.
+   *
+   * <p>The cause was taking the new row's position from {@code assignments.size()} - the list read
+   * from disk <em>before</em> the request, which {@code saveShiftInfo} does not grow.
+   * {@code ensureDisplayedRowsAreSaved} already covers a day that is entirely empty on disk and
+   * re-reads the list; this is the partial case it returns early on.
+   */
+  @Test
+  void pressingNewWhenTheScreenHasMoreRowsThanTheDiskAddsARowRatherThanCollidingWithOne()
+    throws Exception {
+    String page = editPage();
+    int rowsOnScreen = hiddenInt(page, "shiftCount");
+    org.junit.jupiter.api.Assumptions.assumeTrue(
+      rowsOnScreen >= 2, "needs a weekday template of at least 2 rows to set this up");
+
+    // save ONE row, so the day has fewer saved rows than the screen is showing
+    mockMvc.perform(rowRequest(page, 1).param("saveShiftBtn", "Save Shift Changes"))
+      .andExpect(status().is3xxRedirection());
+    assertEquals(1, rowSummaries().size(), "precondition: exactly one row on disk");
+
+    // now press New with the screen's full row count still posted, as the browser would
+    //a successful add redirects; the failure path renders the page with an errorMessage instead
+    mockMvc.perform(rowRequest(page, rowsOnScreen).param("newShift", "New"))
+      .andExpect(status().is3xxRedirection());
+
+    List<String> after = rowSummaries();
+    assertEquals(rowsOnScreen + 1, after.size(),
+                 "the screen's rows plus the new one should all be saved: " + after);
+
+    List<String> positions = new ArrayList<>();
+    withPatrolData(patrolData -> {
+      for (Assignments row : scratchRows(patrolData)) {
+        positions.add(row.getDate());
+      }
+    });
+    assertEquals(positions.size(), new java.util.HashSet<>(positions).size(),
+                 "no two rows may share a position: " + positions);
+  }
+
+  /**
+   * The same press on a day whose saved rows and screen rows already agree - the ordinary case,
+   * which must keep working.
+   */
+  @Test
+  void pressingNewOnAnAlreadySavedDayAppendsOneRow() throws Exception {
+    String page = editPage();
+    int rowsOnScreen = hiddenInt(page, "shiftCount");
+    saveRowsAsTyped(page, rowsOnScreen);
+    assertEquals(rowsOnScreen, rowSummaries().size(), "precondition: the day is fully saved");
+
+    mockMvc.perform(rowRequest(page, rowsOnScreen).param("newShift", "New"))
+      .andExpect(status().is3xxRedirection());
+
+    assertEquals(rowsOnScreen + 1, rowSummaries().size(),
+                 "exactly one row should have been added");
+  }
+
 }
