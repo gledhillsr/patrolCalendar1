@@ -1001,6 +1001,43 @@ director could watch a send half-fail and never know. The summary goes out on it
 connection, and when the mail server itself is the problem it cannot get through either; the log is
 the fallback and still holds every individual failure.
 
+### Passwords: two columns, one of them cleartext
+
+`roster` carries **`Password`** (cleartext, the original) and **`newPassword`**
+(`varchar(128)`, a salted SHA-512 hex digest, added later). `judgeCredentials` tries the hash
+first, then the cleartext, then — only when **both** are empty — the member's last name.
+
+**`Password` cannot be retired yet, and the number is the reason.** Of 3,310 members across the
+54 rosters, 1,663 have a hash and **1,319 have cleartext only** — they have never changed their
+password since hashing was added, so the cleartext is their single credential. Nine resorts have
+no hashes at all (WelchVillage 127/127, WhitePine 21/21, psiaPineMountain 17/17, ElmCreek 108/109,
+Willamette 79/82). 328 have neither and sign in with their last name. Dropping the column today
+locks out 40% of the site.
+
+**The way out is to upgrade on login**, not a migration: `judgeCredentials` already knows the
+plaintext matched, so that branch is the one place that can hash what the member just typed, write
+it to `newPassword`, and blank `Password`. The column then drains as people sign in over a season,
+and whoever is left can be force-reset. Nothing else can do it — the cleartext is the only copy,
+and a batch job has nothing to hash that the member has not just handed over.
+
+**The column is `varchar(64)`, and `Roster.MAX_PASSWORD_LENGTH` is the one place that says so.**
+It was `varchar(16)` with nothing checking the length, so a password manager's password reached
+MySQL and came back as `Data too long for column 'Password'` — on the reset path **after the
+one-time token had been spent**, with only "An error occurred. Please try again." shown; and on
+UpdateInfo it failed the UPDATE carrying *every* field on the form, losing the member's address
+and phone with it. Seven resorts hit it. Widened by **Directors → Site Wide Configuration → "Widen
+the password column in every resort"**, which judges each resort on the width the database reports
+rather than on a flag, so it is idempotent and finishes an interrupted run. The reset path checks
+the length **before it looks the token up**, which is what keeps a too-long password from costing
+the member their link. `PasswordLengthTest` pins that ordering.
+
+**A password reset does not revoke the old password.** `Roster.updatePassword` writes cleartext
+only and leaves `newPassword` holding the hash of the *previous* password — so after a reset the
+old password still authenticates on the hash branch while the new one works on the cleartext
+branch. Both open the account. Fixing it means writing the new hash (and blanking the cleartext)
+in that method; it is not done, and it is the reason a reset cannot currently be relied on to lock
+somebody out.
+
 ### The Site's Own Identity
 
 `utils/SiteIdentity` holds the domain this site is served from and the addresses that speak for it.

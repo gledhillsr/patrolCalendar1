@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import com.gledhills.calendar.store.CalendarFeedToken;
 import com.gledhills.calendar.store.DirectorSettings;
 import com.gledhills.calendar.store.Roster;
@@ -63,6 +64,8 @@ public class UpdateInfoController {
 
         private String emergencyCallUp;
         private String substituteList;
+        @Size(max = Roster.MAX_PASSWORD_LENGTH,
+              message = "Password must be " + Roster.MAX_PASSWORD_LENGTH + " characters or fewer")
         private String password;
         private String idNumber; // For setNewID functionality
 
@@ -355,6 +358,11 @@ public class UpdateInfoController {
             // Password: only update if non-blank.
             // Set the plain-text PASSWORD field so Roster's SQL builder detects the change
             // and writes both password and the SHA-512 hash into newPassword.
+            //
+            // Length is checked here rather than left to MySQL: the column was varchar(16), and
+            // an over-long password failed the UPDATE that carries EVERY field on this form - the
+            // member lost their address change, their phone number and their classification along
+            // with the password, and was told only "Database error: Failed to update profile".
             if (password != null && !password.trim().isEmpty()) {
                 roster.memberData[Roster.PASSWORD] = password;
             }

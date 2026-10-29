@@ -5,6 +5,7 @@ import com.gledhills.calendar.ShiftTimeCleanup;
 import com.gledhills.calendar.store.MenuButton;
 import com.gledhills.calendar.store.CalendarFeedToken;
 import com.gledhills.calendar.store.PasswordResetToken;
+import com.gledhills.calendar.store.Roster;
 import com.gledhills.calendar.store.ShiftDefinitions;
 import com.gledhills.calendar.store.ShiftTemplatePatrollers;
 import com.gledhills.calendar.utils.Logger;
@@ -147,6 +148,10 @@ public class SiteWideConfigurationController {
             else if ("shiftLabels".equals(action)) {
                 results = shiftLabels(sessionData, LOG);
                 heading = "Shift Label column added and old Start values sorted";
+            }
+            else if ("widenPassword".equals(action)) {
+                results = widenPasswordColumn(sessionData, LOG);
+                heading = "Widen the password column";
             }
             else if ("shiftTimes".equals(action)) {
                 results = shiftTimes(sessionData, LOG);
@@ -311,6 +316,91 @@ public class SiteWideConfigurationController {
      * skipped forever. A resort that already holds a zone is <b>left alone</b>: a director may
      * have corrected it, and their answer is the authority.
      */
+    /**
+     * Widen {@code roster.Password} to {@link Roster#MAX_PASSWORD_LENGTH} everywhere.
+     *
+     * <p>The column is {@code varchar(16)} and nothing checked the length, so a password longer
+     * than that was refused by MySQL with "Data too long for column 'Password'" - after the reset
+     * token had been spent, and with only "An error occurred. Please try again." shown to the
+     * member. Seven resorts hit it in the retained logs; on the UpdateInfo path it failed the
+     * member's entire update rather than just the password.
+     *
+     * <p>Idempotent, and judged on <b>the column as the database reports it</b> rather than on a
+     * flag or a guess: a resort already at 64 or wider reports "nothing to do", and a run that
+     * died part way through 54 databases is simply finished by pressing the button again.
+     *
+     * <p>Widening only - a resort whose column is somehow already wider is left alone, since
+     * narrowing one would truncate stored passwords and lock those members out.
+     */
+    private List<ResortResult> widenPasswordColumn(SessionData sessionData, Logger LOG) {
+        List<ResortResult> results = new ArrayList<>();
+
+        for (String resort : new TreeSet<>(PatrolData.resortMap.keySet())) {
+            PatrolData patrolData = null;
+            try {
+                patrolData = new PatrolData(resort, sessionData, LOG);
+                if (patrolData.getConnection() == null) {
+                    results.add(new ResortResult(resort, false, "no database"));
+                    continue;
+                }
+                results.add(widenPasswordColumn(resort, patrolData.getConnection()));
+            }
+            catch (Exception e) {
+                //the message, not just the class: this job walks 54 databases and the site owner
+                //needs to know which one objected and to what
+                LOG.logException("password column job failed for " + resort, e);
+                results.add(new ResortResult(resort, false,
+                                             e.getClass().getSimpleName() + ": " + e.getMessage()));
+            }
+            finally {
+                if (patrolData != null) {
+                    try {
+                        patrolData.close();
+                    }
+                    catch (Exception ignored) {
+                        //closing a finished connection cannot fail the job
+                    }
+                }
+            }
+        }
+        return results;
+    }
+
+    /** One resort's roster table. */
+    private ResortResult widenPasswordColumn(String resort, Connection connection)
+        throws SQLException {
+
+        int width = passwordColumnWidth(connection);
+        if (width < 0) {
+            return new ResortResult(resort, false, "no Password column on roster");
+        }
+        if (width >= Roster.MAX_PASSWORD_LENGTH) {
+            return new ResortResult(resort, true,
+                                    "nothing to do (already varchar(" + width + "))");
+        }
+
+        //NOT NULL is kept: every row has a value and the rest of the app reads it without a null
+        //check. A MODIFY that dropped it would be a silent change to 54 schemas.
+        runDdlDespiteLegacyDefaults(connection,
+            "ALTER TABLE `roster` MODIFY `Password` varchar("
+              + Roster.MAX_PASSWORD_LENGTH + ") NOT NULL");
+
+        return new ResortResult(resort, true,
+                                "widened from varchar(" + width + ") to varchar("
+                                  + Roster.MAX_PASSWORD_LENGTH + ")");
+    }
+
+    /** The Password column's length as the database reports it, or -1 when there is no such column. */
+    private int passwordColumnWidth(Connection connection) throws SQLException {
+        try (ResultSet columns = connection.getMetaData()
+                                   .getColumns(connection.getCatalog(), null, "roster", "Password")) {
+            if (columns.next()) {
+                return columns.getInt("COLUMN_SIZE");
+            }
+        }
+        return -1;
+    }
+
     private List<ResortResult> timeZones(SessionData sessionData, Logger LOG) {
         List<ResortResult> results = new ArrayList<>();
 
@@ -361,7 +451,7 @@ public class SiteWideConfigurationController {
         ResortResult zone = addTimeZone(resort, connection);
 
         if (!hasColumn(connection, "directorsettings", DirectorSettings.SYNC_ENABLED_FIELD)) {
-            addColumnDespiteLegacyDefaults(connection,
+            runDdlDespiteLegacyDefaults(connection,
                 "ALTER TABLE `directorsettings` ADD COLUMN `"
                   + DirectorSettings.SYNC_ENABLED_FIELD + "` varchar(1) NOT NULL DEFAULT '0'");
             return new ResortResult(resort, zone.isCreated(),
@@ -373,7 +463,7 @@ public class SiteWideConfigurationController {
     private ResortResult addTimeZone(String resort, Connection connection) throws SQLException {
         boolean added = false;
         if (!hasColumn(connection, "directorsettings", DirectorSettings.TIME_ZONE_FIELD)) {
-            addColumnDespiteLegacyDefaults(connection,
+            runDdlDespiteLegacyDefaults(connection,
                 "ALTER TABLE `directorsettings` ADD COLUMN `"
                   + DirectorSettings.TIME_ZONE_FIELD + "` varchar(40) NOT NULL DEFAULT ''");
             added = true;
@@ -408,7 +498,7 @@ public class SiteWideConfigurationController {
      * default is left exactly as it is: changing a column twenty years of rows depend on, as a side
      * effect of adding an unrelated one, is not a trade worth making.
      */
-    private void addColumnDespiteLegacyDefaults(Connection connection, String alterSql)
+    private void runDdlDespiteLegacyDefaults(Connection connection, String ddlSql)
         throws SQLException {
 
         String previousMode = null;
@@ -419,7 +509,7 @@ public class SiteWideConfigurationController {
                 }
             }
             statement.execute("SET SESSION sql_mode = ''");
-            statement.executeUpdate(alterSql);
+            statement.executeUpdate(ddlSql);
         }
         finally {
             if (previousMode != null) {

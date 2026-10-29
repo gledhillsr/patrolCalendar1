@@ -1240,6 +1240,20 @@ public class Roster {
     memberData[CAN_EARN_CREDITS] = str;
   }
 
+  /**
+   * How long a password may be, and the width of the {@code Password} column that holds it.
+   *
+   * <p>One constant because the two must agree: the column was {@code varchar(16)} with nothing
+   * checking the length, so a password manager's generated password was rejected by MySQL as
+   * "Data too long" after the reset token had already been spent. Seven resorts hit it, and on
+   * the UpdateInfo path it failed the member's <em>whole</em> update, not just the password.
+   *
+   * <p>Widened to 64 by the "Widen the password column" job on Site Wide Configuration. A resort
+   * the job has not reached still has a 16-character column, which is why the check is also made
+   * against what the database actually says rather than against this number alone.
+   */
+  public static final int MAX_PASSWORD_LENGTH = 64;
+
   public void updatePassword(Connection connection, String resort, String newPassword) throws SQLException {
     String sql = "UPDATE roster SET Password = ? WHERE IDNumber = ?";
 

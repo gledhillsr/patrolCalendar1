@@ -323,7 +323,7 @@
                              it being filled in by accident. -->
                         <div class="field own-row">
                             <label for="password">Password</label>
-                            <input type="password" th:field="*{password}" id="password"
+                            <input type="password" th:field="*{password}" id="password" maxlength="64"
                                    th:placeholder="${isAddPatroller} ? 'Leave blank to default to Last Name' : 'Leave blank to keep current'" />
                         </div>
                     </div>

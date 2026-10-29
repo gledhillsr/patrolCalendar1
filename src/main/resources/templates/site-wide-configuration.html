@@ -186,6 +186,31 @@
                        'Tidy shift template times everywhere?')"/>
         </form>
 
+        <h3>Widen the password column</h3>
+        <p>
+            Every roster's <code>Password</code> column is <code>varchar(16)</code>, and nothing
+            checked the length before writing to it. A member whose password manager generated
+            anything longer had their reset refused by the database &mdash; <i>after</i> the
+            one-time link had been spent &mdash; and was told only &ldquo;An error occurred&rdquo;.
+            On the My&nbsp;Info page it was worse: the over-long password failed the update that
+            carries <i>every</i> field on the form, so their address and phone changes went with it.
+        </p>
+        <p>
+            This widens the column to 64 characters in every resort. It is safe to run more than
+            once: a resort already wide enough reports <i>nothing to do</i>, and a run that stopped
+            part way through is finished by pressing the button again.
+        </p>
+
+        <form th:action="@{/SiteWideConfiguration}" method="post" style="display:inline">
+            <input type="hidden" name="resort" th:value="${resort}"/>
+            <input type="hidden" name="ID" th:value="${patrollerId}"/>
+            <input type="hidden" name="action" value="widenPassword"/>
+            <input type="submit" value="Widen the password column in every resort"
+                   onclick="return confirmActionDialog(this,
+                       'Widen roster.Password from 16 to 64 characters in EVERY resort.\n\nNo stored password is changed and nothing is deleted. Safe to run more than once. Continue?',
+                       'Widen the password column everywhere?')"/>
+        </form>
+
         <h3>Remove shift templates with no event name</h3>
         <p>
             A template row's position lives in a <code>_&lt;n&gt;</code> suffix on its name, and the

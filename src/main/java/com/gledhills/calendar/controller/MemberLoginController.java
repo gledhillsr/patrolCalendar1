@@ -228,6 +228,19 @@ public class MemberLoginController {
       return "reset-password";
     }
 
+    // 2b. ...and that it will fit. The column was varchar(16) with nothing checking, so a
+    //     password manager's generated password reached MySQL, came back as "Data too long for
+    //     column 'Password'", and the member was told only "An error occurred. Please try again."
+    //     - with the reset token already spent. Say what is wrong instead.
+    if (newPassword.length() > Roster.MAX_PASSWORD_LENGTH) {
+      model.addAttribute("errorMessage",
+                         "That password is " + newPassword.length() + " characters. Please choose one of "
+                           + Roster.MAX_PASSWORD_LENGTH + " characters or fewer.");
+      model.addAttribute("resort", resort);
+      model.addAttribute("token", token);
+      return "reset-password";
+    }
+
     // 3. Use ServletAdapter
     javax.servlet.http.HttpServletRequest javaxRequest = ServletAdapter.toJavaxRequest(request);
     Logger LOG = new Logger(MemberLoginController.class, javaxRequest, "POST", resort, Logger.INFO);
