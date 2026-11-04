@@ -668,6 +668,19 @@ so the inactive case is pinned on the URL rather than on the lists.
 unset and unrecognised are not), the same test ListPatrollers and the Patrollers tab use, so the
 three cannot drift. Nobody should be put onto a shift they are not patrolling this season.
 
+**The page draws the site header**, like every other screen. It did not for a while and carried
+its own Home icon instead; both are gone. The header fragment needs `patrollerId` and the three
+resort fields (`resortUrl`/`resortImage`/`resortImgHeight`) in the model — this controller set
+none of them, and a missing `resortImage` renders as a broken image rather than as nothing.
+Pinned by `thePageDrawsTheSiteHeader`, which is worth having because
+`fragments/header` reaches the database for the custom menu buttons and is written never to
+throw: a header that failed would leave the page looking plain rather than broken, and nothing
+else would notice.
+
+**`process-change-shift-assignments.html` and `shift-conflict.html` still have no header.** Both
+are short interstitials — the first says so itself ("this screen is temporary, please validate
+what you did").
+
 **The same loop fills `numToName`, and that map is deliberately NOT filtered.** It resolves
 whoever currently holds the slot, and `posWasEmpty` is derived from it — so filtering it as well
 makes an inactive patroller already on a shift come back blank, the page decides the slot is empty

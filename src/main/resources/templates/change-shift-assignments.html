@@ -5,10 +5,8 @@
     <meta charset="UTF-8">
     <title th:text="${dayOfWeekName + ' ' + monthFullName + ' ' + dayOfMonth + ', ' + year}">Change Shift</title>
     <th:block th:replace="~{fragments/head :: icons}"></th:block>
-    <!-- This page draws no site header, but header.css also carries the shared page chrome every
-         other screen gets from it - the 16px the body is inset by, and the sticky footer. Loading
-         it keeps that inset defined once; the #banner rules simply match nothing here. -->
-    <link rel="stylesheet" th:href="@{/css/header.css}"/>
+    <!-- header.css is pulled in by the header fragment itself, below. It also carries the shared
+         page chrome - the 16px the body is inset by, and the sticky footer. -->
     <script>
         function goHome() {
             history.back();
@@ -24,6 +22,8 @@
     </script>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
+
+    <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
     <a name="TOP"></a>
     <table border="0" cellspacing="0" cellpadding="0" width="100%">
@@ -48,14 +48,10 @@
                        th:text="${shiftHeading}">(dir) 8:00 - 16:30</b>
                 </font>
             </td>
-            <td width="30%" valign="MIDDLE" align="RIGHT" nowrap>
-                <font size="2" face="Arial, Helvetica">
-                    <a target="_self" th:href="@{/MonthCalendar(resort=${resort}, month=${month}, year=${year})}">
-                        <img src="/calendar-1/images/ncgohome.gif" border="0"
-                             alt="Return to Volunteer Roster" align="BOTTOM" width="32" height="32">
-                    </a>
-                </font>
-            </td>
+            <!-- The Home button that used to sit here is gone: the site header above carries the
+                 Calendar link, and two ways back to the same page is one too many. The Cancel
+                 button at the foot of the form still goes back a page. -->
+            <td width="30%"></td>
         </tr>
     </table>
 

@@ -89,4 +89,31 @@ class ChangeShiftAssignmentsControllerTest {
       .andExpect(status().isOk())
       .andReturn().getResponse().getContentAsString();
   }
+  /**
+   * The page draws the site header like every other screen.
+   *
+   * <p>It deliberately did not for a while, and carried its own Home icon instead. Worth a test
+   * because the header fragment reaches the database for the custom menu buttons and is written
+   * never to throw - so a header that failed to render would leave the page looking merely plain
+   * rather than broken, and nothing else would notice.
+   */
+  @Test
+  void thePageDrawsTheSiteHeader() throws Exception {
+    String page = slotPage(13, 1, 1);
+
+    assertTrue(page.contains("id=\"banner\""),
+               "the site header should be drawn");
+    assertTrue(page.contains("Sample Resort Ski Patrol"),
+               "including the resort title");
+    assertTrue(page.contains("/calendar-1/images/Coldbarnstar.png"),
+               "and the resort logo, which needs resortImage in the model");
+  }
+
+  /** And no longer carries a Home button of its own - the header is how you leave. */
+  @Test
+  void theOldHomeButtonIsGone() throws Exception {
+    assertFalse(slotPage(13, 1, 1).contains("ncgohome"),
+                "the Home icon should have been removed");
+  }
+
 }

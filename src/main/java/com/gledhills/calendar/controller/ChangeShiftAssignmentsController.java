@@ -194,6 +194,17 @@ public class ChangeShiftAssignmentsController {
     model.addAttribute("pos", pos);
     model.addAttribute("index", index);
     model.addAttribute("loggedInUserId", loggedInUserId);
+
+    //What the site header needs. It is drawn from fragments/header, which reads patrollerId for
+    //the members bar and the custom menu buttons, and the three resort fields for the logo - a
+    //missing resortImage renders as a broken image rather than as nothing.
+    model.addAttribute("patrollerId", loggedInUserId);
+    ResortData resortData = PatrolData.getResortInfo(resort);
+    if (resortData != null) {
+      model.addAttribute("resortUrl", resortData.getResortURL());
+      model.addAttribute("resortImage", resortData.getResortImage());
+      model.addAttribute("resortImgHeight", resortData.getImageHeight());
+    }
     model.addAttribute("myName", myName);
     model.addAttribute("newName1", newName1);
     model.addAttribute("newIdNumber", newIdNumber);
