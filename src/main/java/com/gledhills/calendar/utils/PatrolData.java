@@ -116,9 +116,9 @@ public class PatrolData {
     resortMap.put("DetroitMountain",
                   new ResortData("DetroitMountain", "Detroit Mountain", null, "http://detroitmountain.com/",
                                  "/calendar-1/images/Coldbarnstar.png", 73, 121));
-//    resortMap.put("DevilsHead", new ResortData("DevilsHead", "Devil's Head", "tim.theisen@ieee.org",
-//                                               "https://www.devilsheadresort.com/", "/calendar-1/images/DevilsHeadSkiPatrol.png",
-//                                               IMG_HEIGHT, 160));
+    resortMap.put("DevilsHead", new ResortData("DevilsHead", "Devil's Head", "tim.theisen@ieee.org",
+                                               "https://www.devilsheadresort.com/", "/calendar-1/images/DevilsHeadSkiPatrol.png",
+                                               IMG_HEIGHT, 160));
     resortMap.put("GrandTarghee",
                   new ResortData("GrandTarghee", "Teton Valley Mountain", null, "http://www.GrandTarghee.com",
                                  "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
