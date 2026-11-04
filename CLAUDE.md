@@ -660,6 +660,29 @@ button.
 out of it, follows it, compares the two name lists. Note the Sample roster has no inactive member,
 so the inactive case is pinned on the URL rather than on the lists.
 
+### Replacing Somebody on a Shift
+
+`ChangeShiftAssignments` is the screen reached by clicking a name on the month calendar. Its
+**Replace/Insert** dropdown offers `sortedRoster`, and **inactive members are left out of it** —
+`Roster.hasActiveCommitment()` (commitment `"1"` Part Time or `"2"` Full Time; `"0"` Inactive,
+unset and unrecognised are not), the same test ListPatrollers and the Patrollers tab use, so the
+three cannot drift. Nobody should be put onto a shift they are not patrolling this season.
+
+**The same loop fills `numToName`, and that map is deliberately NOT filtered.** It resolves
+whoever currently holds the slot, and `posWasEmpty` is derived from it — so filtering it as well
+makes an inactive patroller already on a shift come back blank, the page decides the slot is empty
+and renders `insertMyName` instead of Replace, and a director can no longer take them off the
+shift at all. Hiding somebody from a list must not hide them from the shift they are on.
+`InactivePatrollersNotOfferedTest` pins both halves, and was checked against both regressions.
+
+Sample has no inactive member, so that test makes one: it flips the commitment of whoever occupies
+a known-occupied slot and puts it back, with a targeted `UPDATE` rather than a round trip through
+`getUpdateSQLString`, which would rewrite the member's password columns as a side effect.
+
+**The server does not refuse an inactive name posted by hand.** The dropdown is a presentation
+choice rather than a data-integrity rule — unlike the duplicate-on-a-shift check — and a director
+may have a reason to assign somebody the list does not show.
+
 ### Viewing Another Patroller's History
 
 `ListAssignments` normally shows the logged-in member their own shifts. The Directors page's

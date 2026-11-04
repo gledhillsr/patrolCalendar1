@@ -93,7 +93,19 @@ public class ChangeShiftAssignmentsController {
         isDirector = nextMember.isDirector();
       }
       String lastFirst = nextMember.getFullName_lastNameFirst();
-      sortedRoster.add(lastFirst);
+
+      //Inactive members are not offered in the Replace/Insert list - nobody should be put onto a
+      //shift they are not patrolling this season. hasActiveCommitment() is the same test
+      //ListPatrollers and the Patrollers tab use, so the three cannot drift.
+      if (nextMember.hasActiveCommitment()) {
+        sortedRoster.add(lastFirst);
+      }
+
+      //numToName is NOT filtered, and that is the point: it resolves whoever currently holds the
+      //slot, and posWasEmpty below is derived from it. An inactive member already on a shift would
+      //otherwise come back blank, the page would decide the slot was empty, and it would offer
+      //"Insert someone else" instead of "Replace <name>" - so a director could no longer take them
+      //off the shift at all.
       numToName.put(nextMember.getID(), lastFirst);
     }
 

@@ -143,8 +143,8 @@ public class PatrolData {
     resortMap.put("IndianHeadMountain",
                   new ResortData("IndianHeadMountain", "Jackson Creek Summit", "Teagan.knudson@snowriver.com",
                                  "http://www.snowriver.com", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
-    resortMap.put("KellyCanyon", new ResortData("KellyCanyon", "Kelly Canyon", null, "http://www.SkiKelly.com",
-                                                "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
+    resortMap.put("KellyCanyon", new ResortData("KellyCanyon", "Kelly Canyon", null, "https://kellycanyonskipatrol.com/",
+                                                "/calendar-1/images/KellyCanyonSkiPatrol.png", IMG_HEIGHT, 80));
     resortMap.put("LeeCanyon", new ResortData("LeeCanyon", "Lee Canyon", "schedule@leecanyonskipatrol.org",
                                               "http://www.leecanyonskipatrol.org", "/calendar-1/images/Coldbarnstar.png",
                                               IMG_HEIGHT, 80));
