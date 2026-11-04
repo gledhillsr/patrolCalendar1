@@ -69,6 +69,7 @@ public final class ResortTimeZones {
         Map.entry("BuenaVista",        CENTRAL),    //Bemidji, Minnesota
         Map.entry("CoffeeMill",        CENTRAL),    //Wabasha, Minnesota
         Map.entry("DetroitMountain",   CENTRAL),    //Detroit Lakes, Minnesota
+        Map.entry("DevilsHead",        CENTRAL),    //Merrimac, Wisconsin
         Map.entry("HylandHills",       CENTRAL),    //Bloomington, Minnesota
         Map.entry("IndianHeadMountain", CENTRAL),   //Snow River, Gogebic County Michigan
         Map.entry("MountKato",         CENTRAL),    //Mankato, Minnesota
