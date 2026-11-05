@@ -55,7 +55,7 @@ class EmailServiceSmtpConnectionTest {
     void aBatchLogsInOnceNoMatterHowManyRecipients() throws Exception {
         EmailService service = new EmailService(mailSender());
 
-        service.sendBatch(recipients(RECIPIENT_COUNT), batch(), new Logger(getClass(), Logger.INFO));
+        service.sendBatch(recipients(RECIPIENT_COUNT), batch(), new Logger(getClass(), Logger.INFO), null);
         smtpServer.awaitQuiet();
 
         assertEquals(RECIPIENT_COUNT, smtpServer.messages.get(),
@@ -77,7 +77,7 @@ class EmailServiceSmtpConnectionTest {
         smtpServer.rejectPatrollersFrom(5, "550 5.4.5 Daily user sending limit exceeded");
         EmailService service = new EmailService(mailSender());
 
-        service.sendBatch(recipients(RECIPIENT_COUNT), batch(), new Logger(getClass(), Logger.INFO));
+        service.sendBatch(recipients(RECIPIENT_COUNT), batch(), new Logger(getClass(), Logger.INFO), null);
         smtpServer.awaitQuiet();
 
         assertEquals(4, smtpServer.patrollerMessagesAccepted.get(),
@@ -93,7 +93,7 @@ class EmailServiceSmtpConnectionTest {
         smtpServer.rejectPatrollersFrom(5, "550 5.4.5 Daily user sending limit exceeded");
         EmailService service = new EmailService(mailSender());
 
-        service.sendBatch(recipients(RECIPIENT_COUNT), batchFromDirector(), new Logger(getClass(), Logger.INFO));
+        service.sendBatch(recipients(RECIPIENT_COUNT), batchFromDirector(), new Logger(getClass(), Logger.INFO), null);
         smtpServer.awaitQuiet();
 
         List<String> summaryRecipients = smtpServer.nonPatrollerRecipients();
@@ -118,7 +118,7 @@ class EmailServiceSmtpConnectionTest {
         smtpServer.rejectOnlyPatroller(5, "550 5.1.1 No such user here");
         EmailService service = new EmailService(mailSender());
 
-        service.sendBatch(recipients(RECIPIENT_COUNT), batch(), new Logger(getClass(), Logger.INFO));
+        service.sendBatch(recipients(RECIPIENT_COUNT), batch(), new Logger(getClass(), Logger.INFO), null);
         smtpServer.awaitQuiet();
 
         assertEquals(RECIPIENT_COUNT, smtpServer.patrollerMessagesAttempted.get(),

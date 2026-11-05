@@ -45,9 +45,15 @@ public class EmailService {
     @Autowired @Lazy
     private EmailService self;
 
-    /** Where a finished batch's outcome is left for the director to find. */
+    /**
+     * Where a batch's progress and outcome are left for the director to find.
+     *
+     * <p>Initialised as well as injected: EmailServiceSmtpConnectionTest constructs this service
+     * directly to count SMTP logins, so field injection never runs there. A throwaway log records
+     * into nothing, which is right for that test and saves a null check at every use.
+     */
     @Autowired
-    private EmailBatchLog batchLog;
+    private EmailBatchLog batchLog = new EmailBatchLog();
 
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
@@ -59,14 +65,21 @@ public class EmailService {
      * @param form Email composition form data
      * @param patrolData Patrol data accessor
      * @param logger Logger instance
-     * @return number of recipients queued for delivery
+     * @return the registered batch, so the page that follows can report its progress. Never null
+     *         in production; a mocked EmailService returns null and callers must allow for it.
      */
-    public int sendEmailsAsync(EmailCompositionForm form, PatrolData patrolData, Logger logger) {
+    public EmailBatchLog.Send sendEmailsAsync(EmailCompositionForm form, PatrolData patrolData,
+                                              Logger logger) {
         List<EmailRecipient> recipients = resolveRecipients(form, patrolData);
+        Batch batch = buildBatch(form, patrolData, false);
 
-        self.sendBatch(recipients, buildBatch(form, patrolData, false), logger);
+        //registered on THIS thread, before the async dispatch, so the confirmation page rendered
+        //next can already find the batch and start reporting on it
+        EmailBatchLog.Send send = batchLog.start(batch.resort(), senderDescription(batch),
+                                                 batch.subject(), recipients.size());
+        self.sendBatch(recipients, batch, logger, send);
 
-        return recipients.size();
+        return send;
     }
 
     /**
@@ -82,15 +95,18 @@ public class EmailService {
      *
      * @param recipients who to send to; the form's patrollerIds are ignored
      */
-    public int sendEmailsAsync(EmailCompositionForm form, PatrolData patrolData, Logger logger,
-                               List<EmailRecipient> recipients) {
+    public EmailBatchLog.Send sendEmailsAsync(EmailCompositionForm form, PatrolData patrolData,
+                                              Logger logger, List<EmailRecipient> recipients) {
         // Call via self (the proxied instance) so @Async takes effect.
         // siteWide=true because this overload exists for exactly one caller - the cross-resort
         // director mailing. Should anything else ever need a pre-resolved list, this has to
         // become a parameter rather than stay an assumption.
-        self.sendBatch(recipients, buildBatch(form, patrolData, true), logger);
+        Batch batch = buildBatch(form, patrolData, true);
+        EmailBatchLog.Send send = batchLog.start(batch.resort(), senderDescription(batch),
+                                                 batch.subject(), recipients.size());
+        self.sendBatch(recipients, batch, logger, send);
 
-        return recipients.size();
+        return send;
     }
 
     /**
@@ -223,7 +239,8 @@ public class EmailService {
     }
 
     @Async("emailTaskExecutor")
-    void sendBatch(List<EmailRecipient> recipients, Batch batch, Logger logger) {
+    void sendBatch(List<EmailRecipient> recipients, Batch batch, Logger logger,
+                   EmailBatchLog.Send send) {
         String footer = buildFooter(batch, PatrolData.getResortFullName(batch.resort(), logger));
 
         boolean multipart = !batch.attachments().isEmpty();
@@ -242,6 +259,8 @@ public class EmailService {
                 try {
                     connection.send(compose(recipient, batch, footer, multipartMode));
                     outcome.recordSent();
+                    //raised as we go, so the confirmation page can count up live
+                    batchLog.recordSent(send);
 
                     logger.info("Email sent to " + recipient.getFullNameLastFirst() +
                                " at " + recipient.getEmailAddress() +
@@ -270,15 +289,10 @@ public class EmailService {
 
         logger.info("Batch complete: " + outcome.sent() + " of " + recipients.size() + " emails sent");
 
-        //Left where the director can see it. The confirmation page is rendered while this batch is
-        //still queued, so it cannot report an outcome; without this there is nowhere to find one,
-        //and the failure summary below cannot get out when the mail server is itself the fault.
-        if (batchLog != null) {
-            batchLog.record(batch.resort(),
-                            new EmailBatchLog.Entry(senderDescription(batch), batch.subject(),
-                                                    java.time.Instant.now(), recipients.size(),
-                                                    outcome.sent(), outcome.stopReason()));
-        }
+        //Marked finished where the director can see it. The confirmation page is rendered while
+        //this batch is still queued, so it cannot report an outcome itself - and the failure
+        //summary below cannot get out when the mail server is the fault.
+        batchLog.finish(send, outcome.stopReason());
 
         if (outcome.needsReporting()) {
             reportOutcome(batch, outcome, logger);

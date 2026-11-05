@@ -1029,30 +1029,47 @@ message, and ploughing on turns one problem into one failure per member. A `550 
 mailbox must *not* match, or one stale address would abandon everyone behind it in the list.
 **Widening that matcher is how you break the whole batch for one bad address.**
 
-**A director can now see whether a batch went out.** A send is `@Async`, so the confirmation page
-is rendered before the batch starts — and it used to say "Emails sent." and "N emails are being
-delivered." regardless. On 5 November a SoldierMountain director read exactly that while Gmail
-refused the login (`535-5.7.8 BadCredentials`) and **0 of 32** went out; the failure summary below
-could not be sent either, because the mail server was the fault. Nobody knew for a day and the 32
-were never resent.
+**The confirmation page counts the send up live.** A send is `@Async`, so that page is rendered
+before the batch starts — and it used to say "Emails sent." and "N emails are being delivered."
+regardless. On 5 November a SoldierMountain director read exactly that while Gmail refused the login
+(`535-5.7.8 BadCredentials`) and **0 of 32** went out; the failure summary that exists to catch this
+could not be sent either, because the mail server was the fault. Nobody knew for a day.
 
-`service/EmailBatchLog` records each finished batch — who sent it, the subject, queued vs actually
-accepted, and why it stopped — and the **Recent sends** panel at the foot of EmailForm shows it,
-opened by default when anything is incomplete. Times are in the resort's own zone. The confirmation
-page now claims only what it knows ("queued") and points at that panel.
+`service/EmailBatchLog` registers a batch **on the request thread before dispatch**, so the page
+rendered next can already ask about it, and raises the count as each message is accepted.
+`Send.describeStatus()` is the single source of the four phrasings — in progress, all sent, all
+failed, partly failed — so no two places can word the same state differently.
 
-**It is memory only, deliberately.** Persisting it means a new table on 45 resorts and a site-wide
-migration to create it, for information whose value is measured in hours. An empty panel therefore
-says "nothing recorded since the scheduling site last restarted", which is **not** the same claim as
-nothing having been sent — the wording is careful about that, and `theFormShowsTheRecentSendsPanel`
-asserts on it. `EmailBatchLog.record` is package-private so only `EmailService` can write; its test
-lives in the service package rather than widening the API.
+**Polling, not a meta-refresh.** `/EmailSendStatus` returns about a hundred bytes of JSON; the
+alternative re-renders the whole page and re-queries the header's custom menu buttons once every
+five seconds, sixty times for a five-minute wait, and cannot stop itself when the batch ends. The
+page stops the moment the send reports finished — seconds, for most batches — and after five
+minutes it stops asking and says so rather than leaving a stale "updates every 5 seconds" on
+screen. The note is removed from the DOM, not just ignored.
+
+Gated on a session logged in to that resort **and** on the batch belonging to it: the id is a random
+UUID, but a leaked one still must not read another resort's subject line. A batch that has aged out
+or was lost to a restart answers `found: false, finished: true`, so the page stops polling for
+something that will never appear.
+
+**It is a progress indicator, not a record**, and deliberately so — bounded at
+`EmailBatchLog.TRACKED` entries, memory only, and it does not outlive the send. A batch that fails
+is reported by the failure summary email. There was briefly a *Recent sends* panel on EmailForm as
+well; it came out once the live line and the summary email covered the same ground between them.
+**The gap that leaves** is a batch that fails while the director has closed the page *and* the mail
+server is too broken to send the summary — exactly the 5 November case. Retrying the summary is what
+closes that, and is not done.
+
+`EmailBatchLog.recordSent`/`finish`/`start` are package-private so only `EmailService` can write;
+`EmailSendProgressTest` lives in the service package rather than widening the API. The `batchLog`
+field is **initialised as well as `@Autowired`**, because `EmailServiceSmtpConnectionTest`
+constructs the service directly and field injection never runs there.
 
 Two things that bit: the explanatory HTML comment quotes the old wording, so
 `template.contains("emails are being delivered")` failed on the *comment* — the test strips
-comments first, the same trap CLAUDE.md records for EditShiftTemplates. And `/EmailForm` takes
-**`ID`**, not `fromPatrollerId`; the link added to the confirmation page had it wrong and only the
-render test caught it.
+comments first, the same trap recorded for EditShiftTemplates. And `/EmailForm` takes **`ID`**, not
+`fromPatrollerId`; the link added to the confirmation page had it wrong and only the render test
+caught it.
 
 **A batch that did not go out cleanly emails a summary** to the director who pressed Send (the
 `replyToEmail`, when they have a usable address) and to `ADMIN_NOTIFICATION_ADDRESS`, saying how

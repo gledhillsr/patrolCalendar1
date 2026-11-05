@@ -202,13 +202,18 @@ public class EmailFormController {
                 return FORM_VIEW;
             }
 
-            int queuedCount = isSiteDirectors(form.getAudience())
+            EmailBatchLog.Send queued = isSiteDirectors(form.getAudience())
                 ? emailService.sendEmailsAsync(form, patrolData, LOG,
                                                selectedDirectors(form, sessionData, LOG))
                 : emailService.sendEmailsAsync(form, patrolData, LOG);
 
             addPageChrome(model, resort, form.getFromPatrollerId(), LOG);
-            model.addAttribute("totalRecipients", queuedCount);
+            //null only when EmailService is mocked, which SiteDirectorsSendTest does: a valid POST
+            //against the real service would mail every director at every resort. The page then
+            //shows no live line rather than throwing.
+            model.addAttribute("totalRecipients", queued == null ? 0 : queued.queued());
+            model.addAttribute("batchId", queued == null ? null : queued.id());
+            model.addAttribute("sendStatus", queued == null ? null : queued.describeStatus());
 
             return "email-confirmation";
 
@@ -224,8 +229,6 @@ public class EmailFormController {
     private void populateForm(Model model, String resort, String patrollerId,
                               EmailFormRequest filter, String audience, SessionData sessionData,
                               PatrolData patrolData, Logger LOG) {
-        addRecentSends(model, resort, patrolData);
-
         List<EmailRecipient> recipients;
         if (isSiteDirectors(audience)) {
             recipients = siteDirectorsService.allDirectors(sessionData, LOG);
@@ -368,19 +371,6 @@ public class EmailFormController {
 
     private String asMegabytes(long bytes) {
         return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
-    }
-
-    /**
-     * What became of this resort's recent batches, for the panel at the foot of the form.
-     *
-     * <p>A send is {@code @Async}, so the confirmation page cannot report an outcome - this is the
-     * only place a director can find out whether their email actually went out. The times are
-     * rendered in the resort's own zone.
-     */
-    private void addRecentSends(Model model, String resort, PatrolData patrolData) {
-        model.addAttribute("recentSends", batchLog.recent(resort));
-        model.addAttribute("anyIncompleteSends", batchLog.anyIncomplete(resort));
-        model.addAttribute("resortZone", ResortTimeZones.inForce(resort, patrolData.readDirectorSettings()));
     }
 
     /** Everything the shared header fragment needs. */

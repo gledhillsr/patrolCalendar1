@@ -3,36 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="'Email Queued - ' + ${resortFullName}">Email Queued</title>
+    <title th:text="'Sending Email - ' + ${resortFullName}">Sending Email</title>
     <th:block th:replace="~{fragments/head :: icons}"></th:block>
+    <style>
+        .send-status {
+            max-width: 900px;
+            margin: 16px auto;
+            padding: 12px 16px;
+            border-radius: 6px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1e40af;
+            font-size: 1.05em;
+            font-weight: bold;
+        }
+        .send-status.done-well { border-color: #bbf7d0; background: #f0fdf4; color: #15803d; }
+        .send-status.done-badly { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+        /* The "updates every few seconds" note is removed from the DOM once polling stops, so it
+           cannot sit there claiming something that is no longer happening. */
+        .send-status .refresh-note { display: block; font-weight: normal; font-size: 0.85em;
+                                     margin-top: 4px; opacity: 0.8; }
+        .send-detail { max-width: 900px; margin: 0 auto; }
+    </style>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
-    <!-- This page used to say "Emails sent." and "N emails are being delivered." It knows
-         neither: the send is @Async and has not started when this renders. A SoldierMountain
-         director read exactly that while Gmail refused the login and none of 32 went out. -->
-    <h2>Your message has been queued.</h2>
+    <!-- This page used to assert that the mail had gone: a heading reading "Emails sent" plus a
+         count of what was "being delivered". It knows neither - the send is @Async and has not
+         started when this renders. A SoldierMountain director read that while Gmail refused the
+         login and none of 32 went out. The line below now reports what is actually happening,
+         counting up as the batch progresses. -->
+    <h2 th:text="${batchId != null} ? 'Sending your email' : 'Your message has been queued'">
+        Sending your email</h2>
 
-    <p>
-        <b><span th:text="${totalRecipients}">0</span></b> recipient(s) have been handed to the
-        mail server, which delivers them in the background. This page cannot tell you how many
-        arrived &mdash; the sending has not finished yet.
-    </p>
-    <p>
-        <b>To check it went out</b>, go back to
-        <a th:href="@{/EmailForm(resort=${resort},ID=${patrollerId})}">E-mail Patrollers</a>
-        in a minute or two. The <i>Recent sends</i> list at the foot of that page shows how many of
-        each batch the mail server actually accepted.
-    </p>
-    <p>
-        If any of them fail you will also be emailed a summary &mdash; though not if the mail
-        server itself is the problem, which is why the list above is worth a look.
-    </p>
+    <div class="send-detail">
+        <div id="sendStatus" class="send-status"
+             th:text="${sendStatus} ?: 'Your message has been handed to the mail server.'">
+            Email sending in progress
+            <span class="refresh-note" id="refreshNote">(this message updates every few seconds)</span>
+        </div>
 
-    <p>
-        <a th:href="@{/MonthCalendar(resort=${resort},ID=${patrollerId})}">Return to Calendar</a>
-    </p>
+        <p>
+            <b><span th:text="${totalRecipients}">0</span></b> recipient(s) were handed to the mail
+            server. You can leave this page if you like &mdash; the sending carries on either way,
+            and <b>if any of them fail you will be emailed a summary</b>.
+        </p>
+
+        <p>
+            <a th:href="@{/MonthCalendar(resort=${resort},ID=${patrollerId})}">Return to Calendar</a>
+        </p>
+    </div>
+
+    <!-- Polling, not a meta-refresh: a hundred bytes instead of re-rendering the whole page and
+         re-querying the header's menu buttons sixty times, and it can stop the instant the batch
+         finishes - which for most sends is seconds, not minutes. -->
+    <script th:if="${batchId != null}" th:inline="javascript">
+        (function () {
+            var url = /*[[@{/EmailSendStatus}]]*/ '/EmailSendStatus'
+                      + '?resort=' + encodeURIComponent(/*[[${resort}]]*/ '')
+                      + '&batch=' + encodeURIComponent(/*[[${batchId}]]*/ '');
+            var box = document.getElementById('sendStatus');
+            var EVERY = 5000;
+            var GIVE_UP_AFTER = 5 * 60 * 1000;
+            var startedAt = Date.now();
+
+            function note(text) {
+                var span = document.createElement('span');
+                span.className = 'refresh-note';
+                span.textContent = text;
+                box.appendChild(span);
+            }
+
+            function paint(data, stillPolling) {
+                box.textContent = data.status;
+                box.classList.remove('done-well', 'done-badly');
+                if (data.finished) {
+                    box.classList.add(data.cleanly ? 'done-well' : 'done-badly');
+                }
+                if (stillPolling) {
+                    note('(this message updates every ' + (EVERY / 1000) + ' seconds)');
+                }
+            }
+
+            function poll() {
+                fetch(url, { headers: { 'Accept': 'application/json' } })
+                  .then(function (r) { return r.ok ? r.json() : null; })
+                  .then(function (data) {
+                      if (!data) {
+                          return; //a blip; the next tick tries again
+                      }
+                      var timedOut = (Date.now() - startedAt) > GIVE_UP_AFTER;
+                      var keepGoing = !data.finished && !timedOut;
+                      paint(data, keepGoing);
+
+                      if (keepGoing) {
+                          setTimeout(poll, EVERY);
+                      }
+                      else if (!data.finished) {
+                          //still running after five minutes: stop asking, and say so rather than
+                          //leaving a stale "updates every 5 seconds" on screen
+                          note('(still sending - reload this page to check again)');
+                      }
+                  })
+                  .catch(function () { setTimeout(poll, EVERY); });
+            }
+
+            poll();
+        })();
+    </script>
 
     <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
