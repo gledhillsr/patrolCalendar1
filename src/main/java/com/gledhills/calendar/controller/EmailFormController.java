@@ -3,6 +3,7 @@ package com.gledhills.calendar.controller;
 import com.gledhills.calendar.dto.EmailCompositionForm;
 import com.gledhills.calendar.dto.EmailFormRequest;
 import com.gledhills.calendar.dto.EmailRecipient;
+import com.gledhills.calendar.service.EmailBatchLog;
 import com.gledhills.calendar.service.EmailService;
 import com.gledhills.calendar.service.PatrolMemberFilterService;
 import com.gledhills.calendar.service.ShiftAssignmentService;
@@ -54,15 +55,18 @@ public class EmailFormController {
     private final ShiftAssignmentService shiftAssignmentService;
     private final EmailService emailService;
     private final SiteDirectorsService siteDirectorsService;
+    private final EmailBatchLog batchLog;
 
     public EmailFormController(PatrolMemberFilterService filterService,
                               ShiftAssignmentService shiftAssignmentService,
                               EmailService emailService,
-                              SiteDirectorsService siteDirectorsService) {
+                              SiteDirectorsService siteDirectorsService,
+                              EmailBatchLog batchLog) {
         this.filterService = filterService;
         this.shiftAssignmentService = shiftAssignmentService;
         this.emailService = emailService;
         this.siteDirectorsService = siteDirectorsService;
+        this.batchLog = batchLog;
     }
 
     /**
@@ -220,6 +224,8 @@ public class EmailFormController {
     private void populateForm(Model model, String resort, String patrollerId,
                               EmailFormRequest filter, String audience, SessionData sessionData,
                               PatrolData patrolData, Logger LOG) {
+        addRecentSends(model, resort, patrolData);
+
         List<EmailRecipient> recipients;
         if (isSiteDirectors(audience)) {
             recipients = siteDirectorsService.allDirectors(sessionData, LOG);
@@ -362,6 +368,19 @@ public class EmailFormController {
 
     private String asMegabytes(long bytes) {
         return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+    }
+
+    /**
+     * What became of this resort's recent batches, for the panel at the foot of the form.
+     *
+     * <p>A send is {@code @Async}, so the confirmation page cannot report an outcome - this is the
+     * only place a director can find out whether their email actually went out. The times are
+     * rendered in the resort's own zone.
+     */
+    private void addRecentSends(Model model, String resort, PatrolData patrolData) {
+        model.addAttribute("recentSends", batchLog.recent(resort));
+        model.addAttribute("anyIncompleteSends", batchLog.anyIncomplete(resort));
+        model.addAttribute("resortZone", ResortTimeZones.inForce(resort, patrolData.readDirectorSettings()));
     }
 
     /** Everything the shared header fragment needs. */

@@ -45,6 +45,10 @@ public class EmailService {
     @Autowired @Lazy
     private EmailService self;
 
+    /** Where a finished batch's outcome is left for the director to find. */
+    @Autowired
+    private EmailBatchLog batchLog;
+
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
@@ -266,6 +270,16 @@ public class EmailService {
 
         logger.info("Batch complete: " + outcome.sent() + " of " + recipients.size() + " emails sent");
 
+        //Left where the director can see it. The confirmation page is rendered while this batch is
+        //still queued, so it cannot report an outcome; without this there is nowhere to find one,
+        //and the failure summary below cannot get out when the mail server is itself the fault.
+        if (batchLog != null) {
+            batchLog.record(batch.resort(),
+                            new EmailBatchLog.Entry(senderDescription(batch), batch.subject(),
+                                                    java.time.Instant.now(), recipients.size(),
+                                                    outcome.sent(), outcome.stopReason()));
+        }
+
         if (outcome.needsReporting()) {
             reportOutcome(batch, outcome, logger);
         }
@@ -317,6 +331,17 @@ public class EmailService {
      * Without this nobody finds out: the confirmation page reports how many recipients were
      * *queued*, and the failures only ever reached the server log.
      */
+    /** Whoever pressed Send, for the record EmailForm shows. Falls back to the From address. */
+    private static String senderDescription(Batch batch) {
+        if (batch.fromMember() != null) {
+            String name = batch.fromMember().getFullName();
+            if (name != null && !name.isBlank()) {
+                return name.trim();
+            }
+        }
+        return batch.fromEmail() == null ? "(unknown)" : batch.fromEmail();
+    }
+
     private void reportOutcome(Batch batch, BatchOutcome outcome, Logger logger) {
         List<String> to = new ArrayList<>();
         to.add(ADMIN_NOTIFICATION_ADDRESS);
@@ -368,6 +393,10 @@ public class EmailService {
 
         void stopEarly(String reason) {
             stopReason = reason;
+        }
+
+        String stopReason() {
+            return stopReason;
         }
 
         int total() {

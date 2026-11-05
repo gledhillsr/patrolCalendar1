@@ -290,6 +290,61 @@
     </div><!-- /#main -->
 
     <!-- Reuse footer fragment -->
+    <!-- Did my email actually go out?
+         A send is @Async, so the confirmation page is rendered before the batch starts and cannot
+         answer that - it used to claim "Emails sent" regardless. This is the only place the
+         answer lives. Memory only: an empty list means nothing has been sent since the
+         application last restarted, which the wording below is careful not to confuse with
+         nothing having been sent at all. -->
+    <details class="recent-sends" th:attr="open=${anyIncompleteSends} ? 'open' : null"
+             style="max-width:900px; margin:24px auto; border:1px solid #ccc; border-radius:6px;
+                    padding:10px 14px; background:#fff;">
+        <summary style="cursor:pointer; font-weight:bold; color:#003366;">
+            Recent sends
+            <span th:if="${anyIncompleteSends}" style="color:#b91c1c;">
+                &mdash; one or more did not go out in full
+            </span>
+        </summary>
+
+        <p th:if="${#lists.isEmpty(recentSends)}" style="color:#555; margin:8px 0 0 0;">
+            No sends recorded since the scheduling site last restarted. That is not the same as
+            nothing having been sent &mdash; this list is kept in memory only.
+        </p>
+
+        <table th:unless="${#lists.isEmpty(recentSends)}"
+               style="border-collapse:collapse; margin-top:8px; width:100%; font-size:0.95em;">
+            <tr style="text-align:left; border-bottom:1px solid #ccc;">
+                <th style="padding:4px 8px;">When</th>
+                <th style="padding:4px 8px;">Sent by</th>
+                <th style="padding:4px 8px;">Subject</th>
+                <th style="padding:4px 8px;">Delivered</th>
+            </tr>
+            <tr th:each="send : ${recentSends}"
+                th:style="${send.wentOutCleanly()} ? 'border-bottom:1px solid #eee;'
+                          : 'border-bottom:1px solid #eee; background:#fef2f2;'">
+                <td style="padding:4px 8px; white-space:nowrap;"
+                    th:text="${send.describeWhen(resortZone)}">1 Jan, 9:00am</td>
+                <td style="padding:4px 8px;" th:text="${send.sender()}">Name</td>
+                <td style="padding:4px 8px;" th:text="${send.subject()}">Subject</td>
+                <td style="padding:4px 8px; white-space:nowrap;">
+                    <span th:text="${send.sent()} + ' of ' + ${send.queued()}">0 of 0</span>
+                    <!-- The case this panel exists for: the mail server refused the sender, so
+                         nothing after that point was even attempted. -->
+                    <b th:if="${send.stoppedEarly()}" style="color:#b91c1c;">
+                        &mdash; stopped: <span th:text="${send.stopReason()}">reason</span>
+                    </b>
+                    <b th:if="${!send.wentOutCleanly() and !send.stoppedEarly()}" style="color:#b91c1c;"
+                       th:text="'&mdash; ' + ${send.notDelivered()} + ' failed'">failed</b>
+                </td>
+            </tr>
+        </table>
+
+        <p style="color:#555; margin:8px 0 0 0;">
+            A batch that did not go out in full also emails a summary to whoever sent it &mdash;
+            but not when the mail server itself is the problem, which is when this list matters.
+        </p>
+    </details>
+
     <div th:replace="~{fragments/footer :: footer}"></div>
 </body>
 </html>

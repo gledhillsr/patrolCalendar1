@@ -98,8 +98,8 @@ public class PatrolData {
 //    resortMap.put("BigRock", new ResortData("BigRock", "BigRock", "null", "https://www.bigrockmaine.com",
 //                                            "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     //note Black River Basin was BlackjackMountain
-    resortMap.put("BlackjackMountain",
-                  new ResortData("BlackjackMountain", "Black River Basin", "Teagan.knudson@snowriver.com",
+    resortMap.put("BlackjackMountain", //"Black River Basin"
+                  new ResortData("BlackjackMountain", "Black River Basin", "molly.sanders@snowriver.com",
                                  "http://www.snowriver.com", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("BlackMountain", new ResortData("BlackMountain", "Black Mountain", null, "http://www.blackmt.com",
                                                   "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 142));
@@ -140,8 +140,8 @@ public class PatrolData {
                                                 "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("IFNordic",
                   new ResortData("IFNordic", "IF Nordic", null, "", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
-    resortMap.put("IndianHeadMountain",
-                  new ResortData("IndianHeadMountain", "Jackson Creek Summit", "Teagan.knudson@snowriver.com",
+    resortMap.put("IndianHeadMountain", //"Jackson Creek Summit"
+                  new ResortData("IndianHeadMountain", "Jackson Creek Summit", "molly.sanders@snowriver.com",
                                  "http://www.snowriver.com", "/calendar-1/images/Coldbarnstar.png", IMG_HEIGHT, 80));
     resortMap.put("KellyCanyon", new ResortData("KellyCanyon", "Kelly Canyon", null, "https://kellycanyonskipatrol.com/",
                                                 "/calendar-1/images/KellyCanyonSkiPatrol.png", IMG_HEIGHT, 80));

@@ -1029,6 +1029,31 @@ message, and ploughing on turns one problem into one failure per member. A `550 
 mailbox must *not* match, or one stale address would abandon everyone behind it in the list.
 **Widening that matcher is how you break the whole batch for one bad address.**
 
+**A director can now see whether a batch went out.** A send is `@Async`, so the confirmation page
+is rendered before the batch starts — and it used to say "Emails sent." and "N emails are being
+delivered." regardless. On 5 November a SoldierMountain director read exactly that while Gmail
+refused the login (`535-5.7.8 BadCredentials`) and **0 of 32** went out; the failure summary below
+could not be sent either, because the mail server was the fault. Nobody knew for a day and the 32
+were never resent.
+
+`service/EmailBatchLog` records each finished batch — who sent it, the subject, queued vs actually
+accepted, and why it stopped — and the **Recent sends** panel at the foot of EmailForm shows it,
+opened by default when anything is incomplete. Times are in the resort's own zone. The confirmation
+page now claims only what it knows ("queued") and points at that panel.
+
+**It is memory only, deliberately.** Persisting it means a new table on 45 resorts and a site-wide
+migration to create it, for information whose value is measured in hours. An empty panel therefore
+says "nothing recorded since the scheduling site last restarted", which is **not** the same claim as
+nothing having been sent — the wording is careful about that, and `theFormShowsTheRecentSendsPanel`
+asserts on it. `EmailBatchLog.record` is package-private so only `EmailService` can write; its test
+lives in the service package rather than widening the API.
+
+Two things that bit: the explanatory HTML comment quotes the old wording, so
+`template.contains("emails are being delivered")` failed on the *comment* — the test strips
+comments first, the same trap CLAUDE.md records for EditShiftTemplates. And `/EmailForm` takes
+**`ID`**, not `fromPatrollerId`; the link added to the confirmation page had it wrong and only the
+render test caught it.
+
 **A batch that did not go out cleanly emails a summary** to the director who pressed Send (the
 `replyToEmail`, when they have a usable address) and to `ADMIN_NOTIFICATION_ADDRESS`, saying how
 many got through, why it stopped, how many were never attempted, and which addresses failed. This

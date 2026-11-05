@@ -3,16 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="'Emails Sent - ' + ${resortFullName}">Emails Sent</title>
+    <title th:text="'Email Queued - ' + ${resortFullName}">Email Queued</title>
     <th:block th:replace="~{fragments/head :: icons}"></th:block>
 </head>
 <body topmargin="0" leftmargin="0" style="background-image: url(/calendar-1/images/ncmnthbk.jpg)">
     <div th:replace="~{fragments/header :: header(resort=${resort}, resortFullName=${resortFullName}, patrollerId=${patrollerId})}"></div>
 
-    <h2>Emails sent.</h2>
+    <!-- This page used to say "Emails sent." and "N emails are being delivered." It knows
+         neither: the send is @Async and has not started when this renders. A SoldierMountain
+         director read exactly that while Gmail refused the login and none of 32 went out. -->
+    <h2>Your message has been queued.</h2>
 
-    <p>Your emails are being sent in background.</p>
-    <p><span th:text="${totalRecipients}"></span> emails are being delivered.</p>
+    <p>
+        <b><span th:text="${totalRecipients}">0</span></b> recipient(s) have been handed to the
+        mail server, which delivers them in the background. This page cannot tell you how many
+        arrived &mdash; the sending has not finished yet.
+    </p>
+    <p>
+        <b>To check it went out</b>, go back to
+        <a th:href="@{/EmailForm(resort=${resort},ID=${patrollerId})}">E-mail Patrollers</a>
+        in a minute or two. The <i>Recent sends</i> list at the foot of that page shows how many of
+        each batch the mail server actually accepted.
+    </p>
+    <p>
+        If any of them fail you will also be emailed a summary &mdash; though not if the mail
+        server itself is the problem, which is why the list above is worth a look.
+    </p>
 
     <p>
         <a th:href="@{/MonthCalendar(resort=${resort},ID=${patrollerId})}">Return to Calendar</a>
